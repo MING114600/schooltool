@@ -77,7 +77,7 @@ const DEFAULT_SPECIAL_BUTTONS = [
   { id: 4, label: '電腦教室', message: '全班在電腦教室', sub: '資訊課程', color: 'from-indigo-500 to-blue-500' },
   { id: 5, label: '晨間閱讀', message: '晨間閱讀', sub: '請安靜閱讀', color: 'from-amber-900 to-orange-950', type: 'dark', icon: 'book' },
   { id: 6, label: '午休', message: '午休時間', sub: '請趴下休息', color: 'from-indigo-950 to-slate-900', type: 'dark', icon: 'moon' },
-  { id: 99, label: '自訂', message: '', sub: '', color: 'from-pink-500 to-rose-500', type: 'input', icon: 'megaphone' },
+  { id: 99, label: '自訂廣播', message: '', sub: '', color: 'from-pink-500 to-rose-500', type: 'input', icon: 'megaphone' },
 ];
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
@@ -141,14 +141,17 @@ const QuietModeView = ({ title, subtext, icon: IconComponent, centerContent, onC
 const ToolsModal = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState('timer'); // timer | random
   
+  // Timer State
   const [timeLeft, setTimeLeft] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [customMinutes, setCustomMinutes] = useState(''); // 自訂時間狀態
   
+  // Random Picker State
   const [studentCount, setStudentCount] = useState(30);
   const [pickedNumber, setPickedNumber] = useState(null);
   const [isRolling, setIsRolling] = useState(false);
 
+  // Timer Logic
   useEffect(() => {
     let interval;
     if (isTimerRunning && timeLeft > 0) {
@@ -170,6 +173,7 @@ const ToolsModal = ({ isOpen, onClose }) => {
     setIsTimerRunning(true);
   };
 
+  // Random Picker Logic
   const handlePick = () => {
     if (isRolling) return;
     setIsRolling(true);
@@ -525,8 +529,6 @@ const SettingsModal = ({
         </div>
         
         <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50">
-          {/* ... (其他設定區塊省略，保持不變) ... */}
-          
           <SettingsSection 
             title="一般設定" 
             icon={Wrench} 
@@ -554,8 +556,6 @@ const SettingsModal = ({
              </div>
           </SettingsSection>
 
-          {/* ... (其他設定區塊) ... */}
-          
           <SettingsSection 
             title="全天/半天設定" 
             icon={Calendar} 
@@ -585,10 +585,7 @@ const SettingsModal = ({
                半天課模式：第五節後放學，大下課自動改為打掃時間。
              </p>
           </SettingsSection>
-          
-          {/* ... (其餘設定區塊保持不變，為節省空間，請參照上一版內容，但確保 <SettingsModal> 結構完整) ... */}
-          {/* 為確保完整性，我會將其他區塊簡化但保留結構 */}
-          
+
           <SettingsSection 
             title="課表設定 (使用已建立的科目)" 
             icon={BookOpen} 
@@ -596,14 +593,15 @@ const SettingsModal = ({
             onToggle={() => toggleSection('schedule')}
             colorClass="text-blue-600"
           >
-              <div className="mb-4 bg-blue-50 border border-blue-100 p-3 rounded-xl flex items-start gap-2 text-sm text-blue-700">
+            <div className="mb-4 bg-blue-50 border border-blue-100 p-3 rounded-xl flex items-start gap-2 text-sm text-blue-700">
               <AlertCircle size={18} className="shrink-0 mt-0.5" />
               <div>
                 <span className="font-bold">操作提示：</span>
                 請使用下拉選單選擇科目。若選單中沒有您要的科目，請先至下方的「科目提示詞與管理」新增該科目。
               </div>
             </div>
-             <div className="grid grid-cols-6 gap-2 text-sm text-center mb-2 font-bold bg-slate-100 p-3 rounded-xl text-slate-600">
+
+            <div className="grid grid-cols-6 gap-2 text-sm text-center mb-2 font-bold bg-slate-100 p-3 rounded-xl text-slate-600">
               <div>節次</div>
               {Object.keys(schedule).map(day => <div key={day}>週{WEEKDAYS[day]}</div>)}
             </div>
@@ -643,7 +641,7 @@ const SettingsModal = ({
             onToggle={() => toggleSection('hints')}
             colorClass="text-emerald-600"
           >
-              <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl mb-6 flex gap-3 items-center">
+             <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl mb-6 flex gap-3 items-center">
                 <div className="font-bold text-emerald-800 whitespace-nowrap">新增科目：</div>
                 <input 
                   value={newSubjectName}
@@ -659,7 +657,8 @@ const SettingsModal = ({
                   <Plus size={18} /> 新增
                 </button>
              </div>
-             <div className="grid grid-cols-1 gap-3">
+
+            <div className="grid grid-cols-1 gap-3">
               <div className="grid grid-cols-12 gap-2 text-xs font-bold text-slate-400 px-2 uppercase tracking-wider">
                 <div className="col-span-3">科目名稱 (可編輯)</div>
                 <div className="col-span-8">準備事項 / 提醒詞</div>
@@ -714,7 +713,7 @@ const SettingsModal = ({
               💡 提示：直接點擊「科目名稱」即可修改。修改後，課表中的相關課程會自動更新名稱。
             </p>
           </SettingsSection>
-          
+
           <SettingsSection 
             title="系統維護 (備份/還原/測試)" 
             icon={Save} 
@@ -722,7 +721,7 @@ const SettingsModal = ({
             onToggle={() => toggleSection('maintenance')}
             colorClass="text-slate-500"
           >
-            <div className="space-y-6">
+             <div className="space-y-6">
                 <div className="bg-slate-100 p-4 rounded-xl border border-slate-200">
                   <div className="flex flex-wrap items-center gap-4">
                      <span className="font-bold text-slate-700">模擬現在時間：</span>
@@ -886,7 +885,7 @@ const ControlDock = ({
   const isDark = statusMode === 'off-hours';
   
   return (
-    <div className={`absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-3 rounded-2xl shadow-2xl border flex items-center gap-3 z-50 transition-all hover:scale-105 backdrop-blur-md ${isDark ? 'bg-slate-800/90 border-slate-700' : 'bg-white/90 border-white/50'}`}>
+    <div className={`absolute bottom-6 left-1/2 -translate-x-1/2 px-3 py-2 rounded-2xl shadow-2xl border flex items-center gap-2 whitespace-nowrap z-50 transition-all hover:scale-105 backdrop-blur-md max-w-[95vw] overflow-x-auto no-scrollbar ${isDark ? 'bg-slate-800/90 border-slate-700' : 'bg-white/90 border-white/50'}`}>
       {specialButtons.map(btn => (
         <button 
           key={btn.id} 
@@ -898,21 +897,21 @@ const ControlDock = ({
               setSpecialStatus(btn);
             }
           }} 
-          className={`px-4 py-3 rounded-xl font-bold text-white text-sm shadow-sm transition-all hover:-translate-y-1 bg-gradient-to-br ${btn.color}`}
+          className={`px-3 py-2 rounded-xl font-bold text-white text-sm shadow-sm transition-all hover:-translate-y-1 bg-gradient-to-br shrink-0 ${btn.color}`}
         >
           {btn.label}
         </button>
       ))}
-      <div className={`w-px h-8 mx-2 ${isDark ? 'bg-slate-600' : 'bg-slate-300'}`}></div>
-      <button onClick={(e) => { e.stopPropagation(); setIsManualEco(true); }} className={`p-3 rounded-xl transition-colors ${isDark ? 'text-slate-400 hover:text-white hover:bg-slate-700' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50'}`} title="時鐘模式 (省電)"><Clock size={24} /></button>
+      <div className={`w-px h-6 mx-1 shrink-0 ${isDark ? 'bg-slate-600' : 'bg-slate-300'}`}></div>
+      <button onClick={(e) => { e.stopPropagation(); setIsManualEco(true); }} className={`p-2 rounded-xl transition-colors shrink-0 ${isDark ? 'text-slate-400 hover:text-white hover:bg-slate-700' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50'}`} title="時鐘模式 (省電)"><Clock size={20} /></button>
       <button 
         onClick={toggleFullScreen}
-        className={`p-3 rounded-xl transition-colors ${isDark ? 'text-slate-400 hover:text-white hover:bg-slate-700' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50'}`}
+        className={`p-2 rounded-xl transition-colors shrink-0 ${isDark ? 'text-slate-400 hover:text-white hover:bg-slate-700' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50'}`}
         title={isFullscreen ? "退出全螢幕" : "全螢幕模式"}
       >
-        {isFullscreen ? <Minimize size={24} /> : <Maximize size={24} />}
+        {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
       </button>
-      <button onClick={() => setShowSettings(true)} className={`p-3 rounded-xl shadow-lg transition-colors ${isDark ? 'bg-slate-700 text-white hover:bg-slate-600' : 'bg-slate-800 text-white hover:bg-slate-700'}`}><Settings size={24} /></button>
+      <button onClick={() => setShowSettings(true)} className={`p-2 rounded-xl shadow-lg transition-colors shrink-0 ${isDark ? 'bg-slate-700 text-white hover:bg-slate-600' : 'bg-slate-800 text-white hover:bg-slate-700'}`}><Settings size={20} /></button>
     </div>
   );
 };
@@ -1270,13 +1269,14 @@ const App = () => {
     const isCleaning = currentSlot && (currentSlot.name.includes('打掃') || currentSlot.id === 'cleaning');
     const isLunch = currentSlot && currentSlot.name.includes('午餐');
     
+    // 自動排程的午休模式：如果沒有被手動關閉，顯示全螢幕覆蓋
     if (isNap && !dismissedNap) {
       return (
         <QuietModeView 
           title="午休時間"
           subtext="Shhh... 請保持安靜，好好休息"
           icon={Moon}
-          onClose={() => setDismissedNap(true)} 
+          onClose={() => setDismissedNap(true)} // 點擊關閉，暫時解除全螢幕，回到主畫面
           centerContent={
              <div className="flex flex-col items-center">
                  <div className="text-8xl font-mono font-bold text-slate-200 drop-shadow-2xl">
@@ -1529,4 +1529,3 @@ const App = () => {
 };
 
 export default App;
-
