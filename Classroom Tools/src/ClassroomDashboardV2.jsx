@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Settings, Clock, MapPin, Coffee, BookOpen, Volume2, Edit3, X, Save, RefreshCw, Bell, Wrench, Calendar, Sun, Sunset, ChevronDown, ChevronRight, Moon, Star, Download, Upload, Monitor, Maximize, Minimize, Plus, Trash2, AlertCircle, BedDouble, Box, Play, Pause, RotateCcw, Shuffle } from 'lucide-react';
+import { Settings, Clock, MapPin, Coffee, BookOpen, Volume2, Edit3, X, Save, RefreshCw, Bell, Wrench, Calendar, Sun, Sunset, ChevronDown, ChevronRight, Moon, Star, Download, Upload, Monitor, Maximize, Minimize, Plus, Trash2, AlertCircle, BedDouble, Box, Play, Pause, RotateCcw, Shuffle, Megaphone } from 'lucide-react';
 
 // --- 預設資料 ---
 const DEFAULT_TIME_SLOTS = [
@@ -77,6 +77,7 @@ const DEFAULT_SPECIAL_BUTTONS = [
   { id: 4, label: '電腦教室', message: '全班在電腦教室', sub: '資訊課程', color: 'from-indigo-500 to-blue-500' },
   { id: 5, label: '晨間閱讀', message: '晨間閱讀', sub: '請安靜閱讀', color: 'from-amber-900 to-orange-950', type: 'dark', icon: 'book' },
   { id: 6, label: '午休', message: '午休時間', sub: '請趴下休息', color: 'from-indigo-950 to-slate-900', type: 'dark', icon: 'moon' },
+  { id: 99, label: '自訂廣播', message: '', sub: '', color: 'from-pink-500 to-rose-500', type: 'input', icon: 'megaphone' },
 ];
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
@@ -140,17 +141,14 @@ const QuietModeView = ({ title, subtext, icon: IconComponent, centerContent, onC
 const ToolsModal = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState('timer'); // timer | random
   
-  // Timer State
   const [timeLeft, setTimeLeft] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [customMinutes, setCustomMinutes] = useState(''); // 自訂時間狀態
   
-  // Random Picker State
   const [studentCount, setStudentCount] = useState(30);
   const [pickedNumber, setPickedNumber] = useState(null);
   const [isRolling, setIsRolling] = useState(false);
 
-  // Timer Logic
   useEffect(() => {
     let interval;
     if (isTimerRunning && timeLeft > 0) {
@@ -172,7 +170,6 @@ const ToolsModal = ({ isOpen, onClose }) => {
     setIsTimerRunning(true);
   };
 
-  // Random Picker Logic
   const handlePick = () => {
     if (isRolling) return;
     setIsRolling(true);
@@ -228,7 +225,6 @@ const ToolsModal = ({ isOpen, onClose }) => {
                  <button onClick={() => startTimer(10)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 font-bold">10分鐘</button>
                </div>
 
-                {/* 自訂時間 */}
                <div className="flex gap-2 mb-8 items-center bg-slate-50 p-2 rounded-xl border border-slate-100 shadow-sm">
                   <span className="text-slate-500 font-bold text-sm pl-2">自訂：</span>
                   <input 
@@ -307,7 +303,72 @@ const ToolsModal = ({ isOpen, onClose }) => {
   );
 };
 
-// ... SettingsModal ...
+// --- 廣播輸入 Modal ---
+const BroadcastInputModal = ({ isOpen, onClose, onConfirm }) => {
+  const [title, setTitle] = useState(() => localStorage.getItem('lastBroadcastTitle') || '');
+  const [sub, setSub] = useState(() => localStorage.getItem('lastBroadcastSub') || '');
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl p-8 animate-in zoom-in-95 duration-200">
+        <h2 className="text-2xl font-bold mb-6 text-slate-800 flex items-center gap-2">
+          <Megaphone className="text-pink-500" />
+          發布自訂廣播
+        </h2>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-bold text-slate-500 mb-1">主標題</label>
+            <input 
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full p-3 border-2 border-slate-200 rounded-xl focus:border-pink-500 focus:outline-none text-lg font-bold"
+              placeholder="例如：全班集合"
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-slate-500 mb-1">副標題 (選填)</label>
+            <input 
+              value={sub}
+              onChange={(e) => setSub(e.target.value)}
+              className="w-full p-3 border-2 border-slate-200 rounded-xl focus:border-pink-500 focus:outline-none"
+              placeholder="例如：請帶水壺至走廊"
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 mt-8">
+          <button 
+            onClick={onClose} 
+            className="px-6 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-100"
+          >
+            取消
+          </button>
+          <button 
+            onClick={() => {
+              if (title) {
+                onConfirm(title, sub);
+                localStorage.setItem('lastBroadcastTitle', title);
+                localStorage.setItem('lastBroadcastSub', sub);
+                onClose();
+              }
+            }}
+            className="px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all active:scale-95"
+          >
+            發布廣播
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ... SettingsModal, CircularProgress, MessageInput, ControlDock (這些保持不變，但需要與 App 一起呈現)
+// 注意：以下組件代碼需要完整保留，因為我需要提供一個完整的檔案
+
 const SettingsModal = ({ 
   isOpen, onClose, 
   timeSlots, setTimeSlots, 
@@ -803,7 +864,7 @@ const MessageInput = ({ isOpen, onClose, message, setMessage }) => {
   );
 };
 
-// --- ControlDock (App definition follows this) ---
+// --- ControlDock (Extracted Component) ---
 const ControlDock = ({ 
   statusMode, 
   specialButtons, 
@@ -812,7 +873,8 @@ const ControlDock = ({
   isFullscreen, 
   toggleFullScreen, 
   setShowSettings,
-  isAutoNapActive 
+  isAutoNapActive,
+  onBroadcastClick // New prop to open broadcast modal
 }) => {
   if (statusMode === 'eco' || statusMode === 'special' || isAutoNapActive) return null;
   const isDark = statusMode === 'off-hours';
@@ -820,7 +882,20 @@ const ControlDock = ({
   return (
     <div className={`absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-3 rounded-2xl shadow-2xl border flex items-center gap-3 z-50 transition-all hover:scale-105 backdrop-blur-md ${isDark ? 'bg-slate-800/90 border-slate-700' : 'bg-white/90 border-white/50'}`}>
       {specialButtons.map(btn => (
-        <button key={btn.id} onClick={() => setSpecialStatus(btn)} className={`px-4 py-3 rounded-xl font-bold text-white text-sm shadow-sm transition-all hover:-translate-y-1 bg-gradient-to-br ${btn.color}`}>{btn.label}</button>
+        <button 
+          key={btn.id} 
+          onClick={() => {
+            // Check for custom broadcast type
+            if (btn.type === 'input') {
+              onBroadcastClick();
+            } else {
+              setSpecialStatus(btn);
+            }
+          }} 
+          className={`px-4 py-3 rounded-xl font-bold text-white text-sm shadow-sm transition-all hover:-translate-y-1 bg-gradient-to-br ${btn.color}`}
+        >
+          {btn.label}
+        </button>
       ))}
       <div className={`w-px h-8 mx-2 ${isDark ? 'bg-slate-600' : 'bg-slate-300'}`}></div>
       <button onClick={(e) => { e.stopPropagation(); setIsManualEco(true); }} className={`p-3 rounded-xl transition-colors ${isDark ? 'text-slate-400 hover:text-white hover:bg-slate-700' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50'}`} title="時鐘模式 (省電)"><Clock size={24} /></button>
@@ -832,6 +907,100 @@ const ControlDock = ({
         {isFullscreen ? <Minimize size={24} /> : <Maximize size={24} />}
       </button>
       <button onClick={() => setShowSettings(true)} className={`p-3 rounded-xl shadow-lg transition-colors ${isDark ? 'bg-slate-700 text-white hover:bg-slate-600' : 'bg-slate-800 text-white hover:bg-slate-700'}`}><Settings size={24} /></button>
+    </div>
+  );
+};
+
+// --- TimelineSidebar (Extracted Component - Memoized) ---
+const SidebarHeader = ({ now, is24Hour, dayTypes }) => {
+  const rocYear = now.getFullYear() - 1911;
+  const month = (now.getMonth() + 1).toString().padStart(2, '0');
+  const dateNum = now.getDate().toString().padStart(2, '0');
+  const week = WEEKDAYS[now.getDay()];
+  const dayTypeLabel = dayTypes[now.getDay()] === 'full' ? '全天課' : '半天課';
+
+  return (
+    <div className="p-6 bg-gradient-to-br from-indigo-600 to-blue-700 text-white shadow-lg shrink-0">
+      <div className="text-4xl font-mono font-bold tracking-tight">
+        {now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: !is24Hour })}
+      </div>
+      <div className="text-blue-100 mt-2 text-sm font-medium flex flex-col gap-1">
+        <span>民國{rocYear}年{month}月{dateNum}日</span>
+        <div className="flex justify-between items-center">
+           <span>星期{week}</span>
+           <span className="px-2 py-0.5 bg-white/20 rounded-md text-xs border border-white/10 shadow-sm">{dayTypeLabel}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const SidebarList = React.memo(({ displaySlots, daySchedule, currentSlotId }) => {
+  const activeRef = useRef(null);
+
+  useEffect(() => {
+    if (activeRef.current) {
+      activeRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }
+  }, [currentSlotId]); 
+
+  return (
+    // Added 'no-scrollbar' class (style injected below in App)
+    <div className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth no-scrollbar">
+      {displaySlots.map((slot) => {
+        const subject = daySchedule[slot.id] || slot.name;
+        const isCurrent = currentSlotId === slot.id;
+        const isActive = isCurrent; 
+        return (
+          <div 
+            key={slot.id} 
+            ref={isActive ? activeRef : null}
+            className={`relative p-4 rounded-xl transition-all duration-500 ${isActive ? 'bg-blue-50 border-l-4 border-blue-600 shadow-md transform scale-105' : 'bg-slate-50 border-l-4 border-slate-200 opacity-60 grayscale'}`}
+          >
+            <div className="flex justify-between items-center text-xs text-slate-400 font-mono mb-1">
+              <span>{slot.start}</span><span>{slot.end}</span>
+            </div>
+            <div className={`text-lg font-bold truncate ${isActive ? 'text-slate-800' : 'text-slate-500'}`}>{subject || slot.name}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.currentSlotId === nextProps.currentSlotId &&
+    prevProps.daySchedule === nextProps.daySchedule &&
+    prevProps.displaySlots === nextProps.displaySlots
+  );
+});
+
+const TimelineSidebar = ({ 
+  now, 
+  schedule, 
+  activeTimeSlots, 
+  currentSlot, 
+  is24Hour, 
+  dayTypes 
+}) => {
+  const daySchedule = schedule[now.getDay()] || {};
+  const currentSlotId = currentSlot?.id;
+
+  const displaySlots = useMemo(() => activeTimeSlots.filter(s => 
+    (s.type === 'class' || ['morning', 'lunch', 'nap', 'cleaning'].includes(s.id)) && 
+    s.id !== 'lunch_prep'
+  ), [activeTimeSlots]);
+
+  return (
+    <div className="w-64 h-full bg-white/80 backdrop-blur-md border-r border-white/20 flex flex-col shadow-xl z-20">
+      <SidebarHeader now={now} is24Hour={is24Hour} dayTypes={dayTypes} />
+      <SidebarList 
+        displaySlots={displaySlots} 
+        daySchedule={daySchedule} 
+        currentSlotId={currentSlotId} 
+      />
     </div>
   );
 };
@@ -854,6 +1023,7 @@ const App = () => {
   const [isEditingMessage, setIsEditingMessage] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showTools, setShowTools] = useState(false); 
+  const [showBroadcastInput, setShowBroadcastInput] = useState(false); // New state for broadcast modal
   const [isFullscreen, setIsFullscreen] = useState(false); 
   
   const [now, setNow] = useState(new Date());
@@ -884,6 +1054,7 @@ const App = () => {
       if (e.key === 'Escape') {
         if (showSettings) setShowSettings(false);
         if (showTools) setShowTools(false);
+        if (showBroadcastInput) setShowBroadcastInput(false);
         if (specialStatus) setSpecialStatus(null);
         if (isEditingMessage) setIsEditingMessage(false);
         if (statusMode === 'break' && !dismissedNap) setDismissedNap(true);
@@ -891,7 +1062,7 @@ const App = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showSettings, showTools, specialStatus, isEditingMessage, dismissedNap, statusMode]);
+  }, [showSettings, showTools, showBroadcastInput, specialStatus, isEditingMessage, dismissedNap, statusMode]);
 
   const activeTimeSlots = useMemo(() => {
     const day = now.getDay();
@@ -1086,56 +1257,6 @@ const App = () => {
     return `民國${rocYear}年${month}月${day}日 星期${week} (${dayType})`;
   };
 
-  const TimelineSidebar = () => {
-    const day = now.getDay();
-    const daySchedule = schedule[day] || {};
-    const displaySlots = activeTimeSlots.filter(s => 
-      (s.type === 'class' || ['morning', 'lunch', 'nap', 'cleaning'].includes(s.id)) && 
-      s.id !== 'lunch_prep'
-    );
-
-    // Custom formatting for Sidebar to avoid ugly wrapping
-    const rocYear = now.getFullYear() - 1911;
-    const month = (now.getMonth() + 1).toString().padStart(2, '0');
-    const dateNum = now.getDate().toString().padStart(2, '0');
-    const week = WEEKDAYS[now.getDay()];
-    const dayTypeLabel = dayTypes[now.getDay()] === 'full' ? '全天課' : '半天課';
-
-    return (
-      <div className="w-64 h-full bg-white/80 backdrop-blur-md border-r border-white/20 flex flex-col shadow-xl z-20">
-        <div className="p-6 bg-gradient-to-br from-indigo-600 to-blue-700 text-white shadow-lg shrink-0">
-          <div className="text-4xl font-mono font-bold tracking-tight">
-            {now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: !is24Hour })}
-          </div>
-          {/* Modified Layout */}
-          <div className="text-blue-100 mt-2 text-sm font-medium flex flex-col gap-1">
-            <span>民國{rocYear}年{month}月{dateNum}日</span>
-            <div className="flex justify-between items-center">
-               <span>星期{week}</span>
-               <span className="px-2 py-0.5 bg-white/20 rounded-md text-xs border border-white/10 shadow-sm">{dayTypeLabel}</span>
-            </div>
-          </div>
-        </div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {displaySlots.map((slot) => {
-            const subject = daySchedule[slot.id] || slot.name;
-            const isCurrent = currentSlot?.id === slot.id;
-            const isNext = nextSlot?.id === slot.id && currentSlot?.type === 'break';
-            const isActive = isCurrent || isNext;
-            return (
-              <div key={slot.id} className={`relative p-4 rounded-xl transition-all duration-500 ${isActive ? 'bg-blue-50 border-l-4 border-blue-600 shadow-md transform scale-105' : 'bg-slate-50 border-l-4 border-slate-200 opacity-60 grayscale'}`}>
-                <div className="flex justify-between items-center text-xs text-slate-400 font-mono mb-1">
-                  <span>{slot.start}</span><span>{slot.end}</span>
-                </div>
-                <div className={`text-lg font-bold truncate ${isActive ? 'text-slate-800' : 'text-slate-500'}`}>{subject || slot.name}</div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
   const BreakView = () => {
     const isPreBell = statusMode === 'pre-bell';
     const isNap = currentSlot?.name.includes('午休'); 
@@ -1143,13 +1264,14 @@ const App = () => {
     const isCleaning = currentSlot && (currentSlot.name.includes('打掃') || currentSlot.id === 'cleaning');
     const isLunch = currentSlot && currentSlot.name.includes('午餐');
     
+    // 自動排程的午休模式：如果沒有被手動關閉，顯示全螢幕覆蓋
     if (isNap && !dismissedNap) {
       return (
         <QuietModeView 
           title="午休時間"
           subtext="Shhh... 請保持安靜，好好休息"
           icon={Moon}
-          onClose={() => setDismissedNap(true)} 
+          onClose={() => setDismissedNap(true)} // 點擊關閉，暫時解除全螢幕，回到主畫面
           centerContent={
              <div className="flex flex-col items-center">
                  <div className="text-8xl font-mono font-bold text-slate-200 drop-shadow-2xl">
@@ -1305,7 +1427,7 @@ const App = () => {
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900 p-8">
         <div className={`max-w-6xl w-full aspect-video rounded-[3rem] shadow-2xl flex flex-col items-center justify-center text-center p-12 bg-gradient-to-br text-white relative overflow-hidden ${specialStatus.color || 'from-blue-600 to-indigo-800'}`}>
             <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-            {specialStatus.id === 6 ? <BedDouble size={100} className="mb-8 opacity-90" /> : <MapPin size={100} className="mb-8 opacity-90 animate-bounce" />}
+            {specialStatus.id === 6 ? <BedDouble size={100} className="mb-8 opacity-90" /> : (specialStatus.id === 99 ? <Megaphone size={100} className="mb-8 opacity-90 animate-bounce" /> : <MapPin size={100} className="mb-8 opacity-90 animate-bounce" />)}
             <h1 className="text-[7rem] font-bold mb-4 leading-tight drop-shadow-md">{specialStatus.message}</h1>
             {specialStatus.sub && <p className="text-4xl opacity-90 font-medium bg-white/20 px-8 py-2 rounded-full backdrop-blur-sm">{specialStatus.sub}</p>}
             <div className="absolute bottom-12 right-12 text-2xl font-mono opacity-60">現在時間 {now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: !is24Hour })}</div>
@@ -1317,7 +1439,26 @@ const App = () => {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden font-sans text-slate-800 bg-slate-200 selection:bg-indigo-200">
-      {statusMode !== 'eco' && statusMode !== 'off-hours' && <TimelineSidebar />}
+      {/* 隱藏捲軸的 CSS */}
+      <style>{`
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
+
+      {statusMode !== 'eco' && statusMode !== 'off-hours' && <TimelineSidebar 
+        now={now} 
+        schedule={schedule} 
+        activeTimeSlots={activeTimeSlots} 
+        currentSlot={currentSlot} 
+        nextSlot={nextSlot} 
+        is24Hour={is24Hour} 
+        dayTypes={dayTypes} 
+      />}
       <div className="flex-1 flex flex-col relative">
         {statusMode === 'loading' && <div className="flex-1 flex items-center justify-center">Loading...</div>}
         {(statusMode === 'break' || statusMode === 'pre-bell') && <BreakView />}
@@ -1336,6 +1477,7 @@ const App = () => {
           toggleFullScreen={toggleFullScreen}
           setShowSettings={setShowSettings}
           isAutoNapActive={isAutoNapActive}
+          onBroadcastClick={() => setShowBroadcastInput(true)}
         />
         
         {/* Tools Button Trigger - Only show when NOT in special modes */}
@@ -1370,6 +1512,11 @@ const App = () => {
         setIs24Hour={setIs24Hour}
       />
       <ToolsModal isOpen={showTools} onClose={() => setShowTools(false)} />
+      <BroadcastInputModal 
+        isOpen={showBroadcastInput} 
+        onClose={() => setShowBroadcastInput(false)}
+        onConfirm={(title, sub) => setSpecialStatus({ message: title, sub: sub, color: 'from-pink-500 to-rose-500', type: 'input', id: 99 })}
+      />
       <MessageInput isOpen={isEditingMessage} onClose={() => setIsEditingMessage(false)} message={teacherMessage} setMessage={setTeacherMessage} />
     </div>
   );
