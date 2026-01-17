@@ -384,12 +384,21 @@ const SettingsModal = React.memo(({
   setIsAutoEcoOverride, 
   setNow, 
   is24Hour, setIs24Hour,
-  setSpecialButtons // 接收 setSpecialButtons
+  setSpecialButtons,
+  now // 需要傳入 current now 用來取得當前日期
 }) => {
   const [expandedSections, setExpandedSections] = useState({});
   const [newSubjectName, setNewSubjectName] = useState('');
   const [tempTime, setTempTime] = useState(''); // 暫存時間狀態
+  const [selectedDay, setSelectedDay] = useState(''); // 暫存星期狀態
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen && now) {
+      // 預設為當前星期
+      setSelectedDay(now.getDay().toString());
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -406,23 +415,37 @@ const SettingsModal = React.memo(({
     setTempTime(e.target.value);
   };
 
+  const handleDaySelectChange = (e) => {
+    e.stopPropagation();
+    setSelectedDay(e.target.value);
+  }
+
   // 新增：按下按鈕後才正式更新系統時間
   const applyTimeChange = () => {
-    if (!tempTime) return;
+    const nowReal = new Date();
+    let targetDate = new Date(nowReal);
 
-    // 驗證格式 HH:mm
-    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-    if (!timeRegex.test(tempTime)) {
-        alert("請輸入正確的時間格式 (HH:mm)，例如 14:30");
-        return;
+    // 如果有輸入時間，則解析時間
+    if (tempTime) {
+      // 驗證格式 HH:mm
+      const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+      if (!timeRegex.test(tempTime)) {
+          alert("請輸入正確的時間格式 (HH:mm)，例如 14:30");
+          return;
+      }
+      const [h, m] = tempTime.split(':').map(Number);
+      targetDate.setHours(h);
+      targetDate.setMinutes(m);
+      targetDate.setSeconds(0);
     }
 
-    const [h, m] = tempTime.split(':').map(Number);
-    const nowReal = new Date();
-    const targetDate = new Date(nowReal);
-    targetDate.setHours(h);
-    targetDate.setMinutes(m);
-    targetDate.setSeconds(0);
+    // 如果有選擇星期，則計算日期偏移
+    if (selectedDay !== '') {
+      const currentDay = nowReal.getDay();
+      const targetDay = parseInt(selectedDay, 10);
+      const dayDiff = targetDay - currentDay;
+      targetDate.setDate(nowReal.getDate() + dayDiff);
+    }
     
     const offset = targetDate.getTime() - nowReal.getTime();
     setTimeOffset(offset);
@@ -747,30 +770,46 @@ const SettingsModal = React.memo(({
              <div className="space-y-6">
                 <div className="bg-slate-100 p-4 rounded-xl border border-slate-200">
                   <div className="flex flex-wrap items-center gap-4">
-                     <span className="font-bold text-slate-700">模擬現在時間：</span>
-                     <div className="flex gap-2">
-                       <input 
-                         type="text" 
-                         value={tempTime}
-                         onChange={handleTimeInputChange}
-                         onClick={(e) => e.stopPropagation()} // 防止點擊觸發摺疊
-                         placeholder="HH:mm"
-                         className="p-2 rounded border border-slate-300 w-24 text-center"
-                         maxLength={5}
-                       />
-                       <button 
-                         onClick={applyTimeChange}
-                         className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-bold shadow-sm"
-                       >
-                         套用
-                       </button>
-                     </div>
+                     <span className="font-bold text-slate-700">模擬設定：</span>
+                     
+                     {/* 星期選擇器 */}
+                     <select
+                        value={selectedDay}
+                        onChange={handleDaySelectChange}
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-2 rounded border border-slate-300"
+                     >
+                       <option value="">(不變更星期)</option>
+                       {WEEKDAYS.map((day, idx) => (
+                         <option key={idx} value={idx}>週{day}</option>
+                       ))}
+                     </select>
+
+                     {/* 時間輸入框 */}
+                     <input 
+                       type="text" 
+                       value={tempTime}
+                       onChange={handleTimeInputChange}
+                       onClick={(e) => e.stopPropagation()} // 防止點擊觸發摺疊
+                       placeholder="HH:mm (不變更留空)"
+                       className="p-2 rounded border border-slate-300 w-40 text-center"
+                       maxLength={5}
+                     />
+                     
+                     <button 
+                       onClick={applyTimeChange}
+                       className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-bold shadow-sm"
+                     >
+                       套用
+                     </button>
+
                      <button 
                        onClick={() => {
                          setTimeOffset(0);
                          setIsManualEco(false);
                          setIsAutoEcoOverride(true);
                          setTempTime('');
+                         setSelectedDay('');
                        }}
                        className="px-4 py-2 bg-slate-600 text-white rounded hover:bg-slate-700 text-sm font-bold shadow-sm"
                      >
@@ -781,7 +820,7 @@ const SettingsModal = React.memo(({
                      </span>
                   </div>
                   <p className="text-sm text-slate-500 mt-2">
-                    輸入時間 (例如 14:30) 後請點擊「套用」來預覽該時段的介面效果。
+                    可單獨或同時設定「星期」與「時間」，請點擊「套用」來預覽效果。
                   </p>
                </div>
 
@@ -958,7 +997,11 @@ const SidebarHeader = ({ now, is24Hour, dayTypes }) => {
   const month = (now.getMonth() + 1).toString().padStart(2, '0');
   const dateNum = now.getDate().toString().padStart(2, '0');
   const week = WEEKDAYS[now.getDay()];
-  const dayTypeLabel = dayTypes[now.getDay()] === 'full' ? '全天課' : '半天課';
+  
+  // 新增假日判斷邏輯
+  const day = now.getDay();
+  const isWeekend = day === 0 || day === 6;
+  const dayTypeLabel = isWeekend ? '假日' : (dayTypes[day] === 'full' ? '全天課' : '半天課');
 
   return (
     <div className="p-6 bg-gradient-to-br from-indigo-600 to-blue-700 text-white shadow-lg shrink-0">
@@ -969,7 +1012,7 @@ const SidebarHeader = ({ now, is24Hour, dayTypes }) => {
         <span>民國{rocYear}年{month}月{dateNum}日</span>
         <div className="flex justify-between items-center">
            <span>星期{week}</span>
-           <span className="px-2 py-0.5 bg-white/20 rounded-md text-xs border border-white/10 shadow-sm">{dayTypeLabel}</span>
+           <span className={`px-2 py-0.5 bg-white/20 rounded-md text-xs border border-white/10 shadow-sm ${isWeekend ? 'bg-red-500/30 border-red-400/50' : ''}`}>{dayTypeLabel}</span>
         </div>
       </div>
     </div>
@@ -1109,6 +1152,9 @@ const App = () => {
 
   const activeTimeSlots = useMemo(() => {
     const day = now.getDay();
+    // 檢查是否為週末
+    if (day === 0 || day === 6) return [];
+
     const isHalfDay = dayTypes[day] === 'half';
 
     if (!isHalfDay) return timeSlots;
@@ -1218,6 +1264,14 @@ const App = () => {
     let nextClass = null;
     const sortedSlots = [...activeTimeSlots].sort((a, b) => getSecondsFromTime(a.start) - getSecondsFromTime(b.start));
 
+    // 如果 activeTimeSlots 為空（例如週末），則直接視為 Off-hours
+    if (activeTimeSlots.length === 0) {
+      setStatusMode('off-hours');
+      setCurrentSlot(null);
+      setNextSlot(null);
+      return;
+    }
+
     for (let i = 0; i < sortedSlots.length; i++) {
       const slot = sortedSlots[i];
       const startSec = getSecondsFromTime(slot.start);
@@ -1301,7 +1355,9 @@ const App = () => {
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const day = date.getDate().toString().padStart(2, '0');
     const week = WEEKDAYS[date.getDay()];
-    const dayType = dayTypes[date.getDay()] === 'full' ? '全天' : '半天';
+    // 判斷是否為假日
+    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+    const dayType = isWeekend ? '假日' : (dayTypes[date.getDay()] === 'full' ? '全天' : '半天');
     return `民國${rocYear}年${month}月${day}日 星期${week} (${dayType})`;
   };
 
@@ -1565,6 +1621,7 @@ const App = () => {
         is24Hour={is24Hour}
         setIs24Hour={setIs24Hour}
         setSpecialButtons={setSpecialButtons} // 傳遞更新按鈕的 function
+        now={now} // 傳遞 now
       />
       <ToolsModal isOpen={showTools} onClose={() => setShowTools(false)} />
       <BroadcastInputModal 
