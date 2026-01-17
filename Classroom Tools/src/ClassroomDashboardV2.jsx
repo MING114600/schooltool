@@ -5,7 +5,7 @@ import {
   Download, Upload, Monitor, Maximize, Minimize, Plus, Trash2, AlertCircle, 
   BedDouble, Box, Play, Pause, RotateCcw, Shuffle, Megaphone, Home,
   LogOut, LogIn, UserX, Eye, ShieldAlert, Library, Tent, Trees, MonitorPlay,
-  Utensils, Droplet, UserCheck, Waves
+  Utensils, Droplet, UserCheck, Waves, ArrowRight
 } from 'lucide-react';
 
 // --- 預設資料 ---
@@ -534,9 +534,17 @@ const SettingsModal = React.memo(({
 
   useEffect(() => {
     if (isOpen && now) {
-      setSelectedDay(now.getDay().toString());
+        // 設定當前時間到 tempTime 以便顯示
+        const h = now.getHours().toString().padStart(2, '0');
+        const m = now.getMinutes().toString().padStart(2, '0');
+        setTempTime(`${h}:${m}`);
+        
+        // 設定當前星期
+        // 注意：這裡只在開啟時初始化一次，之後的變更由使用者操作決定
+        // 使用 useState 的初始值邏輯來確保不會被反覆重置
+        setSelectedDay(prev => prev === '' ? now.getDay().toString() : prev);
     }
-  }, [isOpen, now]);
+  }, [isOpen]); 
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
@@ -1123,20 +1131,33 @@ const CircularProgress = ({ progress, size = 300, strokeWidth = 15, children, co
 
 // ... MessageInput ... (保持不變)
 const MessageInput = ({ isOpen, onClose, message, setMessage }) => {
+  const textareaRef = useRef(null);
+
+  // 自動調整高度
+  useEffect(() => {
+    if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+        textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+    }
+  }, [message, isOpen]);
+
+  // 動態調整字體大小：字數越多，字體越小
+  const fontSizeClass = message.length > 50 ? 'text-xl' : (message.length > 20 ? 'text-2xl' : 'text-3xl');
+
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 bg-black/40 z-[1000] flex items-center justify-center backdrop-blur-sm" onClick={(e) => e.stopPropagation()}>
-       <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-2xl transform transition-all scale-100">
-          <h3 className="text-2xl font-bold mb-4 text-slate-700">新增臨時提醒</h3>
-          <input 
+       <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-2xl transform transition-all scale-100 flex flex-col gap-4">
+          <h3 className="text-2xl font-bold text-slate-700">新增便利貼留言 (可換行)</h3>
+          <textarea 
+             ref={textareaRef}
              autoFocus
              value={message}
              onChange={e => setMessage(e.target.value)}
-             className="w-full text-3xl font-bold p-4 border-2 border-blue-100 rounded-xl focus:border-blue-500 focus:outline-none mb-6"
-             placeholder="例如：請將聯絡簿交到講桌"
-             onKeyDown={e => {
-               if (e.key === 'Enter') onClose();
-             }}
+             className={`w-full font-bold p-4 border-2 border-blue-100 rounded-xl focus:border-blue-500 focus:outline-none resize-none overflow-hidden ${fontSizeClass}`}
+             placeholder="例如：請將聯絡簿交到講桌&#10;記得帶水壺"
+             rows={3}
+             style={{ minHeight: '120px', maxHeight: '400px' }}
           />
           <div className="flex justify-end gap-3">
              <button onClick={onClose} className="px-6 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-100">完成</button>
@@ -1283,7 +1304,7 @@ const SidebarHeader = ({ now, is24Hour, dayTypes }) => {
   );
 };
 
-const SidebarList = React.memo(({ displaySlots, daySchedule, currentSlotId }) => {
+const SidebarList = React.memo(({ displaySlots, daySchedule, currentSlotId, nextSlotId }) => {
   const activeRef = useRef(null);
 
   useEffect(() => {
@@ -1301,17 +1322,28 @@ const SidebarList = React.memo(({ displaySlots, daySchedule, currentSlotId }) =>
       {displaySlots.map((slot) => {
         const subject = daySchedule[slot.id] || slot.name;
         const isCurrent = currentSlotId === slot.id;
-        const isActive = isCurrent; 
+        // 加入下一節課的邏輯
+        const isNext = nextSlotId === slot.id;
+
         return (
           <div 
             key={slot.id} 
-            ref={isActive ? activeRef : null}
-            className={`relative p-4 rounded-xl transition-all duration-500 ${isActive ? 'bg-blue-50 border-l-4 border-blue-600 shadow-md transform scale-105' : 'bg-slate-50 border-l-4 border-slate-200 opacity-60 grayscale'}`}
+            ref={isCurrent ? activeRef : null}
+            className={`relative p-4 rounded-xl transition-all duration-500 
+              ${isCurrent 
+                ? 'bg-indigo-600 border-l-4 border-indigo-400 shadow-md transform scale-105 z-10' 
+                : (isNext 
+                    ? 'bg-blue-50 border-l-4 border-blue-400 shadow-sm border-dashed' // 下一節課樣式
+                    : 'bg-slate-50/50 border-l-4 border-transparent opacity-60 grayscale') // 其他課程樣式
+              }`}
           >
-            <div className="flex justify-between items-center text-xs text-slate-400 font-mono mb-1">
+             {/* 下一節課標籤 */}
+             {isNext && <div className="absolute -top-2 -right-2 bg-blue-500 text-white text-[10px] px-2 py-0.5 rounded-full shadow-sm font-bold animate-pulse">NEXT</div>}
+
+            <div className={`flex justify-between items-center text-xs font-mono mb-1 ${isCurrent ? 'text-indigo-200' : 'text-slate-400'}`}>
               <span>{slot.start}</span><span>{slot.end}</span>
             </div>
-            <div className={`text-lg font-bold truncate ${isActive ? 'text-slate-800' : 'text-slate-500'}`}>{subject || slot.name}</div>
+            <div className={`text-lg font-bold truncate ${isCurrent ? 'text-white' : 'text-slate-600'}`}>{subject || slot.name}</div>
           </div>
         );
       })}
@@ -1320,6 +1352,7 @@ const SidebarList = React.memo(({ displaySlots, daySchedule, currentSlotId }) =>
 }, (prevProps, nextProps) => {
   return (
     prevProps.currentSlotId === nextProps.currentSlotId &&
+    prevProps.nextSlotId === nextProps.nextSlotId && // 加入 nextSlotId 比較
     prevProps.daySchedule === nextProps.daySchedule &&
     prevProps.displaySlots === nextProps.displaySlots
   );
@@ -1330,14 +1363,16 @@ const TimelineSidebar = ({
   schedule, 
   activeTimeSlots, 
   currentSlot, 
+  nextSlot, 
   is24Hour, 
   dayTypes 
 }) => {
   const daySchedule = schedule[now.getDay()] || {};
   const currentSlotId = currentSlot?.id;
+  const nextSlotId = nextSlot?.id;
 
   const displaySlots = useMemo(() => activeTimeSlots.filter(s => 
-    (s.type === 'class' || ['morning', 'lunch', 'nap', 'cleaning'].includes(s.id)) && 
+    (s.type === 'class' || [ 'lunch', 'cleaning'].includes(s.id)) && 
     s.id !== 'lunch_prep'
   ), [activeTimeSlots]);
 
@@ -1348,6 +1383,7 @@ const TimelineSidebar = ({
         displaySlots={displaySlots} 
         daySchedule={daySchedule} 
         currentSlotId={currentSlotId} 
+        nextSlotId={nextSlotId} // 傳遞 nextSlotId
       />
     </div>
   );
@@ -1572,7 +1608,8 @@ const ClassroomDashboardV2 = () => {
 
   // Helper Functions (保持不變)
   const getNextSubjectName = () => {
-    if (currentSlot && (currentSlot.name.includes('打掃') || currentSlot.id === 'cleaning')) return currentSlot.name;
+    // 移除之前的判斷邏輯，直接回傳下一節的名稱
+    // if (currentSlot && (currentSlot.name.includes('打掃') || currentSlot.id === 'cleaning')) return currentSlot.name;
     if (!nextSlot) return '放學';
     const daySchedule = schedule[now.getDay()];
     if (!daySchedule) return '無課表';
@@ -1625,13 +1662,33 @@ const ClassroomDashboardV2 = () => {
         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-indigo-200/30 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none"></div>
         <div className="h-full flex flex-col">
           <div className="flex justify-between items-start p-8">
-            <div className="bg-white/60 backdrop-blur-sm px-6 py-3 rounded-2xl shadow-sm border border-white/50"><span className="text-slate-500 font-bold mr-2">{isCleaning ? '目前時段' : (isLunch ? '目前時段' : (isNap ? '目前時段' : (isDismissal ? '目前時段' : '下一節準備')))}</span><span className="text-2xl font-bold text-slate-800">{isLunch ? '午餐時間' : (isNap ? '午休時間' : (isDismissal ? '放學時間' : getNextSubjectName()))}</span></div>
+            {/* 移除左上角原本的【下一節準備】 */}
+            <div className="bg-white/60 backdrop-blur-sm px-6 py-3 rounded-2xl shadow-sm border border-white/50"><span className="text-slate-500 font-bold mr-2">{isCleaning ? '目前時段' : (isLunch ? '目前時段' : (isNap ? '目前時段' : (isDismissal ? '目前時段' : '目前時段')))}</span><span className="text-2xl font-bold text-slate-800">{isLunch ? '午餐時間' : (isNap ? '午休時間' : (isDismissal ? '放學時間' : currentSlot?.name))}</span></div>
             {timeOffset !== 0 && <div className="bg-red-100 text-red-600 px-4 py-2 rounded-full text-sm font-bold animate-pulse border border-red-200">⚠️ 時間模擬模式中</div>}
           </div>
           <div className="flex-1 flex flex-col md:flex-row items-center justify-center gap-12 px-8 pb-8">
-            <div className={`relative transition-all duration-500 ${isPreBell ? 'scale-110' : ''}`}><CircularProgress progress={progress} size={400} strokeWidth={24} colorClass={progressColor}><div className="text-center flex flex-col items-center"><div className={`text-[7rem] font-bold font-mono tracking-tighter leading-none ${isPreBell ? 'text-red-600 animate-pulse' : 'text-slate-700'}`}>{formatCountdown(secondsRemaining)}</div><div className="text-slate-400 font-medium mt-2 tracking-widest uppercase">{isPreBell ? '預備鐘響' : 'REMAINING'}</div></div></CircularProgress></div>
+            <div className={`relative transition-all duration-500 ${isPreBell ? 'scale-110' : ''}`}><CircularProgress progress={progress} size={400} strokeWidth={24} colorClass={progressColor}>
+                <div className="text-center flex flex-col items-center">
+                    {/* 圓環上方提示 - 加大文字並優化樣式 */}
+                    <div className="absolute -top-24 bg-white/90 backdrop-blur-md px-8 py-3 rounded-full shadow-lg border-2 border-indigo-100 flex items-center gap-4 transform hover:scale-105 transition-transform z-20">
+                        <span className="text-lg font-bold text-slate-400 uppercase tracking-wider">NEXT</span>
+                        <div className="flex items-center gap-2 text-4xl font-bold text-indigo-600">
+                           <ArrowRight size={32} strokeWidth={3} /> {getNextSubjectName()}
+                        </div>
+                    </div>
+                    <div className={`text-[7rem] font-bold font-mono tracking-tighter leading-none ${isPreBell ? 'text-red-600 animate-pulse' : 'text-slate-700'}`}>{formatCountdown(secondsRemaining)}</div><div className="text-slate-400 font-medium mt-2 tracking-widest uppercase">{isPreBell ? '預備鐘響' : 'REMAINING'}</div>
+                </div>
+            </CircularProgress></div>
             <div className="max-w-xl w-full flex flex-col gap-6">
-              {teacherMessage ? (<div onClick={() => setIsEditingMessage(true)} className="bg-yellow-200 p-6 shadow-lg transform rotate-1 hover:rotate-0 transition-transform cursor-pointer relative group" style={{ fontFamily: 'cursive, sans-serif' }}><div className="absolute -top-3 left-1/2 -translate-x-1/2 w-32 h-8 bg-yellow-300/50 backdrop-blur-sm rotate-1"></div><div className="flex justify-between items-start mb-2 opacity-50"><span className="text-xs font-bold uppercase tracking-widest text-yellow-800">MEMO</span><Edit3 size={16} className="text-yellow-700 opacity-0 group-hover:opacity-100 transition-opacity"/></div><p className="text-3xl font-bold text-slate-800 leading-snug break-words">{teacherMessage}</p></div>) : (!isPreBell && (<button onClick={() => setIsEditingMessage(true)} className="group flex items-center justify-center gap-2 p-4 rounded-2xl border-2 border-dashed border-slate-300 hover:border-yellow-400 hover:bg-yellow-50 transition-all"><Edit3 className="text-slate-400 group-hover:text-yellow-600" /><span className="text-slate-400 font-bold group-hover:text-yellow-700">新增便利貼留言</span></button>))}
+              {teacherMessage ? (
+                    <div onClick={() => setIsEditingMessage(true)} className="bg-yellow-200 p-6 shadow-lg transform rotate-1 hover:rotate-0 transition-transform cursor-pointer relative group" style={{ fontFamily: 'cursive, sans-serif' }}>
+                        {/* 便利貼多行顯示邏輯已移至 MessageInput 的設定，這裡只需確保 CSS 允許換行 */}
+                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-32 h-8 bg-yellow-300/50 backdrop-blur-sm rotate-1"></div>
+                        <div className="flex justify-between items-start mb-2 opacity-50"><span className="text-xs font-bold uppercase tracking-widest text-yellow-800">MEMO</span><Edit3 size={16} className="text-yellow-700 opacity-0 group-hover:opacity-100 transition-opacity"/></div>
+                        {/* 使用 whitespace-pre-wrap 讓換行符號生效 */}
+                        <p className={`font-bold text-slate-800 leading-snug break-words whitespace-pre-wrap ${teacherMessage.length > 50 ? 'text-2xl' : 'text-3xl'}`}>{teacherMessage}</p>
+                    </div>
+                  ) : (!isPreBell && (<button onClick={() => setIsEditingMessage(true)} className="group flex items-center justify-center gap-2 p-4 rounded-2xl border-2 border-dashed border-slate-300 hover:border-yellow-400 hover:bg-yellow-50 transition-all"><Edit3 className="text-slate-400 group-hover:text-yellow-600" /><span className="text-slate-400 font-bold group-hover:text-yellow-700">新增便利貼留言</span></button>))}
               <div className={`bg-white/80 backdrop-blur-xl p-8 rounded-3xl shadow-xl border border-white/50 transform transition-all duration-500 ${isPreBell ? 'opacity-50 blur-[2px] scale-95' : 'opacity-100 scale-100'}`}><div className="flex items-center gap-4 mb-4"><div className="p-3 bg-blue-100 rounded-2xl text-blue-600"><BookOpen size={32} /></div><div className="text-lg text-slate-500 font-bold">{isCleaning ? '打掃提醒' : (isLunch ? '用餐提醒' : (isNap ? '午休提醒' : (isDismissal ? '放學提醒' : '請準備')))}</div></div><div className="text-3xl font-bold text-slate-800 leading-normal">{getSystemHint()}</div></div>
               {isPreBell && (<div className="bg-red-600 text-white p-8 rounded-3xl shadow-2xl border-4 border-red-400 animate-bounce-subtle flex items-center justify-center text-center"><div><h3 className="text-4xl font-bold mb-2">請回座位</h3><p className="text-xl opacity-90">靜候老師上課</p></div></div>)}
             </div>
