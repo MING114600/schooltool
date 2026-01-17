@@ -410,6 +410,13 @@ const SettingsModal = React.memo(({
   const applyTimeChange = () => {
     if (!tempTime) return;
 
+    // 驗證格式 HH:mm
+    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!timeRegex.test(tempTime)) {
+        alert("請輸入正確的時間格式 (HH:mm)，例如 14:30");
+        return;
+    }
+
     const [h, m] = tempTime.split(':').map(Number);
     const nowReal = new Date();
     const targetDate = new Date(nowReal);
@@ -743,11 +750,13 @@ const SettingsModal = React.memo(({
                      <span className="font-bold text-slate-700">模擬現在時間：</span>
                      <div className="flex gap-2">
                        <input 
-                         type="time" 
+                         type="text" 
                          value={tempTime}
                          onChange={handleTimeInputChange}
                          onClick={(e) => e.stopPropagation()} // 防止點擊觸發摺疊
-                         className="p-2 rounded border border-slate-300"
+                         placeholder="HH:mm"
+                         className="p-2 rounded border border-slate-300 w-24 text-center"
+                         maxLength={5}
                        />
                        <button 
                          onClick={applyTimeChange}
@@ -772,7 +781,7 @@ const SettingsModal = React.memo(({
                      </span>
                   </div>
                   <p className="text-sm text-slate-500 mt-2">
-                    輸入時間後請點擊「套用」來預覽該時段的介面效果。
+                    輸入時間 (例如 14:30) 後請點擊「套用」來預覽該時段的介面效果。
                   </p>
                </div>
 
