@@ -388,6 +388,7 @@ const SettingsModal = ({
 }) => {
   const [expandedSections, setExpandedSections] = useState({});
   const [newSubjectName, setNewSubjectName] = useState('');
+  const [tempTime, setTempTime] = useState(''); // 暫存時間狀態
   const fileInputRef = useRef(null);
 
   if (!isOpen) return null;
@@ -399,31 +400,31 @@ const SettingsModal = ({
     }));
   };
 
-  const handleTimeChange = (e) => {
-    // 阻止事件冒泡，防止觸發底層 UI 的點擊事件
+  // 修改：僅更新暫存狀態，不立即觸發重渲染
+  const handleTimeInputChange = (e) => {
     e.stopPropagation();
-    
-    const newTime = e.target.value;
-    // 如果輸入為空，不進行任何操作
-    if (!newTime) return;
+    setTempTime(e.target.value);
+  };
 
-    // 將時間字串轉換為當日 Date 物件
-    const [h, m] = newTime.split(':').map(Number);
+  // 新增：按下按鈕後才正式更新系統時間
+  const applyTimeChange = () => {
+    if (!tempTime) return;
+
+    const [h, m] = tempTime.split(':').map(Number);
     const nowReal = new Date();
     const targetDate = new Date(nowReal);
     targetDate.setHours(h);
     targetDate.setMinutes(m);
     targetDate.setSeconds(0);
     
-    // 計算偏移量並更新
     const offset = targetDate.getTime() - nowReal.getTime();
     setTimeOffset(offset);
     setNow(new Date(Date.now() + offset)); 
     
-    // 強制更新狀態，同時防止系統自動重置為省電模式
-    // 注意：setIsAutoEcoOverride 設為 true 可防止系統自動切換回預設
     setIsManualEco(false);
     setIsAutoEcoOverride(true);
+    // 清空暫存，或者保留讓使用者知道當前設定
+    // setTempTime(''); 
   };
 
   const handleAddSubject = () => {
@@ -740,16 +741,27 @@ const SettingsModal = ({
                 <div className="bg-slate-100 p-4 rounded-xl border border-slate-200">
                   <div className="flex flex-wrap items-center gap-4">
                      <span className="font-bold text-slate-700">模擬現在時間：</span>
-                     <input 
-                       type="time" 
-                       onChange={handleTimeChange}
-                       className="p-2 rounded border border-slate-300"
-                     />
+                     <div className="flex gap-2">
+                       <input 
+                         type="time" 
+                         value={tempTime}
+                         onChange={handleTimeInputChange}
+                         onClick={(e) => e.stopPropagation()} // 防止點擊觸發摺疊
+                         className="p-2 rounded border border-slate-300"
+                       />
+                       <button 
+                         onClick={applyTimeChange}
+                         className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-bold shadow-sm"
+                       >
+                         套用
+                       </button>
+                     </div>
                      <button 
                        onClick={() => {
                          setTimeOffset(0);
                          setIsManualEco(false);
                          setIsAutoEcoOverride(true);
+                         setTempTime('');
                        }}
                        className="px-4 py-2 bg-slate-600 text-white rounded hover:bg-slate-700 text-sm font-bold shadow-sm"
                      >
@@ -760,7 +772,7 @@ const SettingsModal = ({
                      </span>
                   </div>
                   <p className="text-sm text-slate-500 mt-2">
-                    調整此時間可立即預覽不同時段的介面效果。
+                    輸入時間後請點擊「套用」來預覽該時段的介面效果。
                   </p>
                </div>
 
