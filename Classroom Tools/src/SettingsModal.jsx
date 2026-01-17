@@ -349,7 +349,7 @@ const SettingsModal = ({
                     <button
                       onClick={() => setDayTypes(prev => ({...prev, [day]: prev[day] === 'full' ? 'half' : 'full'}))}
                       className={`w-full py-3 rounded-lg text-sm font-bold transition-all border shadow-sm ${
-                        dayTypes[day] === 'full' ? 'bg-blue-500 border-blue-600 text-white hover:bg-blue-600' : 'bg-yellow-400 border-yellow-500 text-yellow-900 hover:bg-yellow-500'
+                        dayTypes[day] === 'full' ? 'bg-blue-50 border-blue-600 text-white hover:bg-blue-600' : 'bg-yellow-400 border-yellow-500 text-yellow-900 hover:bg-yellow-500'
                       }`}
                     >
                       {dayTypes[day] === 'full' ? '全天課' : '半天課'}
