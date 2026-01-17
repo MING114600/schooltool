@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Settings, X, Save, RefreshCw, Calendar, Wrench, MapPin, BookOpen, Coffee, 
-  Download, Upload, Plus, Trash2, Edit3, AlertCircle, Clock
+  Download, Upload, Plus, Trash2, Clock
 } from 'lucide-react';
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
@@ -59,7 +59,7 @@ const SettingsModal = ({
         setTempTime(`${h}:${m}`);
         setSelectedDay(prev => prev === '' ? now.getDay().toString() : prev);
     }
-  }, [isOpen]); 
+  }, [isOpen, now]); 
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
@@ -73,7 +73,7 @@ const SettingsModal = ({
     const newSlots = timeSlots.map(slot => 
       slot.id === id ? { ...slot, [field]: value } : slot
     );
-    // 簡單排序：依開始時間排序
+    // 簡單排序：依開始時間排序，避免時間錯亂
     newSlots.sort((a, b) => a.start.localeCompare(b.start));
     setTimeSlots(newSlots);
   };
@@ -91,7 +91,7 @@ const SettingsModal = ({
   };
 
   const handleDeleteSlot = (id) => {
-    if (confirm('確定要刪除此時段嗎？')) {
+    if (confirm('確定要刪除此時段嗎？這將會一併清除該時段的課表資料。')) {
         setTimeSlots(timeSlots.filter(s => s.id !== id));
         // 同步清除課表中該時段的資料，避免殘留
         const newSchedule = { ...schedule };
@@ -256,7 +256,7 @@ const SettingsModal = ({
                     <div className="col-span-3">時段名稱</div>
                     <div className="col-span-2">開始時間</div>
                     <div className="col-span-2">結束時間</div>
-                    <div className="col-span-3">類型 (影響顯示)</div>
+                    <div className="col-span-3">類型</div>
                     <div className="col-span-2 text-center">操作</div>
                 </div>
                 
@@ -313,6 +313,7 @@ const SettingsModal = ({
                     <Plus size={20} /> 新增時間段
                 </button>
             </div>
+            <p className="text-sm text-slate-400 mt-2">💡 提示：修改時間後，系統會自動按「開始時間」重新排序。</p>
           </SettingsSection>
 
           {/* 2. 一般設定 */}
@@ -356,7 +357,7 @@ const SettingsModal = ({
                   </div>
                 ))}
              </div>
-             <p className="text-sm text-slate-500 mt-3">💡 提示：第五節後自動判定為放學。</p>
+             <p className="text-sm text-slate-500 mt-3">💡 提示：半天課時，第五節（含）以後的時間會被判定為「放學」。</p>
           </SettingsSection>
 
           {/* 4. 快捷按鈕管理 */}
@@ -407,6 +408,7 @@ const SettingsModal = ({
                 ))}
               </div>
             ))}
+            <p className="text-sm text-slate-400 mt-2">💡 提示：若要修改「節次名稱」或「時間」，請至上方的「作息時間表設定」。</p>
           </SettingsSection>
 
           {/* 6. 科目管理 */}
@@ -445,7 +447,7 @@ const SettingsModal = ({
                 <div className="bg-slate-100 p-4 rounded-xl flex gap-4 items-center flex-wrap">
                      <span className="font-bold text-slate-700">模擬：</span>
                      <select value={selectedDay} onChange={(e) => setSelectedDay(e.target.value)} className="p-2 rounded border"><option value="">(原星期)</option>{WEEKDAYS.map((d,i)=><option key={i} value={i}>週{d}</option>)}</select>
-                     <input value={tempTime} onChange={(e) => setTempTime(e.target.value)} className="p-2 rounded border w-32 text-center" />
+                     <input value={tempTime} onChange={(e) => setTempTime(e.target.value)} className="p-2 rounded border w-32 text-center" placeholder="HH:mm" />
                      <button onClick={applyTimeChange} className="px-4 py-2 bg-blue-600 text-white rounded font-bold">套用</button>
                      <button onClick={() => {setTimeOffset(0); setIsManualEco(false); setIsAutoEcoOverride(true);}} className="px-4 py-2 bg-slate-600 text-white rounded font-bold">重置</button>
                 </div>
