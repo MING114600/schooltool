@@ -372,8 +372,8 @@ const BroadcastInputModal = ({ isOpen, onClose, onConfirm }) => {
   );
 };
 
-// ... SettingsModal ... (需修改 Reset 邏輯)
-const SettingsModal = ({ 
+// ... SettingsModal ... (需修改 Reset 邏輯, 使用 React.memo 包裹以避免不必要的重新渲染)
+const SettingsModal = React.memo(({ 
   isOpen, onClose, 
   timeSlots, setTimeSlots, 
   schedule, setSchedule, 
@@ -830,7 +830,7 @@ const SettingsModal = ({
       </div>
     </div>
   );
-};
+});
 
 // ... CircularProgress ...
 const CircularProgress = ({ progress, size = 300, strokeWidth = 15, children, colorClass }) => {
