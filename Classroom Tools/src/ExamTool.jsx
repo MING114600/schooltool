@@ -324,8 +324,10 @@ const ExamTool = () => {
     // --- Layout Calculations ---
     const isFocusMode = !showLeft && !showRight;
     
-    const topHeightClass = isFocusMode ? 'h-screen' : 'h-[25vh]';
-    const bottomHeightClass = isFocusMode ? 'h-0 overflow-hidden' : 'h-[75vh]';
+    // 在專注模式下，Top Bar 不再單純依賴 h-screen，而是使用 Flexbox 的 gap 和 justify-center 來排列
+    // 當 isFocusMode 為 true 時，外層容器會變成一個全螢幕的 flex column，時間和進度條都會置中
+    const topHeightClass = isFocusMode ? 'h-full flex-col justify-center gap-12' : 'h-[25vh]';
+    const bottomHeightClass = isFocusMode ? 'h-0 overflow-hidden hidden' : 'h-[75vh]';
     
     // Width Logic
     let leftWidthClass = 'w-0 hidden';
@@ -387,8 +389,9 @@ const ExamTool = () => {
         else if (pct < 50) color = "bg-amber-400";
         
         // Styles for Focus Mode
-        const containerClass = isFocusMode ? "h-32" : "h-14";
-        const textSizeClass = isFocusMode ? "text-6xl" : "text-2xl";
+        // 當專注模式時，使用更大的高度和文字
+        const containerClass = isFocusMode ? "h-48 rounded-[3rem]" : "h-14";
+        const textSizeClass = isFocusMode ? "text-[5rem]" : "text-2xl";
 
         return (
             <div className="h-full flex flex-col justify-center">
@@ -432,17 +435,17 @@ const ExamTool = () => {
             <div className={`${topHeightClass} flex bg-slate-900 text-white shadow-xl z-20 relative transition-all duration-500 ease-in-out`}>
                 
                 {/* Clock Section */}
-                <div className={`${isFocusMode ? 'w-full' : 'w-[35%] border-r border-slate-700'} flex flex-col justify-center items-center relative bg-gradient-to-b from-slate-800 to-slate-900 px-4 transition-all duration-500`}>
-                    <div className={`absolute top-4 left-6 text-slate-400 font-medium tracking-widest opacity-80 transition-all duration-500 ${isFocusMode ? 'text-2xl' : 'text-sm md:text-base'}`}>
+                <div className={`${isFocusMode ? 'w-full bg-transparent p-0' : 'w-[35%] border-r border-slate-700 px-4 bg-gradient-to-b from-slate-800 to-slate-900'} flex flex-col justify-center items-center relative transition-all duration-500`}>
+                    <div className={`text-slate-400 font-medium tracking-widest opacity-80 transition-all duration-500 ${isFocusMode ? 'text-3xl mb-4 text-center' : 'absolute top-4 left-6 text-sm md:text-base'}`}>
                         {adjustedTime.toLocaleDateString(lang === 'zh' ? 'zh-TW' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })}
                     </div>
-                    <div className="font-mono font-bold leading-none tracking-tight text-white drop-shadow-lg tabular-nums mt-4 transition-all duration-500" style={{ fontSize: isFocusMode ? '30vh' : '13vh' }}>
+                    <div className="font-mono font-bold leading-none tracking-tight text-white drop-shadow-lg tabular-nums transition-all duration-500" style={{ fontSize: isFocusMode ? '25vw' : '13vh' }}>
                         {adjustedTime.toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                     </div>
                 </div>
 
                 {/* Progress Bar Section */}
-                <div className={`${isFocusMode ? 'absolute bottom-10 left-0 w-full bg-transparent px-20' : 'w-[65%] bg-slate-100 relative p-6'} transition-all duration-500`}>
+                <div className={`${isFocusMode ? 'w-full bg-transparent px-16' : 'w-[65%] bg-slate-100 relative p-6'} transition-all duration-500`}>
                      {!isFocusMode && <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>}
                      <ProgressBar />
                 </div>
