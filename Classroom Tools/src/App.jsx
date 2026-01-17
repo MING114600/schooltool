@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  Monitor, Layout, Grid, BookCheck, Mail, Link
+  Monitor, Layout, Grid, ClipboardCheck, Mail, Link
 } from 'lucide-react';
 
 // 引入原本的電子看板檔案
@@ -14,7 +14,7 @@ import ExamTool from './ExamTool';
 
 const APPS = [
   { id: 'dashboard', name: '電子看板', icon: Monitor, color: 'bg-blue-500', component: ClassroomDashboardV2 },
-  { id: 'exam', name: '監考系統', icon: BookCheck, color: 'bg-rose-500', component: ExamTool },
+  { id: 'exam', name: '監考系統', icon: ClipboardCheck, color: 'bg-rose-500', component: ExamTool },
 ];
 
 const AppLauncher = ({ isOpen, onClose, onSelect }) => {
