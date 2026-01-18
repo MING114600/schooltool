@@ -5,8 +5,8 @@ import {
   Box, Play, Pause, RotateCcw, Shuffle, Megaphone, Home,
   LogOut, LogIn, UserX, Library, Tent, Trees, MonitorPlay,
   Utensils, Droplet, Waves, ArrowRight,
-  // 補齊 SettingsModal 需要的所有圖示
-  Save, RefreshCw, Wrench, Download, Upload, Plus, Trash2, AlertCircle
+  Save, RefreshCw, Wrench, Download, Upload, Plus, Trash2, AlertCircle,
+  ToggleLeft, ToggleRight, Check, ChevronDown, ChevronUp
 } from 'lucide-react';
 
 // --- 預設資料 (Constants) ---
@@ -131,6 +131,30 @@ const getSecondsFromTime = (timeStr) => {
 
 // --- Settings Components (Integrated) ---
 
+// 解決時間選擇器卡死問題的自訂元件
+const CustomTimeInput = ({ value, onChange }) => {
+  const [hours, minutes] = value.split(':');
+  
+  const handleHourChange = (e) => onChange(`${e.target.value}:${minutes}`);
+  const handleMinuteChange = (e) => onChange(`${hours}:${e.target.value}`);
+
+  return (
+    <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1 border border-slate-200">
+      <select value={hours} onChange={handleHourChange} className="bg-transparent font-mono font-bold text-slate-700 outline-none p-1 appearance-none cursor-pointer text-center w-12">
+        {Array.from({ length: 24 }).map((_, i) => (
+          <option key={i} value={i.toString().padStart(2, '0')}>{i.toString().padStart(2, '0')}</option>
+        ))}
+      </select>
+      <span className="text-slate-400 font-bold">:</span>
+      <select value={minutes} onChange={handleMinuteChange} className="bg-transparent font-mono font-bold text-slate-700 outline-none p-1 appearance-none cursor-pointer text-center w-12">
+        {Array.from({ length: 60 }).map((_, i) => (
+          <option key={i} value={i.toString().padStart(2, '0')}>{i.toString().padStart(2, '0')}</option>
+        ))}
+      </select>
+    </div>
+  );
+};
+
 const SettingsSection = ({ title, icon: Icon, isOpen, onToggle, children, colorClass = "text-slate-600" }) => (
   <div className="border rounded-xl overflow-hidden bg-white shadow-sm transition-all duration-300">
     <button 
@@ -142,7 +166,7 @@ const SettingsSection = ({ title, icon: Icon, isOpen, onToggle, children, colorC
         {title}
       </div>
       <div className="text-slate-400">
-        {isOpen ? '▼' : '▶'}
+        {isOpen ? <ChevronUp size={20}/> : <ChevronDown size={20}/>}
       </div>
     </button>
     {isOpen && (
@@ -169,7 +193,8 @@ const SettingsModal = ({
   systemButtonsConfig, 
   defaultValues
 }) => {
-  const [expandedSections, setExpandedSections] = useState({ 'timeslots': true });
+  // 修改預設展開狀態：只展開一般設定
+  const [expandedSections, setExpandedSections] = useState({ 'general': true });
   const [newSubjectName, setNewSubjectName] = useState('');
   const [tempTime, setTempTime] = useState(''); 
   const [selectedDay, setSelectedDay] = useState(''); 
@@ -182,7 +207,7 @@ const SettingsModal = ({
         setTempTime(`${h}:${m}`);
         setSelectedDay(prev => prev === '' ? now.getDay().toString() : prev);
     }
-  }, [isOpen]); 
+  }, [isOpen, now]); 
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
@@ -361,6 +386,23 @@ const SettingsModal = ({
         <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50 custom-scrollbar">
           
           <SettingsSection 
+            title="一般設定" 
+            icon={Wrench} 
+            isOpen={expandedSections['general']} 
+            onToggle={() => toggleSection('general')}
+          >
+             <div className="flex flex-col gap-6">
+               <div className="flex items-center gap-4">
+                  <span className="font-bold text-slate-700 w-24">時間格式：</span>
+                  <div className="flex bg-slate-100 rounded-lg p-1 border border-slate-200">
+                     <button onClick={() => setIs24Hour(false)} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${!is24Hour ? 'bg-blue-600 text-white shadow' : 'text-slate-500 hover:bg-slate-200'}`}>12H</button>
+                     <button onClick={() => setIs24Hour(true)} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${is24Hour ? 'bg-blue-600 text-white shadow' : 'text-slate-500 hover:bg-slate-200'}`}>24H</button>
+                  </div>
+               </div>
+             </div>
+          </SettingsSection>
+
+          <SettingsSection 
             title="🔔 作息時間表設定 (可自訂每節課時間)" 
             icon={Clock} 
             isOpen={expandedSections['timeslots']} 
@@ -385,20 +427,17 @@ const SettingsModal = ({
                                 className="w-full font-bold text-slate-700 bg-transparent outline-none border-b border-transparent focus:border-blue-500"
                             />
                         </div>
+                        {/* 使用自訂的 CustomTimeInput 替代原生的 input type="time" */}
                         <div className="col-span-2">
-                            <input 
-                                type="time" 
+                            <CustomTimeInput 
                                 value={slot.start} 
-                                onChange={(e) => handleTimeSlotChange(slot.id, 'start', e.target.value)}
-                                className="w-full bg-slate-50 rounded px-2 py-1 text-sm font-mono font-bold text-slate-600 outline-none focus:ring-1 focus:ring-blue-400"
+                                onChange={(val) => handleTimeSlotChange(slot.id, 'start', val)}
                             />
                         </div>
                         <div className="col-span-2">
-                            <input 
-                                type="time" 
+                            <CustomTimeInput 
                                 value={slot.end} 
-                                onChange={(e) => handleTimeSlotChange(slot.id, 'end', e.target.value)}
-                                className="w-full bg-slate-50 rounded px-2 py-1 text-sm font-mono font-bold text-slate-600 outline-none focus:ring-1 focus:ring-blue-400"
+                                onChange={(val) => handleTimeSlotChange(slot.id, 'end', val)}
                             />
                         </div>
                         <div className="col-span-3">
@@ -433,23 +472,6 @@ const SettingsModal = ({
           </SettingsSection>
 
           <SettingsSection 
-            title="一般設定" 
-            icon={Wrench} 
-            isOpen={expandedSections['general']} 
-            onToggle={() => toggleSection('general')}
-          >
-             <div className="flex flex-col gap-6">
-               <div className="flex items-center gap-4">
-                  <span className="font-bold text-slate-700 w-24">時間格式：</span>
-                  <div className="flex bg-slate-100 rounded-lg p-1 border border-slate-200">
-                     <button onClick={() => setIs24Hour(false)} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${!is24Hour ? 'bg-blue-600 text-white shadow' : 'text-slate-500 hover:bg-slate-200'}`}>12H</button>
-                     <button onClick={() => setIs24Hour(true)} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${is24Hour ? 'bg-blue-600 text-white shadow' : 'text-slate-500 hover:bg-slate-200'}`}>24H</button>
-                  </div>
-               </div>
-             </div>
-          </SettingsSection>
-
-          <SettingsSection 
             title="全天/半天設定" 
             icon={Calendar} 
             isOpen={expandedSections['dayTypes']} 
@@ -458,16 +480,30 @@ const SettingsModal = ({
           >
              <div className="bg-orange-50 p-4 rounded-xl grid grid-cols-5 gap-3 border border-orange-100">
                 {[1,2,3,4,5].map(day => (
-                  <div key={day} className="flex flex-col items-center">
-                    <span className="text-xs font-bold text-slate-500 mb-2">週{WEEKDAYS[day]}</span>
-                    <button
-                      onClick={() => setDayTypes(prev => ({...prev, [day]: prev[day] === 'full' ? 'half' : 'full'}))}
-                      className={`w-full py-3 rounded-lg text-sm font-bold transition-all border shadow-sm ${
-                        dayTypes[day] === 'full' ? 'bg-blue-50 border-blue-600 text-white hover:bg-blue-600' : 'bg-yellow-400 border-yellow-500 text-yellow-900 hover:bg-yellow-500'
-                      }`}
-                    >
-                      {dayTypes[day] === 'full' ? '全天課' : '半天課'}
-                    </button>
+                  <div key={day} className="flex flex-col items-center gap-2">
+                    <span className="text-xs font-bold text-slate-500">週{WEEKDAYS[day]}</span>
+                    <div className="flex flex-col gap-1 w-full">
+                        <button
+                            onClick={() => setDayTypes(prev => ({...prev, [day]: 'full'}))}
+                            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all border shadow-sm flex items-center justify-center gap-1 ${
+                                dayTypes[day] === 'full' 
+                                ? 'bg-blue-600 text-white border-blue-700 ring-2 ring-blue-300' 
+                                : 'bg-white text-slate-400 border-slate-200 hover:bg-slate-50'
+                            }`}
+                        >
+                            {dayTypes[day] === 'full' && <Check size={12}/>} 全天
+                        </button>
+                        <button
+                            onClick={() => setDayTypes(prev => ({...prev, [day]: 'half'}))}
+                            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all border shadow-sm flex items-center justify-center gap-1 ${
+                                dayTypes[day] === 'half' 
+                                ? 'bg-amber-500 text-white border-amber-600 ring-2 ring-amber-200' 
+                                : 'bg-white text-slate-400 border-slate-200 hover:bg-slate-50'
+                            }`}
+                        >
+                            {dayTypes[day] === 'half' && <Check size={12}/>} 半天
+                        </button>
+                    </div>
                   </div>
                 ))}
              </div>
@@ -481,12 +517,33 @@ const SettingsModal = ({
             onToggle={() => toggleSection('buttons')}
             colorClass="text-purple-600"
           >
-             <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 flex flex-wrap gap-3">
-                {systemButtonsConfig.singles.map(btn => (
-                    <button key={btn.id} onClick={() => toggleButtonVisibility(btn.id)} className={`px-3 py-2 rounded-lg text-sm font-bold border transition-all ${visibleButtons.includes(btn.id) ? 'bg-purple-600 text-white' : 'bg-white text-slate-400'}`}>{btn.label}</button>
-                ))}
-                {systemButtonsConfig.groups.flatMap(g => g.items).map(btn => (
-                    <button key={btn.id} onClick={() => toggleButtonVisibility(btn.id)} className={`px-3 py-2 rounded-lg text-sm font-bold border transition-all ${visibleButtons.includes(btn.id) ? 'bg-purple-600 text-white' : 'bg-white text-slate-400'}`}>{btn.label}</button>
+             <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 space-y-4">
+                {/* 單獨按鈕 */}
+                <div>
+                    <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">常用動作</h4>
+                    <div className="flex flex-wrap gap-2">
+                        {systemButtonsConfig.singles.map(btn => (
+                            <button key={btn.id} onClick={() => toggleButtonVisibility(btn.id)} className={`px-3 py-2 rounded-lg text-sm font-bold border transition-all flex items-center gap-2 ${visibleButtons.includes(btn.id) ? 'bg-purple-600 text-white shadow-md border-purple-700' : 'bg-white text-slate-400 border-slate-200 opacity-60 grayscale'}`}>
+                                {visibleButtons.includes(btn.id) && <Check size={14}/>}
+                                <btn.icon size={14}/> {btn.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                
+                {/* 群組按鈕 */}
+                {systemButtonsConfig.groups.map(group => (
+                    <div key={group.id}>
+                        <h4 className="text-xs font-bold text-slate-400 uppercase mb-2 flex items-center gap-1"><group.icon size={12}/> {group.label}</h4>
+                        <div className="flex flex-wrap gap-2">
+                            {group.items.map(btn => (
+                                <button key={btn.id} onClick={() => toggleButtonVisibility(btn.id)} className={`px-3 py-2 rounded-lg text-sm font-bold border transition-all flex items-center gap-2 ${visibleButtons.includes(btn.id) ? 'bg-purple-600 text-white shadow-md border-purple-700' : 'bg-white text-slate-400 border-slate-200 opacity-60 grayscale'}`}>
+                                    {visibleButtons.includes(btn.id) && <Check size={14}/>}
+                                    <btn.icon size={14}/> {btn.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 ))}
              </div>
           </SettingsSection>
@@ -557,7 +614,7 @@ const SettingsModal = ({
                 <div className="bg-slate-100 p-4 rounded-xl flex gap-4 items-center flex-wrap">
                      <span className="font-bold text-slate-700">模擬：</span>
                      <select value={selectedDay} onChange={(e) => setSelectedDay(e.target.value)} className="p-2 rounded border"><option value="">(原星期)</option>{WEEKDAYS.map((d,i)=><option key={i} value={i}>週{d}</option>)}</select>
-                     <input value={tempTime} onChange={(e) => setTempTime(e.target.value)} className="p-2 rounded border w-32 text-center" placeholder="HH:mm" />
+                     <CustomTimeInput value={tempTime} onChange={setTempTime} />
                      <button onClick={applyTimeChange} className="px-4 py-2 bg-blue-600 text-white rounded font-bold">套用</button>
                      <button onClick={() => {setTimeOffset(0); setIsManualEco(false); setIsAutoEcoOverride(true);}} className="px-4 py-2 bg-slate-600 text-white rounded font-bold">重置</button>
                 </div>
@@ -989,7 +1046,8 @@ const MessageInput = ({ isOpen, onClose, message, setMessage }) => {
 };
 
 const ControlDock = ({ 
-  statusMode, setSpecialStatus, setIsManualEco, isFullscreen, toggleFullScreen, setShowSettings, isAutoNapActive, onBroadcastClick, visibleButtons 
+  statusMode, setSpecialStatus, setIsManualEco, isFullscreen, toggleFullScreen, setShowSettings, isAutoNapActive, onBroadcastClick, visibleButtons, 
+  forceDark, setForceDark 
 }) => {
   const [activeDropdown, setActiveDropdown] = useState(null);
   useEffect(() => {
@@ -999,7 +1057,7 @@ const ControlDock = ({
   }, [activeDropdown]);
 
   if (statusMode === 'eco' || statusMode === 'special' || isAutoNapActive) return null;
-  const isDark = statusMode === 'off-hours';
+  const isDark = statusMode === 'off-hours' || forceDark;
   const toggleDropdown = (id) => setActiveDropdown(prev => prev === id ? null : id);
   const getVisibleItems = (items) => items.filter(item => visibleButtons.includes(item.id));
 
@@ -1037,6 +1095,9 @@ const ControlDock = ({
       })}
       <div className={`w-px h-6 mx-1 shrink-0 ${isDark ? 'bg-slate-600' : 'bg-slate-300'}`}></div>
       <button onClick={(e) => { e.stopPropagation(); setIsManualEco(true); }} className={`p-2 rounded-xl transition-all hover:-translate-y-1 shrink-0 ${isDark ? 'text-slate-400 hover:text-white hover:bg-slate-700' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50'}`} title="時鐘模式 (省電)"><Clock size={20} /></button>
+      <button onClick={() => setForceDark(!forceDark)} className={`p-2 rounded-xl transition-all hover:-translate-y-1 shrink-0 ${isDark ? 'text-yellow-400 hover:bg-slate-700' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50'}`} title="切換深色模式">
+        {isDark ? <Sun size={20} /> : <Moon size={20} />}
+      </button>
       <button onClick={toggleFullScreen} className={`p-2 rounded-xl transition-all hover:-translate-y-1 shrink-0 ${isDark ? 'text-slate-400 hover:text-white hover:bg-slate-700' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50'}`} title={isFullscreen ? "退出全螢幕" : "全螢幕模式"}>
         {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
       </button>
@@ -1137,6 +1198,9 @@ const ClassroomDashboardV2 = () => {
   const [progress, setProgress] = useState(100);
   const [secondsRemaining, setSecondsRemaining] = useState(0);
   const [saverPos, setSaverPos] = useState({ x: 0, y: 0 });
+  
+  // 新增手動深色模式狀態
+  const [forceDark, setForceDark] = useState(false);
 
   // 鍵盤與時間邏輯 (省略重複代碼，保留核心邏輯)
   useEffect(() => {
@@ -1299,18 +1363,21 @@ const ClassroomDashboardV2 = () => {
 
     return (
       <div className={`flex-1 relative overflow-hidden transition-colors duration-1000 ${isPreBell ? 'bg-red-50' : 'bg-slate-100'}`}>
+        {/* Force Dark Mode Overlay */}
+        {forceDark && <div className="absolute inset-0 bg-slate-900/90 z-0 pointer-events-none transition-colors duration-500"></div>}
+        
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-200/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-indigo-200/30 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none"></div>
-        <div className="h-full flex flex-col">
+        <div className="h-full flex flex-col relative z-10">
           <div className="flex justify-between items-start p-8">
-            <div className="bg-white/60 backdrop-blur-sm px-6 py-3 rounded-2xl shadow-sm border border-white/50"><span className="text-slate-500 font-bold mr-2">目前時段</span><span className="text-2xl font-bold text-slate-800">{currentSlot?.name}</span></div>
+            <div className={`bg-white/60 backdrop-blur-sm px-6 py-3 rounded-2xl shadow-sm border border-white/50 ${forceDark ? 'bg-slate-800/60 border-slate-700' : ''}`}><span className={`font-bold mr-2 ${forceDark ? 'text-slate-400' : 'text-slate-500'}`}>目前時段</span><span className={`text-2xl font-bold ${forceDark ? 'text-white' : 'text-slate-800'}`}>{currentSlot?.name}</span></div>
             {timeOffset !== 0 && <div className="bg-red-100 text-red-600 px-4 py-2 rounded-full text-sm font-bold animate-pulse border border-red-200">⚠️ 時間模擬模式中</div>}
           </div>
           <div className="flex-1 flex flex-col md:flex-row items-center justify-center gap-12 px-8 pb-8">
             <div className={`relative transition-all duration-500 ${isPreBell ? 'scale-110' : ''}`}><CircularProgress progress={progress} size={400} strokeWidth={24} colorClass={progressColor}>
                 <div className="text-center flex flex-col items-center">
-                    <div className="absolute -top-24 bg-white/90 backdrop-blur-md px-8 py-3 rounded-full shadow-lg border-2 border-indigo-100 flex items-center gap-4 transform hover:scale-105 transition-transform z-20"><span className="text-lg font-bold text-slate-400 uppercase tracking-wider">NEXT</span><div className="flex items-center gap-2 text-4xl font-bold text-indigo-600"><ArrowRight size={32} strokeWidth={3} /> {getNextSubjectName()}</div></div>
-                    <div className={`text-[7rem] font-bold font-mono tracking-tighter leading-none ${isPreBell ? 'text-red-600 animate-pulse' : 'text-slate-700'}`}>{formatCountdown(secondsRemaining)}</div><div className="text-slate-400 font-medium mt-2 tracking-widest uppercase">{isPreBell ? '預備鐘響' : 'REMAINING'}</div>
+                    <div className={`absolute -top-24 backdrop-blur-md px-8 py-3 rounded-full shadow-lg border-2 flex items-center gap-4 transform hover:scale-105 transition-transform z-20 ${forceDark ? 'bg-slate-800/90 border-slate-700' : 'bg-white/90 border-indigo-100'}`}><span className="text-lg font-bold text-slate-400 uppercase tracking-wider">NEXT</span><div className={`flex items-center gap-2 text-4xl font-bold ${forceDark ? 'text-indigo-400' : 'text-indigo-600'}`}><ArrowRight size={32} strokeWidth={3} /> {getNextSubjectName()}</div></div>
+                    <div className={`text-[7rem] font-bold font-mono tracking-tighter leading-none ${isPreBell ? 'text-red-600 animate-pulse' : (forceDark ? 'text-slate-200' : 'text-slate-700')}`}>{formatCountdown(secondsRemaining)}</div><div className="text-slate-400 font-medium mt-2 tracking-widest uppercase">{isPreBell ? '預備鐘響' : 'REMAINING'}</div>
                 </div>
             </CircularProgress></div>
             <div className="max-w-xl w-full flex flex-col gap-6">
@@ -1320,8 +1387,8 @@ const ClassroomDashboardV2 = () => {
                         <div className="flex justify-between items-start mb-2 opacity-50"><span className="text-xs font-bold uppercase tracking-widest text-yellow-800">MEMO</span><Edit3 size={16} className="text-yellow-700 opacity-0 group-hover:opacity-100 transition-opacity"/></div>
                         <p className={`font-bold text-slate-800 leading-snug break-words whitespace-pre-wrap ${teacherMessage.length > 50 ? 'text-2xl' : 'text-3xl'}`}>{teacherMessage}</p>
                     </div>
-                  ) : (!isPreBell && (<button onClick={() => setIsEditingMessage(true)} className="group flex items-center justify-center gap-2 p-4 rounded-2xl border-2 border-dashed border-slate-300 hover:border-yellow-400 hover:bg-yellow-50 transition-all"><Edit3 className="text-slate-400 group-hover:text-yellow-600" /><span className="text-slate-400 font-bold group-hover:text-yellow-700">新增便利貼留言</span></button>))}
-              <div className={`bg-white/80 backdrop-blur-xl p-8 rounded-3xl shadow-xl border border-white/50 transform transition-all duration-500 ${isPreBell ? 'opacity-50 blur-[2px] scale-95' : 'opacity-100 scale-100'}`}><div className="flex items-center gap-4 mb-4"><div className="p-3 bg-blue-100 rounded-2xl text-blue-600"><BookOpen size={32} /></div><div className="text-lg text-slate-500 font-bold">{isCleaning ? '打掃提醒' : (isLunch ? '用餐提醒' : '請準備')}</div></div><div className="text-3xl font-bold text-slate-800 leading-normal">{getSystemHint()}</div></div>
+                  ) : (!isPreBell && (<button onClick={() => setIsEditingMessage(true)} className={`group flex items-center justify-center gap-2 p-4 rounded-2xl border-2 border-dashed transition-all ${forceDark ? 'border-slate-600 hover:border-yellow-600 hover:bg-yellow-900/20' : 'border-slate-300 hover:border-yellow-400 hover:bg-yellow-50'}`}><Edit3 className={`group-hover:text-yellow-600 ${forceDark ? 'text-slate-500' : 'text-slate-400'}`} /><span className={`font-bold group-hover:text-yellow-700 ${forceDark ? 'text-slate-500' : 'text-slate-400'}`}>新增便利貼留言</span></button>))}
+              <div className={`backdrop-blur-xl p-8 rounded-3xl shadow-xl border transform transition-all duration-500 ${isPreBell ? 'opacity-50 blur-[2px] scale-95' : 'opacity-100 scale-100'} ${forceDark ? 'bg-slate-800/80 border-slate-700' : 'bg-white/80 border-white/50'}`}><div className="flex items-center gap-4 mb-4"><div className="p-3 bg-blue-100 rounded-2xl text-blue-600"><BookOpen size={32} /></div><div className="text-lg text-slate-500 font-bold">{isCleaning ? '打掃提醒' : (isLunch ? '用餐提醒' : '請準備')}</div></div><div className={`text-3xl font-bold leading-normal ${forceDark ? 'text-slate-200' : 'text-slate-800'}`}>{getSystemHint()}</div></div>
               {isPreBell && (<div className="bg-red-600 text-white p-8 rounded-3xl shadow-2xl border-4 border-red-400 animate-bounce-subtle flex items-center justify-center text-center"><div><h3 className="text-4xl font-bold mb-2">請回座位</h3><p className="text-xl opacity-90">靜候老師上課</p></div></div>)}
             </div>
           </div>
@@ -1330,7 +1397,17 @@ const ClassroomDashboardV2 = () => {
     );
   };
 
-  const ClassView = () => (<div className="flex-1 bg-slate-50 flex items-center justify-center p-8"><div className="max-w-5xl w-full bg-white rounded-[3rem] shadow-2xl p-16 text-center border-4 border-slate-100 relative overflow-hidden"><div className="absolute top-0 left-0 w-full h-4 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"></div><div className="mb-8 inline-flex items-center justify-center w-24 h-24 rounded-full bg-indigo-50 text-indigo-600 mb-6"><Bell size={48} /></div><h1 className="text-7xl font-bold text-slate-800 mb-8 tracking-tight">上課了</h1><div className="text-3xl text-slate-500 mb-12 font-medium">現在是 <span className="text-indigo-600 font-bold mx-2">{schedule[now.getDay()]?.[currentSlot?.id] || currentSlot?.name}</span> 時間</div><div className="bg-slate-50 rounded-2xl p-8 max-w-2xl mx-auto"><p className="text-2xl text-slate-700 leading-relaxed">請拿出課本與學用品<br/>保持安靜，專心聽講</p></div></div></div>);
+  const ClassView = () => (
+    <div className={`flex-1 flex items-center justify-center p-8 transition-colors duration-500 ${forceDark ? 'bg-slate-900' : 'bg-slate-50'}`}>
+        <div className={`max-w-5xl w-full rounded-[3rem] shadow-2xl p-16 text-center border-4 relative overflow-hidden ${forceDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
+            <div className="absolute top-0 left-0 w-full h-4 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"></div>
+            <div className={`mb-8 inline-flex items-center justify-center w-24 h-24 rounded-full mb-6 ${forceDark ? 'bg-indigo-900/50 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}><Bell size={48} /></div>
+            <h1 className={`text-7xl font-bold mb-8 tracking-tight ${forceDark ? 'text-slate-100' : 'text-slate-800'}`}>上課了</h1>
+            <div className="text-3xl text-slate-500 mb-12 font-medium">現在是 <span className="text-indigo-600 font-bold mx-2">{schedule[now.getDay()]?.[currentSlot?.id] || currentSlot?.name}</span> 時間</div>
+            <div className={`rounded-2xl p-8 max-w-2xl mx-auto ${forceDark ? 'bg-slate-700/50' : 'bg-slate-50'}`}><p className={`text-2xl leading-relaxed ${forceDark ? 'text-slate-300' : 'text-slate-700'}`}>請拿出課本與學用品<br/>保持安靜，專心聽講</p></div>
+        </div>
+    </div>
+  );
   const OffHoursView = () => (<div className="flex-1 bg-slate-900 relative overflow-hidden flex flex-col items-center justify-center p-8 transition-colors duration-1000"><div className="text-center z-10"><div className="mb-8"><div className="text-xl text-blue-300 font-medium mb-2 tracking-widest uppercase">Off-Hours</div><h2 className="text-6xl font-bold text-white tracking-tight drop-shadow-lg">非上課時段</h2></div><div className="font-mono text-[8rem] leading-none text-slate-200 font-bold drop-shadow-2xl">{now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: !is24Hour })}</div><div className="text-2xl text-slate-400 mt-4 font-light">{formatROCDate(now)}</div></div></div>);
   const EcoView = () => (<div className="flex-1 bg-black relative overflow-hidden cursor-pointer w-full h-full" onClick={() => {setIsManualEco(false);setIsAutoEcoOverride(true);}}><div className="absolute transition-all duration-[2000ms] flex flex-col items-center" style={{ transform: `translate(${saverPos.x}px, ${saverPos.y}px)`, top: '50%', left: '50%', marginTop: '-150px', marginLeft: '-300px', width: '600px' }}><div className="text-[12rem] font-mono font-bold text-slate-800 leading-none select-none">{now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: !is24Hour })}</div><div className="mt-4 text-2xl text-slate-900 font-medium border px-4 py-1 rounded-full border-slate-900">{schedule[now.getDay()]?.[currentSlot?.id] || '休息中'}</div></div></div>);
   const SpecialView = () => {
@@ -1351,7 +1428,22 @@ const ClassroomDashboardV2 = () => {
         {statusMode === 'eco' && <EcoView />}
         {statusMode === 'off-hours' && <OffHoursView />}
         {statusMode === 'special' && specialStatus && <SpecialView />}
-        <ControlDock statusMode={statusMode} setSpecialStatus={setSpecialStatus} setIsManualEco={setIsManualEco} isFullscreen={isFullscreen} toggleFullScreen={toggleFullScreen} setShowSettings={setShowSettings} isAutoNapActive={isAutoNapActive} onBroadcastClick={() => setShowBroadcastInput(true)} visibleButtons={visibleButtons} />
+        
+        {/* 控制列傳遞 forceDark 狀態 */}
+        <ControlDock 
+            statusMode={statusMode} 
+            setSpecialStatus={setSpecialStatus} 
+            setIsManualEco={setIsManualEco} 
+            isFullscreen={isFullscreen} 
+            toggleFullScreen={toggleFullScreen} 
+            setShowSettings={setShowSettings} 
+            isAutoNapActive={isAutoNapActive} 
+            onBroadcastClick={() => setShowBroadcastInput(true)} 
+            visibleButtons={visibleButtons} 
+            forceDark={forceDark}
+            setForceDark={setForceDark}
+        />
+        
         {!(statusMode === 'eco' || statusMode === 'special' || isAutoNapActive) && (<div className="absolute bottom-6 right-6 z-50"><button onClick={() => setShowTools(true)} className="p-4 bg-white/90 backdrop-blur shadow-xl rounded-2xl text-slate-600 hover:text-blue-600 hover:scale-110 transition-all border border-white/50" title="教室小工具"><Box size={24} /></button></div>)}
       </div>
       
