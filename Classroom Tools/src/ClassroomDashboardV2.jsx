@@ -207,7 +207,7 @@ const SettingsModal = ({
         setTempTime(`${h}:${m}`);
         setSelectedDay(prev => prev === '' ? now.getDay().toString() : prev);
     }
-  }, [isOpen, now]); 
+  }, [isOpen]); 
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
