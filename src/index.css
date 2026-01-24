@@ -1,0 +1,90 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* --- 1. 設計權杖 (Design Tokens) --- */
+:root {
+  /* 基礎背景與文字 - 淺色模式：清新、乾淨 */
+  --bg-body: #f1f5f9;         /* slate-100 */
+  --bg-card: #ffffff;
+  --text-main: #1e293b;       /* slate-800 */
+  --border-default: #e2e8f0;
+
+  /* 玻璃擬態基礎色 */
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.5);
+}
+
+/* 深色模式變數 - 強化對比與色彩飽和度 */
+.dark {
+  --bg-body: #020617;         /* slate-950 (深邃黑藍，非死灰) */
+  --bg-card: #0f172a;         /* slate-900 */
+  --text-main: #f8fafc;       /* slate-50 */
+  --border-default: #1e293b;  /* slate-800 */
+
+  /* 深色玻璃擬態 - 增加透明質感 */
+  --glass-bg: rgba(15, 23, 42, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.08);
+}
+
+/* --- 2. 基礎 HTML 樣式 --- */
+body {
+  background-color: var(--bg-body);
+  color: var(--text-main);
+  margin: 0;
+  overflow: hidden;
+  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 強制瀏覽器渲染深色模式相關樣式 */
+html.dark {
+  color-scheme: dark;
+}
+
+/* --- 3. 工具類 (Utility Classes) --- */
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* 自訂捲軸樣式 - 提高深色模式識別度 */
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { 
+  background: #cbd5e1; 
+  border-radius: 10px; 
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+/* 進階玻璃擬態 */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 4px 15px -1px rgba(0, 0, 0, 0.1);
+}
+.dark .glass {
+  box-shadow: 0 8px 30px -5px rgba(0, 0, 0, 0.5);
+}
+
+/* --- 4. 動畫定義 --- */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* 震動效果 (用於扣分反饋) */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+.animate-shake {
+  animation: shake 0.4s ease-in-out;
+}
