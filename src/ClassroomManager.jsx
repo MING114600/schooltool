@@ -237,10 +237,10 @@ const ManagerContent = () => {
 
       {/* 詳細模式開關按鈕 */}
       {(isFocusMode || (!isSidebarOpen && !isToolbarOpen)) && (
-        <div className="absolute top-3 right-4 z-[70] no-print animate-fade-in">
+        <div className="absolute top-3 right-4 z-[70] animate-in slide-in-from-right-4 fade-in duration-500 no-print">
           <button 
             onClick={() => { setIsFocusMode(false); setIsSidebarOpen(true); setIsToolbarOpen(true); }} 
-            className="px-10 py-2 bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 rounded-full shadow-2xl flex items-center gap-2 border border-slate-600 hover:scale-105 transition-all"
+				className="px-4 py-2 bg-white/90 dark:bg-blue-900/50 backdrop-blur text-blue-600 dark:text-blue-200 rounded-full shadow-xl font-bold flex items-center gap-2 hover:bg-blue-50 hover:dark:bg-blue-500/50 hover:scale-105 transition-all border border-blue-200 dark:border-blue-500 shadow-blue-100/50 dark:shadow-blue-700/50"
           >
             <Settings2 size={18}/>
             <span className="font-bold">詳細模式</span>
@@ -250,10 +250,10 @@ const ManagerContent = () => {
 
       {/* 2. 右上角：開啟評分工具按鈕 */}
       {!isScoreTickerOpen && (isFocusMode || !isToolbarOpen) && (
-          <div className="absolute top-4 right-4 z-[70] animate-in slide-in-from-right-4 fade-in duration-500 no-print">
+          <div className="absolute top-15 right-4 z-[70] animate-in slide-in-from-right-4 fade-in duration-500 no-print">
               <button 
                 onClick={() => setIsScoreTickerOpen(true)}
-                className="px-4 py-2 bg-white/90 backdrop-blur text-amber-600 rounded-full shadow-xl font-bold flex items-center gap-2 hover:bg-amber-50 hover:scale-105 transition-all border border-amber-200 shadow-amber-100/50"
+                className="px-4 py-2 bg-white/90 dark:bg-amber-900/50 backdrop-blur text-amber-600 dark:text-amber-200 rounded-full shadow-xl font-bold flex items-center gap-2 hover:bg-amber-50 hover:dark:bg-amber-500/50 hover:scale-105 transition-all border border-amber-200 dark:border-amber-500 shadow-amber-100/50 dark:shadow-amber-700/50"
               >
                   <Trophy size={18}/> 評分工具
               </button>

@@ -4,9 +4,11 @@ import {
   CalendarCheck, Layers, Download, Upload, RotateCcw, RotateCw,
   Box, Trophy, Table, Settings2, User, Copy, Settings, History, Clock
 } from 'lucide-react';
+import GlobalBackupModal from '../../../components/common/GlobalBackupModal';
 import StudentCard from '../../../components/business/StudentCard';
 import { useClassroomContext } from '../../../context/ClassroomContext';
 import { UI_THEME } from '../../../utils/constants'; 
+
 
 const Sidebar = ({
   // UI 狀態 (從父層傳入)
@@ -31,11 +33,14 @@ const Sidebar = ({
   const { 
     classes, currentClass, setCurrentClassId, unseatedStudents, currentAttendanceStatus,
     addClass, updateClass, deleteClass, importData,
-    undo, redo, historyIndex, historyLength, clearScoreLogs ,toggleLock
+    historyIndex, historyLength, clearScoreLogs ,toggleLock
   } = useClassroomContext();
 
+  const [isBackupOpen, setIsBackupOpen] = useState(false);
   const fileInputRef = useRef(null);
   const importTextRef = useRef(null);
+  const { undo, redo, canUndo, canRedo } = useClassroomContext();
+
 
   if (!isOpen) return null;
 
@@ -70,36 +75,6 @@ const Sidebar = ({
     if (confirm(`確定要刪除「${currentClass.name}」嗎？\n此動作無法復原。`)) {
         deleteClass();
     }
-  };
-
-  const handleExportData = () => {
-    const data = { version: '1.4', timestamp: new Date().toISOString(), classes: classes };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob); 
-    const a = document.createElement('a'); 
-    a.href = url; 
-    a.download = `SeatMap_Backup_${new Date().toLocaleDateString()}.json`; 
-    a.click(); 
-    URL.revokeObjectURL(url);
-  };
-
-  const handleImportData = (e) => {
-    const file = e.target.files[0]; 
-    if (!file) return; 
-    const reader = new FileReader(); 
-    reader.onload = (event) => {
-      try { 
-          const data = JSON.parse(event.target.result); 
-          if (data.classes) { 
-              if(confirm('確定要還原備份嗎？這將會覆蓋目前所有的班級資料。')) { 
-                  importData(data);
-                  alert('資料還原成功！'); 
-              } 
-          } else { alert('無效的備份檔案。'); } 
-      } catch (err) { alert('讀取檔案失敗。'); } 
-    }; 
-    reader.readAsText(file); 
-    e.target.value = ''; 
   };
 
   const handleLocalImportList = () => {
@@ -144,11 +119,14 @@ const Sidebar = ({
           </div>
           
           {/* 備份還原 */}
-          <div className="flex gap-2">
-              <button onClick={handleExportData} className={`flex-1 py-1.5 rounded text-xs font-bold flex justify-center gap-1 border border-transparent ${UI_THEME.BTN_GHOST} bg-slate-100 dark:bg-slate-800`}><Download size={12}/> 備份</button>
-              <button onClick={() => fileInputRef.current.click()} className={`flex-1 py-1.5 rounded text-xs font-bold flex justify-center gap-1 border border-transparent ${UI_THEME.BTN_GHOST} bg-slate-100 dark:bg-slate-800`}><Upload size={12}/> 還原</button>
-              <input type="file" ref={fileInputRef} onChange={handleImportData} className="hidden" accept=".json"/>
-          </div>
+
+		  <button 
+            onClick={() => setIsBackupOpen(true)} 
+            className={`w-full py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors`}
+          >
+            <Download size={14}/> 系統資料備份/還原
+          </button>
+
       </div>
       
       {/* 未排座位區 */}
@@ -305,6 +283,7 @@ const Sidebar = ({
 
   return (
     <div className={`${UI_THEME.SURFACE_MAIN} border-r ${UI_THEME.BORDER_DEFAULT} flex flex-col shadow-lg z-20 shrink-0 transition-all duration-300 ease-in-out relative no-print ${isOpen ? 'w-80 translate-x-0' : 'w-0 -translate-x-full border-r-0 opacity-0 overflow-hidden'}`}>
+		<GlobalBackupModal isOpen={isBackupOpen} onClose={() => setIsBackupOpen(false)} />
         <div className="w-80 h-full flex flex-col">
           {/* Tabs 區域 - 這裡使用稍微不同的背景色以區分 Tab */}
           <div className={`flex border-b ${UI_THEME.BORDER_LIGHT} bg-slate-50 dark:bg-slate-800`}>
@@ -319,8 +298,8 @@ const Sidebar = ({
           <div className={`p-4 pl-20 border-t ${UI_THEME.BORDER_LIGHT} bg-slate-50 dark:bg-slate-800 flex items-center justify-between pb-6`}>
              <span className={`text-xs font-bold ${UI_THEME.TEXT_MUTED} whitespace-nowrap`}>操作紀錄</span>
              <div className="flex gap-2">
-                 <button onClick={undo} disabled={historyIndex <= 0} className={`p-2 ${UI_THEME.BTN_SECONDARY} rounded-lg disabled:opacity-30 disabled:cursor-not-allowed`} title="復原 (Undo)"><RotateCcw size={16}/></button>
-                 <button onClick={redo} disabled={historyIndex >= historyLength - 1} className={`p-2 ${UI_THEME.BTN_SECONDARY} rounded-lg disabled:opacity-30 disabled:cursor-not-allowed`} title="重做 (Redo)"><RotateCw size={16}/></button>
+                 <button onClick={undo} disabled={!canUndo} className={`p-2 ${UI_THEME.BTN_SECONDARY} rounded-lg disabled:opacity-30 disabled:cursor-not-allowed`} title="復原 (Undo)"><RotateCcw size={16}/></button>
+                 <button onClick={redo} disabled={!canRedo} className={`p-2 ${UI_THEME.BTN_SECONDARY} rounded-lg disabled:opacity-30 disabled:cursor-not-allowed`} title="重做 (Redo)"><RotateCw size={16}/></button>
              </div>
           </div>
         </div>

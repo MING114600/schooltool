@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
     Play, Pause, Upload, Trash2, Plus, Maximize, Minimize, Settings, 
-    ArrowUp, ArrowDown, RotateCcw, X, Sidebar, Globe, Languages 
+    ArrowUp, ArrowDown, RotateCcw, X, Sidebar, Globe, Languages,
+    ListFilter 
 } from 'lucide-react';
+
+// 引入標準預設值
+import { STANDARD_TIME_SLOTS } from './utils/constants';
 
 const TRANSLATIONS = {
     zh: {
@@ -142,51 +146,89 @@ const ExamTool = () => {
     const [showLeft, setShowLeft] = useState(true);
     const [showRight, setShowRight] = useState(true);
     const [lang, setLang] = useState('zh');
+    const [referenceSlots, setReferenceSlots] = useState(STANDARD_TIME_SLOTS);
     
     const t = TRANSLATIONS[lang];
 
-    // Schedule Data
-    const [schedule, setSchedule] = useState([
-        { id: 1, subject: '第一節', start: '08:20', end: '09:10', audioUrl: null, audioName: null },
-        { id: 2, subject: '第二節', start: '09:20', end: '10:10', audioUrl: null, audioName: null },
-    ]);
+    // 初始化 Schedule，預設為空，等待 useEffect 填充
+    const [schedule, setSchedule] = useState([]);
 
-    // Attendance Data
     const [attendance, setAttendance] = useState({ expected: '', actual: '', absent: '' });
-
-    // Reminders Data
     const [reminders, setReminders] = useState({
         exam: ["寫上班級姓名", "有問題舉手", "字跡工整", "檢查考卷", "保持安靜"],
         break: ["準備下節課本", "上廁所喝水", "桌面淨空", "坐在位置上"]
     });
 
-    // Audio State
     const [playingId, setPlayingId] = useState(null);
     const audioRefs = useRef({});
 
-    // --- Effects ---
+    // --- 核心初始化 Effect (合併了讀取邏輯) ---
     useEffect(() => {
         const timer = setInterval(() => setNow(new Date()), 1000);
+
+        // 1. 準備參考時段 (Dashboard 設定 > 標準設定)
+        let loadedReference = STANDARD_TIME_SLOTS;
+        try {
+            const dashboardData = localStorage.getItem('timeSlots');
+            if (dashboardData) {
+                const parsed = JSON.parse(dashboardData);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    loadedReference = parsed;
+                }
+            }
+        } catch(e) { console.error("Error loading dashboard slots", e); }
+        setReferenceSlots(loadedReference);
+
+        // 2. 決定考試行程 (ExamTool 存檔 > 自動生成前三節)
+        try {
+            const savedExamSchedule = localStorage.getItem('flex_schedule_text_v2');
+            
+            if (savedExamSchedule) {
+                // 情境 A: 老師已經有存檔 -> 讀取存檔
+                const parsed = JSON.parse(savedExamSchedule);
+                setSchedule(parsed.map(s => ({...s, audioUrl: null, audioName: null})));
+            } else {
+                // 情境 B: 第一次使用/無存檔 -> 自動抓前三節 'class'
+                const autoSchedule = loadedReference
+                    .filter(s => s.type === 'class' && s.id !== 'morning')
+                    .slice(0, 3) // 只抓前三個
+                    .map((s, idx) => ({
+                        id: Date.now() + idx,
+                        subject: s.name, // 自動填入名稱 (如：第一節)
+                        start: s.start,  // 自動填入時間
+                        end: s.end,
+                        audioUrl: null,
+                        audioName: null
+                    }));
+                
+                // 如果有抓到東西就設定
+                if (autoSchedule.length > 0) {
+                    setSchedule(autoSchedule);
+                } else {
+                    // 如果真的什麼都抓不到 (極端情況)，給一個預設空殼
+                    setSchedule([{ id: Date.now(), subject: '第一節', start: '08:20', end: '09:10', audioUrl: null }]);
+                }
+            }
+
+            // 讀取其他設定
+            const savedAtt = localStorage.getItem('flex_attendance_v2');
+            const savedReminders = localStorage.getItem('flex_reminders_v2');
+            if (savedAtt) setAttendance(JSON.parse(savedAtt));
+            if (savedReminders) setReminders(JSON.parse(savedReminders));
+
+        } catch(e) {
+            console.error("Initialization error", e);
+        }
+
         return () => clearInterval(timer);
     }, []);
 
+    // 儲存邏輯
     useEffect(() => {
-        try {
-            const savedSchedule = localStorage.getItem('flex_schedule_text_v2');
-            const savedAtt = localStorage.getItem('flex_attendance_v2');
-            const savedReminders = localStorage.getItem('flex_reminders_v2');
-            if (savedSchedule) {
-                const parsed = JSON.parse(savedSchedule);
-                setSchedule(parsed.map(s => ({...s, audioUrl: null, audioName: null})));
-            }
-            if (savedAtt) setAttendance(JSON.parse(savedAtt));
-            if (savedReminders) setReminders(JSON.parse(savedReminders));
-        } catch(e) {}
-    }, []);
-
-    useEffect(() => {
-        const textOnlySchedule = schedule.map(({audioUrl, ...rest}) => rest);
-        localStorage.setItem('flex_schedule_text_v2', JSON.stringify(textOnlySchedule));
+        if (schedule.length > 0) {
+            const textOnlySchedule = schedule.map(({audioUrl, ...rest}) => rest);
+            localStorage.setItem('flex_schedule_text_v2', JSON.stringify(textOnlySchedule));
+        }
     }, [schedule]);
 
     useEffect(() => {
@@ -272,7 +314,7 @@ const ExamTool = () => {
     };
 
     const removeSlot = (e, id) => {
-        e.stopPropagation(); // Stop event bubbling
+        e.stopPropagation();
         if (schedule.length <= 1) {
             alert(lang === 'zh' ? "至少需保留一個時段" : "Keep at least one slot");
             return;
@@ -284,6 +326,24 @@ const ExamTool = () => {
 
     const updateSchedule = (id, field, val) => {
         setSchedule(prev => prev.map(s => s.id === id ? { ...s, [field]: val } : s));
+    };
+
+    const handleImportStandardSlot = (scheduleId, slotId) => {
+        if (!slotId) return;
+        const target = referenceSlots.find(s => s.id === slotId);
+        if (target) {
+            setSchedule(prev => prev.map(item => {
+                if (item.id === scheduleId) {
+                    return {
+                        ...item,
+                        subject: target.name, 
+                        start: target.start,  
+                        end: target.end       
+                    };
+                }
+                return item;
+            }));
+        }
     };
 
     const parseTime = (t) => {
@@ -323,13 +383,9 @@ const ExamTool = () => {
 
     // --- Layout Calculations ---
     const isFocusMode = !showLeft && !showRight;
-    
-    // 在專注模式下，Top Bar 不再單純依賴 h-screen，而是使用 Flexbox 的 gap 和 justify-center 來排列
-    // 當 isFocusMode 為 true 時，外層容器會變成一個全螢幕的 flex column，時間和進度條都會置中
     const topHeightClass = isFocusMode ? 'h-full flex-col justify-center gap-12' : 'h-[25vh]';
     const bottomHeightClass = isFocusMode ? 'h-0 overflow-hidden hidden' : 'h-[75vh]';
     
-    // Width Logic
     let leftWidthClass = 'w-0 hidden';
     let rightWidthClass = 'w-0 hidden';
     
@@ -388,8 +444,6 @@ const ExamTool = () => {
         if (pct < 20) color = "bg-rose-500 animate-pulse-slow";
         else if (pct < 50) color = "bg-amber-400";
         
-        // Styles for Focus Mode
-        // 當專注模式時，使用更大的高度和文字
         const containerClass = isFocusMode ? "h-48 rounded-[3rem]" : "h-14";
         const textSizeClass = isFocusMode ? "text-[5rem]" : "text-2xl";
 
@@ -415,7 +469,6 @@ const ExamTool = () => {
                 t={t}
             />
 
-            {/* Floating Control Buttons (Bottom Right) */}
             <div className="fixed bottom-6 right-6 z-50 flex gap-3">
                  <button onClick={toggleLang} className="w-12 h-12 rounded-full bg-slate-800 text-white shadow-lg hover:bg-slate-700 hover:scale-110 active:scale-95 transition-all flex items-center justify-center font-bold text-lg border-2 border-slate-700" title={lang === 'zh' ? "Switch to English" : "切換至中文"}>
                     {t.lang_switch}
@@ -431,10 +484,7 @@ const ExamTool = () => {
                 </button>
             </div>
 
-            {/* Top Bar */}
             <div className={`${topHeightClass} flex bg-slate-900 text-white shadow-xl z-20 relative transition-all duration-500 ease-in-out`}>
-                
-                {/* Clock Section */}
                 <div className={`${isFocusMode ? 'w-full bg-transparent p-0' : 'w-[35%] border-r border-slate-700 px-4 bg-gradient-to-b from-slate-800 to-slate-900'} flex flex-col justify-center items-center relative transition-all duration-500`}>
                     <div className={`text-slate-400 font-medium tracking-widest opacity-80 transition-all duration-500 ${isFocusMode ? 'text-3xl mb-4 text-center' : 'absolute top-4 left-6 text-sm md:text-base'}`}>
                         {adjustedTime.toLocaleDateString(lang === 'zh' ? 'zh-TW' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })}
@@ -444,34 +494,49 @@ const ExamTool = () => {
                     </div>
                 </div>
 
-                {/* Progress Bar Section */}
                 <div className={`${isFocusMode ? 'w-full bg-transparent px-16' : 'w-[65%] bg-slate-100 relative p-6'} transition-all duration-500`}>
                      {!isFocusMode && <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>}
                      <ProgressBar />
                 </div>
             </div>
 
-            {/* Main Content: Split View */}
             <div className={`${bottomHeightClass} flex transition-all duration-500`}>
-                
-                {/* Left: Schedule List */}
                 <div className={`${leftWidthClass} bg-white border-r border-slate-200 flex flex-col shadow-[10px_0_20px_rgba(0,0,0,0.05)] z-10 transition-all duration-500 overflow-hidden`}>
                     <div className="flex-1 overflow-y-auto p-4 scroll-smooth custom-scrollbar">
                         {schedule.map((item, idx) => {
                             const active = currentStatus.type === 'exam' && currentStatus.idx === idx;
-                            // Scale font size based on layout
                             const subjectSize = !showRight ? 'text-6xl' : 'text-[clamp(1.5rem,4vh,3rem)]';
                             const timeSize = !showRight ? 'text-4xl' : 'text-[clamp(1.2rem,2.5vh,2rem)]';
 
                             return (
                                 <div key={item.id} className={`group flex items-center gap-4 p-4 mb-3 rounded-xl border transition-all ${active ? 'bg-amber-50 border-amber-400 ring-2 ring-amber-200 shadow-lg' : 'bg-white border-slate-100 hover:border-slate-300 hover:shadow-sm'}`}>
-                                    <button 
-                                        onClick={(e) => removeSlot(e, item.id)} 
-                                        className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
-                                        title={t.delete}
-                                    >
-                                        <Trash2 size={24} />
-                                    </button>
+                                    
+                                    <div className="flex flex-col gap-2">
+                                        <button 
+                                            onClick={(e) => removeSlot(e, item.id)} 
+                                            className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                            title={t.delete}
+                                        >
+                                            <Trash2 size={20} />
+                                        </button>
+                                        <div className="relative group/menu">
+                                            <button className="p-2 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors">
+                                                <ListFilter size={20}/>
+                                            </button>
+                                            <select 
+                                                className="absolute inset-0 opacity-0 cursor-pointer"
+                                                value=""
+                                                onChange={(e) => handleImportStandardSlot(item.id, e.target.value)}
+                                            >
+                                                <option value="" disabled>快速套用...</option>
+                                                {referenceSlots.filter(s => s.type === 'class').map(slot => (
+                                                    <option key={slot.id} value={slot.id}>
+                                                        {slot.name} ({slot.start}-{slot.end})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
 
                                     <div className="flex-1 flex flex-col gap-1">
                                         <input 
@@ -536,7 +601,6 @@ const ExamTool = () => {
                     </div>
                 </div>
 
-                {/* Right: Reminder Display */}
                 <div className={`${rightWidthClass} bg-white flex flex-col relative overflow-hidden group transition-all duration-500`}>
                     <div className={`relative text-center py-3 font-bold text-2xl tracking-wider transition-colors duration-500 ${currentStatus.type === 'exam' ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-600'}`}>
                         {currentStatus.type === 'exam' ? t.title_exam : t.title_break}

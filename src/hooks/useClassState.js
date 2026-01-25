@@ -1,21 +1,14 @@
-// src/hooks/useClassState.js
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
-// 定義預設值 (原封不動移過來)
+// 預設資料
 const DEFAULT_CLASS = {
   id: 'default_class',
   name: '範例班級',
   students: [
     { id: 's1', number: '01', name: '王小明', gender: 'M', group: '1', locked: false },
     { id: 's2', number: '02', name: '陳小美', gender: 'F', group: '1', locked: false },
-    { id: 's3', number: '03', name: '林大華', gender: 'M', group: '2', locked: false },
-    { id: 's4', number: '04', name: '張雅婷', gender: 'F', group: '2', locked: false },
-    { id: 's5', number: '05', name: '李志豪', gender: 'M', group: '3', locked: false },
-    { id: 's6', number: '06', name: '謝小芬', gender: 'F', group: '3', locked: false },
-    { id: 's7', number: '07', name: '劉阿宏', gender: 'M', group: '4', locked: false },
-    { id: 's8', number: '08', name: '蔡依依', gender: 'F', group: '4', locked: false },
   ],
-  layout: { rows: 4, cols: 8, doorSide: 'right', seats: {}, voidSeats: [] },
+  layout: { rows: 6, cols: 5, doorSide: 'right', seats: {}, voidSeats: [] },
   groupScores: {}, scoreLogs: [], attendanceRecords: {},
   behaviors: [
     { id: 'b1', icon: '👍', label: '發表意見', score: 1, type: 'positive' },
@@ -26,62 +19,62 @@ const DEFAULT_CLASS = {
   ]
 };
 
+const STORAGE_KEY = 'schooltool_classes';
 const MAX_HISTORY = 20;
 
 export const useClassState = () => {
+    // 1. 初始化狀態：使用惰性初始值 (Lazy Initializer) 減少重複解析
     const [classes, setClasses] = useState(() => {
         try {
-            const saved = localStorage.getItem('schooltool_classes');
+            const saved = localStorage.getItem(STORAGE_KEY);
             return saved ? JSON.parse(saved) : [DEFAULT_CLASS];
-        } catch (e) { return [DEFAULT_CLASS]; }
+        } catch (e) { 
+            console.error("讀取存檔失敗:", e);
+            return [DEFAULT_CLASS]; 
+        }
     });
 
-    const [currentClassId, setCurrentClassId] = useState(() => classes[0]?.id);
+    const [currentClassId, setCurrentClassId] = useState(classes[0]?.id);
     const [history, setHistory] = useState([]);
     const [historyIndex, setHistoryIndex] = useState(-1);
 
     const currentClass = classes.find(c => c.id === currentClassId) || classes[0];
 
-    // LocalStorage 同步
+    // 2. 效能優化：Debounced Save (防抖寫入)
+    // 避免評分時每點擊一次就觸發一次硬碟寫入，改為停止操作後 1 秒再存檔
+    const saveTimeoutRef = useRef(null);
     useEffect(() => {
-        localStorage.setItem('schooltool_classes', JSON.stringify(classes));
+        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+        
+        saveTimeoutRef.current = setTimeout(() => {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(classes));
+        }, 1000);
+
+        return () => clearTimeout(saveTimeoutRef.current);
     }, [classes]);
 
-    // History 初始化
-    useEffect(() => {
-        if (history.length === 0) {
-            setHistory([{ classes, currentClassId }]);
-            setHistoryIndex(0);
-        }
-    }, []);
-
-    const updateState = (newClasses, newCurrentId) => {
+    // 3. 狀態更新核心邏輯
+    const updateState = useCallback((newClasses, newCurrentId) => {
         setClasses(newClasses);
         if (newCurrentId) setCurrentClassId(newCurrentId);
 
+        // 紀錄歷史紀錄以供 Undo/Redo
         setHistory(prev => {
             const upToNow = prev.slice(0, historyIndex + 1);
             const newItem = { classes: newClasses, currentClassId: newCurrentId || currentClassId };
             const next = [...upToNow, newItem];
-            if (next.length > MAX_HISTORY) next.shift();
-            return next;
+            return next.slice(-MAX_HISTORY); // 限制歷史長度
         });
-        setHistoryIndex(prev => {
-            const nextIdx = prev + 1;
-            return nextIdx >= MAX_HISTORY ? MAX_HISTORY - 1 : nextIdx;
-        });
-    };
+        setHistoryIndex(prev => Math.min(prev + 1, MAX_HISTORY - 1));
+    }, [historyIndex, currentClassId]);
 
-    const updateClass = (updatedClass) => {
+    const updateClass = useCallback((updatedClass) => {
         const newClasses = classes.map(c => c.id === updatedClass.id ? updatedClass : c);
         updateState(newClasses, null);
-    };
+    }, [classes, updateState]);
 
-    const updateAllClasses = (newClasses, newCurrentId) => {
-        updateState(newClasses, newCurrentId);
-    };
-
-    const undo = () => {
+    // 4. Undo / Redo 邏輯
+    const undo = useCallback(() => {
         if (historyIndex > 0) {
             const prevIndex = historyIndex - 1;
             const prevState = history[prevIndex];
@@ -89,9 +82,9 @@ export const useClassState = () => {
             setCurrentClassId(prevState.currentClassId);
             setHistoryIndex(prevIndex);
         }
-    };
+    }, [historyIndex, history]);
 
-    const redo = () => {
+    const redo = useCallback(() => {
         if (historyIndex < history.length - 1) {
             const nextIndex = historyIndex + 1;
             const nextState = history[nextIndex];
@@ -99,31 +92,37 @@ export const useClassState = () => {
             setCurrentClassId(nextState.currentClassId);
             setHistoryIndex(nextIndex);
         }
-    };
+    }, [historyIndex, history]);
 
-    // 其他 CRUD 輔助
+    // 5. CRUD 輔助功能 (整合自 useClassData)
     const addClass = (name) => {
-        const newClass = { ...DEFAULT_CLASS, id: `c_${Date.now()}`, name: name.trim(), students: [], layout: { rows: 4, cols: 8, doorSide: 'right', seats: {}, voidSeats: [] }, scoreLogs: [] };
-        updateAllClasses([...classes, newClass], newClass.id);
+        const newClass = { 
+            ...DEFAULT_CLASS, 
+            id: `c_${Date.now()}`, 
+            name: name.trim() || '新班級',
+            students: [],
+            scoreLogs: [] 
+        };
+        updateState([...classes, newClass], newClass.id);
     };
 
     const deleteClass = () => {
+        if (classes.length <= 1) return alert("至少需保留一個班級");
         const newClasses = classes.filter(c => c.id !== currentClass.id);
-        updateAllClasses(newClasses, newClasses[0]?.id);
-    };
-
-    const importData = (data) => {
-        if (data.classes && Array.isArray(data.classes)) {
-            updateAllClasses(data.classes, data.classes[0]?.id);
-        }
+        updateState(newClasses, newClasses[0]?.id);
     };
 
     return {
-        classes, currentClass, currentClassId, setCurrentClassId,
-        historyIndex, historyLength: history.length,
-        updateClass, updateAllClasses,
-        addClass, deleteClass, importData,
-        undo, redo,
-        DEFAULT_CLASS 
+        classes, 
+        currentClass, 
+        currentClassId, 
+        setCurrentClassId,
+        updateClass,
+        addClass, 
+        deleteClass,
+        undo, 
+        redo,
+        canUndo: historyIndex > 0,
+        canRedo: historyIndex < history.length - 1
     };
 };

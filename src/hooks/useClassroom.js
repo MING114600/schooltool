@@ -1,5 +1,5 @@
 // src/hooks/useClassroom.js
-import { useState } from 'react';
+import { useState, useCallback } from 'react'; // 引入 useCallback
 import { useClassState } from './useClassState';
 import { useSeating } from './useSeating';
 import { useScoring } from './useScoring';
@@ -20,14 +20,14 @@ export const useClassroom = () => {
   const [groupBoardMode, setGroupBoardMode] = useState('entity');
 
   // 5. 雜項功能 (Misc)
-  const updateAttendance = (date, statusMap) => {
+const updateAttendance = useCallback((date, statusMap) => {
       const newRecords = { ...(currentClass.attendanceRecords || {}), [date]: statusMap };
       updateClass({ ...currentClass, attendanceRecords: newRecords });
-  };
+  }, [currentClass, updateClass]);
   
-  const updateStudents = (newStudents) => {
+  const updateStudents = useCallback((newStudents) => {
       updateClass({...currentClass, students: newStudents});
-  };
+  }, [currentClass, updateClass]);
 
   // 組裝並回傳所有介面 (維持原 API 結構)
   return {
