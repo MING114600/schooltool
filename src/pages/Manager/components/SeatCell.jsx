@@ -64,10 +64,10 @@ const SeatCell = ({
             className={`
               w-full ${heightClass}
               transition-colors duration-200 
-              ${mode === 'arrange' ? 'bg-slate-100/50 border border-dashed border-slate-200 cursor-cell hover:bg-slate-200/50 relative group' : 'opacity-0 pointer-events-none'}
+              ${mode === 'arrange' ? 'bg-slate-100/50 border border-dashed border-slate-200 cursor-cell hover:bg-slate-200/50 relative group' : 'opacity-0 pointer-events-none'} 'bg-slate-100/50 border border-dashed border-slate-200 cursor-cell hover:bg-slate-200/50 relative group' : 'opacity-0 pointer-events-none'}
             `}
         >
-             {mode === 'arrange' && <span className="absolute inset-0 flex items-center justify-center text-[10px] text-slate-300 opacity-0 group-hover:opacity-100 select-none">右鍵復原</span>}
+             {mode === 'arrange' && <span className="absolute inset-0 flex items-center justify-center text-[14px] text-slate-300 opacity-0 group-hover:opacity-100 select-none">右鍵復原</span>}
         </div>
     );
   }
@@ -79,10 +79,11 @@ const SeatCell = ({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`w-full ${heightClass} rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 flex items-center justify-center text-slate-300 transition-all hover:bg-slate-100 hover:border-slate-300 ${mode === 'arrange' ? 'cursor-cell' : ''}`}
+        className={`w-full ${heightClass} ${mode === 'arrange' ? 'rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-300 bg-slate-50/50 dark:bg-slate-600 flex items-center justify-center text-slate-300 dark:text-white transition-all hover:bg-slate-100 hover:dark:bg-slate-800 hover:border-slate-300 ' : ''}
+		${mode === 'arrange' ? 'cursor-cell' : ''}`}
         title={mode === 'arrange' ? '右鍵設為走道' : ''}
       >
-        {!isCompact && <span className="text-xs font-bold">空</span>}
+        {mode === 'arrange' && <span className="text-base font-bold">空</span>}
       </div>
     );
   }

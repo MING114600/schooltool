@@ -110,7 +110,7 @@ const LotteryWidget = ({ isOpen, onClose, students, attendanceStatus }) => {
       onClose={onClose}
       icon={Dices}
       // 設定初始位置在計時器下方 (假設計時器在 y:80)
-      initialPosition={{ x: 20, y: 350 }} 
+      initialPosition={{ x: 320, y: 500 }} 
     >
       <div className="flex flex-col gap-4">
         

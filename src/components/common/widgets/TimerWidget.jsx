@@ -206,7 +206,7 @@ const TimerWidget = ({ isOpen, onClose }) => {
       isOpen={isOpen} 
       onClose={onClose} 
       icon={Timer}
-      initialPosition={{ x: 20, y: 80 }}
+      initialPosition={{ x: 320, y: 150 }}
       width="w-72"
     >
       <div className="flex flex-col items-center gap-4 relative">

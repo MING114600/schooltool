@@ -4,11 +4,13 @@ import {
   AlignVerticalJustifyStart, LayoutDashboard, ArrowLeftRight, Palette, Dices, Timer, Monitor, 
   GraduationCap, Maximize, ChevronUp, ChevronDown, Users, Image as ImageIcon, Volume2, School, 
   BarChart4, ArrowRightCircle, Eye, EyeOff, Moon, Sun, Grid, TrendingUp, Printer, Laptop,
-  MoreVertical, XCircle
+  MoreVertical, XCircle, Box
 } from 'lucide-react';
 
+//import { useTheme } from '../../../hooks/useTheme'; 
 import { useClassroomContext } from '../../../context/ClassroomContext';
 import { UI_THEME } from '../../../utils/constants';
+import { useThemeContext } from '../../../context/ThemeContext';
 
 const Toolbar = ({
   // UI 狀態控制
@@ -17,6 +19,7 @@ const Toolbar = ({
   appMode, handleSwitchMode,
   // 模態框控制
   setIsTemplateModalOpen, setScoringStudent, setIsLotteryOpen, setIsTimerOpen,
+  isTimerOpen, isLotteryOpen,
   // 視圖與功能控制
   showShuffleMenu, setShowShuffleMenu, 
   cycleDisplayMode, getDisplayModeLabel,
@@ -24,15 +27,19 @@ const Toolbar = ({
   handleExportImage, toggleFullscreen,
   isSoundBoardOpen, setIsSoundBoardOpen,
   isScoreTickerOpen, setIsScoreTickerOpen,
-  isFocusMode, setIsFocusMode,
+   
+  
+  isFocusMode, setIsFocusMode
   // 主題
-  theme, cycleTheme 
+  //theme, cycleTheme 
 }) => {
   const { 
     classes, currentClass, setCurrentClassId,
     updateClass, clearSeats, shuffleSeats,
     seatMode, setSeatMode 
   } = useClassroomContext();
+
+  const { theme, cycleTheme } = useThemeContext();
 
   const currentLayout = currentClass.layout;
 
@@ -49,7 +56,7 @@ const Toolbar = ({
   };
 
   const getThemeIcon = () => {
-    if (theme === 'system') return <Laptop size={18} />;
+	if (theme === 'system') return <Laptop size={18} />;
     if (theme === 'light') return <Sun size={18} />;
     return <Moon size={18} />;
   };
@@ -71,9 +78,10 @@ const Toolbar = ({
   }
 
   // --- 樣式變數 ---
-  const btnClass = "px-3 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all select-none hover:bg-slate-100 dark:hover:bg-slate-700/50 active:scale-95 text-slate-600 dark:text-slate-300";
+  const btnClass = "px-3 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all select-none hover:bg-slate-100 dark:hover:bg-slate-700/50 active:scale-95"; //text-slate-600 dark:text-slate-300";
   const activeBtnClass = "px-3 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all select-none shadow-sm active:scale-95";
   const separatorClass = "h-8 w-px bg-slate-200 dark:bg-slate-700 mx-1";
+  const groupBg = "bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 p-1 rounded-xl flex items-center";
 
   return (
     <div className={`
@@ -124,7 +132,7 @@ const Toolbar = ({
                 {/* 1. 模式切換 Pill */}
                 <div className="flex bg-slate-800 dark:bg-slate-950 rounded-xl p-1 shadow-inner">
                     <button onClick={() => handleSwitchMode('score')} className={`px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${appMode === 'score' ? 'bg-amber-400 text-amber-950 shadow-md' : 'text-slate-400 hover:text-slate-200'}`}>
-                        <Star size={16}/> 評分
+                        <Box size={16}/> 工具
                     </button>
                     <button onClick={() => handleSwitchMode('arrange')} className={`px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${appMode === 'arrange' ? 'bg-white text-slate-950 shadow-md' : 'text-slate-400 hover:text-slate-200'}`}>
                         <Move size={16}/> 編輯
@@ -137,55 +145,74 @@ const Toolbar = ({
                 {appMode === 'score' ? (
                     // --- 評分模式工具 ---
                     <div className="flex items-center gap-1 animate-in fade-in zoom-in-95 duration-300">
-                        <button onClick={() => setIsLotteryOpen(true)} className={btnClass} title="抽籤">
-                           <Dices size={18} className="text-pink-500"/> <span className="hidden xl:inline">抽籤</span>
+                        <button 
+							onClick={() => setIsLotteryOpen(!isLotteryOpen)} 
+							className={`${isLotteryOpen ? 'bg-pink-100 dark:bg-rose-900/30 text-rose-900 dark:text-white' : ''} ${btnClass}`} 
+							title="抽籤">
+                           <Dices size={18} className={isLotteryOpen ? 'text-pink-600' : 'text-rose-500'}/>
+						   <span className="hidden xl:inline">抽籤</span>
                         </button>
-                        <button onClick={() => setIsTimerOpen(true)} className={btnClass} title="計時">
-                           <Timer size={18} className="text-emerald-500"/> <span className="hidden xl:inline">計時</span>
+                        <button onClick={() => setIsTimerOpen(!isTimerOpen)} 
+							className={`${isTimerOpen ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-900 dark:text-white' : ''} ${btnClass}`}
+							title="計時">
+                           <Timer size={18} className={isTimerOpen ? 'text-emerald-600' : 'text-emerald-500'}/> <span className="hidden xl:inline">計時</span>
                         </button>
                         <button 
                             onClick={() => setIsSoundBoardOpen(!isSoundBoardOpen)} 
-                            className={`${isSoundBoardOpen ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600' : ''} ${btnClass}`} 
+                            className={`${isSoundBoardOpen ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600  dark:text-white' : ''} ${btnClass}`} 
                             title="音效板"
                         >
-                           <Volume2 size={18} className={isSoundBoardOpen ? 'text-indigo-600' : 'text-blue-500'}/>
+                           <Volume2 size={18} className={isSoundBoardOpen ? 'text-indigo-600' : 'text-blue-500 '}/>
+						    <span className="hidden xl:inline">音效</span>
                         </button>
                         <button 
                             onClick={() => setIsScoreTickerOpen(!isScoreTickerOpen)}
-                            className={`${isScoreTickerOpen ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700' : ''} ${btnClass}`}
+                            className={`${isScoreTickerOpen ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700  dark:text-white' : ''} ${btnClass}`}
                             title="顯示評分工具"
                         >
-                            <BarChart4 size={18} className={isScoreTickerOpen ? 'text-amber-600' : 'text-slate-400'}/>
+                            <BarChart4 size={18} className={isScoreTickerOpen ? 'text-amber-600' : 'text-amber-400'}/>
+							 <span className="hidden xl:inline">加分</span>
                         </button>
-                        <div className="w-px h-6 bg-slate-300 dark:bg-slate-600 mx-1"></div>
-                        <button onClick={() => setScoringStudent({ isClassEntity: true, name: '全班同學' })} className={`${activeBtnClass} bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200`}>
-                            <Users size={16}/> 全班
-                        </button>
+
                     </div>
                 ) : (
                     // --- 編輯模式工具 ---
                     <div className="flex items-center gap-1 animate-in fade-in zoom-in-95 duration-300">
                         {/* 交換/取代切換 */}
                         <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg mr-2">
-                             <button onClick={() => setSeatMode('swap')} className={`p-1.5 rounded ${seatMode === 'swap' ? 'bg-white dark:bg-slate-600 shadow text-purple-600' : 'text-slate-400'}`} title="交換座位"><ArrowLeftRight size={16}/></button>
-                             <button onClick={() => setSeatMode('replace')} className={`p-1.5 rounded ${seatMode === 'replace' ? 'bg-white dark:bg-slate-600 shadow text-blue-600' : 'text-slate-400'}`} title="取代座位"><ArrowRightCircle size={16}/></button>
+                             <button onClick={() => setSeatMode('swap')} className={`p-1.5 rounded ${seatMode === 'swap' ? 'bg-white dark:bg-purple-600 shadow text-purple-500 dark:text-white' : 'text-slate-400 hover:text-white'}`} title="交換座位"><ArrowLeftRight size={16}/></button>
+                             <button onClick={() => setSeatMode('replace')} className={`p-1.5 rounded ${seatMode === 'replace' ? 'bg-white dark:bg-blue-600 shadow text-blue-500 dark:text-white' : 'text-slate-400 hover:text-white'}`} title="取代座位"><ArrowRightCircle size={16}/></button>
                         </div>
+
+                    <div className={groupBg}>
+                        <button onClick={() => updateClass({...currentClass, layout: {...currentClass.layout, doorSide: 'left'}})} className={`px-3 py-1.5 rounded-md text-sm font-bold flex items-center gap-2 transition-all ${currentLayout.doorSide === 'left' ? 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`} title="門在左"><PanelLeft size={16}/></button>
+                        <button onClick={() => updateClass({...currentClass, layout: {...currentClass.layout, doorSide: 'right'}})} className={`px-3 py-1.5 rounded-md text-sm font-bold flex items-center gap-2 transition-all ${(!currentLayout.doorSide || currentLayout.doorSide === 'right') ? 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}title="門在右"><PanelRight size={16}/></button>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm font-black text-slate-800 dark:text-white">
+                        <input type="number" min="1" max="10" value={currentLayout.rows} onChange={(e) => updateClass({...currentClass, layout: {...currentClass.layout, rows: Number(e.target.value)}})} className={`w-12 text-center p-1 ${UI_THEME.INPUT_BASE} transition-colors`}/>排
+                        <span className="text-slate-400">x</span>
+                        <input type="number" min="1" max="10" value={currentLayout.cols} onChange={(e) => updateClass({...currentClass, layout: {...currentClass.layout, cols: Number(e.target.value)}})} className={`w-12 text-center p-1 ${UI_THEME.INPUT_BASE} transition-colors`}/>列
+                    </div>
 
                         {/* 洗牌選單 (Dropdown) */}
                         <div className="relative">
                             <button onClick={() => setShowShuffleMenu(!showShuffleMenu)} className={`${btnClass} ${showShuffleMenu ? 'bg-slate-200 dark:bg-slate-700' : ''}`}>
-                                <Shuffle size={18} className="text-purple-500"/> <span className="hidden xl:inline">洗牌</span>
+                                <Shuffle size={18} className="text-purple-500"/> <span className="hidden xl:inline">自動</span>
                             </button>
                             {/* 洗牌下拉選單 */}
                             {showShuffleMenu && (
                                 <div className={`absolute top-full left-0 mt-2 w-56 ${UI_THEME.SURFACE_CARD} rounded-xl shadow-2xl border ${UI_THEME.BORDER_LIGHT} p-2 flex flex-col gap-1 z-50 animate-in slide-in-from-top-2`}>
-                                    <button onClick={() => handleShuffle('random')} className={`text-left px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-bold flex items-center gap-2 ${UI_THEME.TEXT_PRIMARY}`}><LayoutGrid size={14}/> 完全隨機</button>
+                                    <button onClick={() => handleShuffle('random')} className={`text-left px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm font-bold flex items-center gap-2 ${UI_THEME.TEXT_PRIMARY}`}><LayoutGrid size={14}/> 完全隨機</button>
                                     <div className={`my-1 border-t ${UI_THEME.BORDER_LIGHT}`}></div>
-                                    <button onClick={() => handleShuffle('group_vertical')} className={`text-left px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-bold flex items-center gap-2 ${UI_THEME.TEXT_PRIMARY}`}><AlignVerticalJustifyStart size={14}/> 依組別：直排</button>
-                                    <button onClick={() => handleShuffle('group_cluster')} className={`text-left px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-bold flex items-center gap-2 ${UI_THEME.TEXT_PRIMARY}`}><LayoutDashboard size={14}/> 依組別：區塊</button>
+                                    <button onClick={() => handleShuffle('group_vertical')} className={`text-left px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm font-bold flex items-center gap-2 ${UI_THEME.TEXT_PRIMARY}`}><AlignVerticalJustifyStart size={14}/> 依組別：直排</button>
+                                    <button onClick={() => handleShuffle('group_cluster')} className={`text-left px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm font-bold flex items-center gap-2 ${UI_THEME.TEXT_PRIMARY}`}><LayoutDashboard size={14}/> 依組別：區塊</button>
                                     <div className={`my-1 border-t ${UI_THEME.BORDER_LIGHT}`}></div>
-                                    <button onClick={() => handleShuffle('row_gender')} className={`text-left px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-bold flex items-center gap-2 ${UI_THEME.TEXT_PRIMARY}`}><ArrowLeftRight size={14} className="rotate-90"/> 性別: 前後錯開</button>
-                                    <button onClick={() => handleShuffle('checker')} className={`text-left px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-bold flex items-center gap-2 ${UI_THEME.TEXT_PRIMARY}`}><Grid size={14}/> 性別: 梅花座</button>
+                                    <button onClick={() => handleShuffle('row_gender')} className={`text-left px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm font-bold flex items-center gap-2 ${UI_THEME.TEXT_PRIMARY}`}><ArrowLeftRight size={14} className="rotate-90"/> 性別: 前後錯開</button>
+                                    <button onClick={() => handleShuffle('checker')} className={`text-left px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm font-bold flex items-center gap-2 ${UI_THEME.TEXT_PRIMARY}`}><Grid size={14}/> 性別: 梅花座</button>
+									<div className={`my-1 border-t ${UI_THEME.BORDER_LIGHT}`}></div>
+									<button onClick={() => handleShuffle('performance_s_shape')} className={`text-left px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm font-bold flex items-center gap-2 ${UI_THEME.TEXT_PRIMARY}`}><TrendingUp size={14}/> 成績: S 型排列</button>
+									<button onClick={() => handleShuffle('performance_checker')} className={`text-left px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-sm font-bold flex items-center gap-2 ${UI_THEME.TEXT_PRIMARY}`}><Grid size={14}/> 成績: 梅花座</button>
                                 </div>
                             )}
                         </div>
@@ -196,7 +223,7 @@ const Toolbar = ({
                         
                         <div className="w-px h-6 bg-slate-300 dark:bg-slate-600 mx-1"></div>
                         
-                        <button onClick={handleClear} className={`${btnClass} text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20`} title="清空座位">
+                        <button onClick={handleClear} className={`text-red-500 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 ${btnClass}`} title="清空座位">
                             <Eraser size={18}/>
                         </button>
                     </div>
@@ -216,6 +243,7 @@ const Toolbar = ({
 
             {/* 主題切換 */}
             <button onClick={cycleTheme} className={btnClass} title="切換主題">
+
                 {getThemeIcon()}
             </button>
 

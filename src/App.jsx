@@ -5,9 +5,10 @@ import {
   Sun, Moon, Laptop
 } from 'lucide-react';
 
-import { useTheme } from './hooks/useTheme'; 
+//import { useTheme } from './hooks/useTheme'; 
 // 1. 引入常數設定
 import { UI_THEME } from './utils/constants';
+import { useThemeContext } from './context/ThemeContext';
 
 import ClassroomDashboardV2 from './ClassroomDashboardV2.jsx';
 import ExamTool from './ExamTool.jsx';
@@ -21,9 +22,10 @@ const APPS = [
 
 const AppLauncher = ({ 
   isOpen, onClose, onSelect, 
-  launcherPosition, setLauncherPosition,
-  theme, cycleTheme 
+  launcherPosition, setLauncherPosition
+  //theme, cycleTheme 
 }) => {
+  const { theme, cycleTheme } = useThemeContext();
   if (!isOpen) return null;
 
   const getThemeIcon = () => {
@@ -118,7 +120,7 @@ const AppLauncher = ({
 };
 
 const App = () => {
-  const { theme, cycleTheme } = useTheme();
+  const { theme, cycleTheme } = useThemeContext();
 
   const [currentAppId, setCurrentAppId] = useState('dashboard');
   const [isLauncherOpen, setIsLauncherOpen] = useState(false);

@@ -3,9 +3,10 @@ import { DoorOpen, Settings2, Trophy, ChevronRight } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 
 // --- 引入 Context ---
-import { useTheme } from './hooks/useTheme'; 
+//import { useTheme } from './hooks/useTheme'; 
 import { UI_THEME } from './utils/constants.jsx';
 import { ClassroomProvider, useClassroomContext } from './context/ClassroomContext';
+import { useThemeContext } from './context/ThemeContext';
 
 // --- 引入 UI 組件 ---
 import Toolbar from './pages/Manager/components/Toolbar';
@@ -34,7 +35,7 @@ const ManagerContent = () => {
     updateClass, saveTemplate, deleteTemplate, applyTemplate,
     toggleLock, toggleVoid, seatDrop, sidebarDrop, 
     updateStudents, scoreStudent, resetScores, updateBehaviors, updateAttendance,
-    templates, feedbacks, clearSeats, shuffleSeats , theme , cycleTheme
+    templates, feedbacks, clearSeats, shuffleSeats
   } = useClassroomContext();
 
   // ✅ 使用獨立主題 Hook
@@ -50,6 +51,8 @@ const ManagerContent = () => {
   const [sidebarTab, setSidebarTab] = useState('management');
   const [isToolbarOpen, setIsToolbarOpen] = useState(false); 
   const [isSoundBoardOpen, setIsSoundBoardOpen] = useState(false);
+  const [isTimerOpen, setIsTimerOpen] = useState(false);
+  const [isLotteryOpen, setIsLotteryOpen] = useState(false);
   const [isScoreTickerOpen, setIsScoreTickerOpen] = useState(true);
   const [isFocusMode, setIsFocusMode] = useState(true);
   const [batchScoreMode, setBatchScoreMode] = useState(null);
@@ -60,8 +63,6 @@ const ManagerContent = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isBatchGroupOpen, setIsBatchGroupOpen] = useState(false); 
-  const [isLotteryOpen, setIsLotteryOpen] = useState(false); 
-  const [isTimerOpen, setIsTimerOpen] = useState(false); 
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false); 
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [dialogState, setDialogState] = useState({ isOpen: false, type: 'prompt', title: '', message: '', onConfirm: () => {} });
@@ -283,11 +284,11 @@ const ManagerContent = () => {
           handleExportImage={handleExportImage} toggleFullscreen={toggleFullscreen}
           setIsTemplateModalOpen={setIsTemplateModalOpen} setScoringStudent={setScoringStudent} 
           setIsLotteryOpen={setIsLotteryOpen} setIsTimerOpen={setIsTimerOpen}
+		  isLotteryOpen={isLotteryOpen} isTimerOpen={isTimerOpen}
           isTeacherView={isTeacherView} setIsTeacherView={setIsTeacherView}
           isSoundBoardOpen={isSoundBoardOpen} setIsSoundBoardOpen={setIsSoundBoardOpen}
           isScoreTickerOpen={isScoreTickerOpen} setIsScoreTickerOpen={setIsScoreTickerOpen}
           isFocusMode={isFocusMode} setIsFocusMode={setIsFocusMode}
-          theme={theme} cycleTheme={cycleTheme}
         />
         
         <GroupScoreTicker 
@@ -299,8 +300,6 @@ const ManagerContent = () => {
           onClassScore={() => setScoringStudent({ isClassEntity: true, name: '全班同學' })}
         />
         
-        <SoundBoard isOpen={isSoundBoardOpen} onClose={() => setIsSoundBoardOpen(false)} />
-
 		<LotteryWidget 
 			isOpen={isLotteryOpen} 
 			onClose={() => setIsLotteryOpen(false)} 
@@ -331,10 +330,10 @@ const ManagerContent = () => {
             
             {/* 座位區域主容器：強制深色背景 */}
             <div className={`relative ${UI_THEME.SURFACE_GLASS} rounded-3xl shadow-2xl p-8 md:p-12 border-4 ${UI_THEME.BORDER_LIGHT} max-w-5xl w-full mx-auto flex-1 flex flex-col overflow-hidden`}>
-              <div className={`absolute w-3 h-20 bg-amber-200 dark:bg-amber-900/50 border-amber-300 dark:border-amber-800 flex items-center justify-center text-amber-700 dark:text-amber-300 font-bold text-[10px] writing-vertical ${doorSideClass} top-10 transition-colors`}>
+              <div className={`absolute w-5 h-20 bg-amber-200 dark:bg-amber-900/50 border-amber-300 dark:border-amber-800 flex items-center justify-center text-amber-700 dark:text-amber-300 font-bold text-[14px] writing-vertical ${doorSideClass} top-10 transition-colors`}>
                 <DoorOpen size={14}/> {isTeacherView ? '後門' : '前門'}
               </div>
-              <div className={`absolute w-3 h-20 bg-amber-200 dark:bg-amber-900/50 border-amber-300 dark:border-amber-800 flex items-center justify-center text-amber-700 dark:text-amber-300 font-bold text-[10px] writing-vertical ${doorSideClass} bottom-10 transition-colors`}>
+              <div className={`absolute w-5 h-20 bg-amber-200 dark:bg-amber-900/50 border-amber-300 dark:border-amber-800 flex items-center justify-center text-amber-700 dark:text-amber-300 font-bold text-[14px] writing-vertical ${doorSideClass} bottom-10 transition-colors`}>
                 <DoorOpen size={14}/> {isTeacherView ? '前門' : '後門'}
               </div>
               
