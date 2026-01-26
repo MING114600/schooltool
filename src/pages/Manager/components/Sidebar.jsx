@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { 
   Users, BarChart3, PanelLeftClose, Edit3, Trash2, Plus, 
   CalendarCheck, Layers, Download, Upload, RotateCcw, RotateCw,
@@ -36,11 +36,11 @@ const Sidebar = ({
     historyIndex, historyLength, clearScoreLogs ,toggleLock
   } = useClassroomContext();
 
-  const [isBackupOpen, setIsBackupOpen] = useState(false);
+  
   const fileInputRef = useRef(null);
   const importTextRef = useRef(null);
   const { undo, redo, canUndo, canRedo } = useClassroomContext();
-
+  const [isBackupOpen, setIsBackupOpen] = useState(false);
 
   if (!isOpen) return null;
 
