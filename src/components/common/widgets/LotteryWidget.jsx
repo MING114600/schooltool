@@ -38,7 +38,7 @@ const LotteryWidget = ({ isOpen, onClose, classes = [], defaultClassId }) => {
   // 這樣無論切換到哪一班，都能抓到該班自己的紀錄
   const currentAttendance = useMemo(() => {
       if (!selectedClassObj?.attendanceRecords) return {};
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toLocaleDateString('en-CA');
       return selectedClassObj.attendanceRecords[today] || {};
   }, [selectedClassObj]);
 

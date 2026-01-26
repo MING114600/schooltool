@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState , useCallback} from 'react';
 import { X, Sliders } from 'lucide-react';
 import { UI_THEME } from '../../../utils/constants';
 
@@ -79,6 +79,26 @@ const SettingsModal = ({
     setDialogConfig(prev => ({ ...prev, isOpen: false }));
   };
 
+	const closeSelf = useCallback(() => {
+	  onClose?.();
+	}, [onClose]);
+
+	const openBackup = useCallback(() => {
+	  setIsBackupOpen(true);
+	}, []);
+
+	const closeBackup = useCallback(() => {
+	  setIsBackupOpen(false);
+	}, []);
+
+	const onOverlayClick = useCallback(() => {
+	  closeSelf();
+	}, [closeSelf]);
+
+	const stopPropagation = useCallback((e) => {
+	  e.stopPropagation();
+	}, []);
+
   if (!isOpen) return null;
 
   return (
@@ -87,7 +107,7 @@ const SettingsModal = ({
       className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-200" 
       onClick={onClose}
     >
-      <GlobalBackupModal isOpen={isBackupOpen} onClose={() => setIsBackupOpen(false)} />
+      <GlobalBackupModal isOpen={isBackupOpen} onClose={closeBackup} />
       
       {/* Dialog 組件 */}
       <DialogModal 
@@ -105,7 +125,7 @@ const SettingsModal = ({
       {/* 2. 內層視窗：阻止冒泡，避免點擊內容時關閉視窗 */}
       <div 
         className={`${UI_THEME.SURFACE_GLASS} w-full max-w-5xl h-[90vh] rounded-[2rem] shadow-2xl flex flex-col overflow-hidden border ${UI_THEME.BORDER_LIGHT}`}
-        onClick={(e) => e.stopPropagation()}
+        onClick={stopPropagation}
       >
         
         {/* Header */}

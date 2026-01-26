@@ -4,7 +4,7 @@ import { CalendarCheck, X, Copy, CheckCircle2, UserX, Clock, HelpCircle, AlertCi
 import { ATTENDANCE_STATUS, ATTENDANCE_CYCLE } from '../../../utils/constants';
 
 const AttendanceModal = ({ isOpen, onClose, students, attendanceRecords, onSave }) => {
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(new Date().toLocaleDateString('en-CA'));
   const [currentStatus, setCurrentStatus] = useState({});
 
   useEffect(() => {

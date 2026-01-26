@@ -36,7 +36,6 @@ import TimerWidget from './components/common/widgets/TimerWidget';
 import LotteryWidget from './components/common/widgets/LotteryWidget';
 import SoundBoard from './components/common/widgets/SoundBoard';
 import WeatherWidget from './pages/Dashboard/components/WeatherWidget';
-import ZhuyinRenderer from './components/common/ZhuyinRenderer'; // 引入注音元件
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
 
@@ -108,32 +107,28 @@ const DashboardContent = ({ theme, cycleTheme}) => {
     timeOffset
   });
 
-	const uiState = {
-	  showSettings,
-	  showTools,
-	  showBroadcastInput,
+	const uiKeyGuard = useMemo(() => ({
 	  isEditingMessage,
-	  specialStatus,
-	  statusMode,
-	  dismissedNap
-	};
-
+	  showSettings,
+	  showBroadcastInput,
+	}), [isEditingMessage, showSettings, showBroadcastInput]);
+	
 	// 統一的關閉邏輯 (ESC Handler)
-	const handleCloseAll = () => {
-	  if (showSettings) setShowSettings(false);
-	  if (showTools) setShowTools(false);
-	  if (showBroadcastInput) setShowBroadcastInput(false);
-	  if (specialStatus) setSpecialStatus(null);
-	  if (isEditingMessage) setIsEditingMessage(false);
-	  // 特殊邏輯：如果是下課且沒關過午休畫面，ESC 可以關掉它
+	const handleCloseAll = useCallback(() => {
+	  setShowSettings(false);
+	  setShowTools(false);
+	  setShowBroadcastInput(false);
+	  setSpecialStatus(null);
+	  setIsEditingMessage(false);
+
 	  if (statusMode === 'break' && !dismissedNap) setDismissedNap(true);
-	};
+	}, [statusMode, dismissedNap]);
 
 	// --- Side Effects Hook (處理語音、全螢幕、快捷鍵) ---
 	const { isFullscreen, toggleFullScreen } = useDashboardEvents({
 	  specialStatus,
 	  isSystemSoundEnabled,
-	  uiState,
+	  uiState: uiKeyGuard,
 	  onCloseUI: handleCloseAll
 	});
 
@@ -158,42 +153,54 @@ const DashboardContent = ({ theme, cycleTheme}) => {
 
   const toggleTool = (tool, isOpen) => setToolsState(prev => ({ ...prev, [tool]: isOpen }));
   
-  const handleBroadcastConfirm = (title, sub, options) => {
-    const IconComponent = options.icon && typeof options.icon === 'string' 
-        ? (ICON_MAP[options.icon] || Megaphone) 
-        : Megaphone;
+	const handleBroadcastConfirm = useCallback((title, sub, options) => {
+	  const IconComponent = options.icon && typeof options.icon === 'string' 
+		  ? (ICON_MAP[options.icon] || Megaphone) 
+		  : Megaphone;
 
-    setSpecialStatus({ 
-        message: title, 
-        sub: sub, 
-        // 優先使用傳入的 color，沒有的話才用預設粉紅
-        color: options.color || 'from-pink-500 to-rose-500', 
-        type: 'input', 
-        id: 99, 
-        icon: IconComponent, 
-        mode: options.mode ,
-		showZhuyin: options.showZhuyin
-    });
+	  setSpecialStatus({ 
+		  message: title, 
+		  sub: sub, 
+		  color: options.color || 'from-pink-500 to-rose-500', 
+		  type: 'input', 
+		  id: Date.now(), 
+		  icon: IconComponent, 
+		  mode: options.mode,
+		  showZhuyin: options.showZhuyin,
+		  enableTTS: options.enableTTS ?? true,
+	  });
+	}, []);
 
-  };
+	const onCustomBroadcast = useCallback((preset) => {
+		handleBroadcastConfirm(preset.title, preset.sub, { 
+			mode: preset.mode, 
+			enableTTS: preset.enableTTS,
+			color: preset.color, // ✅ 這裡一定要傳，不然點快捷鍵會變回預設粉紅色
+			icon: preset.icon ,   // ✅ 這裡也要傳
+			showZhuyin: preset.showZhuyin
+		});
+	  },  [handleBroadcastConfirm]); // 確保依賴項正確
 
-  const onCustomBroadcast = (preset) => {
-    handleBroadcastConfirm(preset.title, preset.sub, { 
-        mode: preset.mode, 
-        enableTTS: preset.enableTTS,
-        color: preset.color, // ✅ 這裡一定要傳，不然點快捷鍵會變回預設粉紅色
-        icon: preset.icon ,   // ✅ 這裡也要傳
-		showZhuyin: preset.showZhuyin
-    });
-  };
+	const handleBroadcastClick = useCallback(() => setShowBroadcastInput(true), []);
+	  
+	  const handleToggleSidebar = useCallback(() => {
+		setShowSidebar(prev => !prev);
+	  }, [setShowSidebar]);
 
-	const todayAttendance = useMemo(() => {
-    if (!currentClass?.attendanceRecords) return {};
-    
-    // 取得今日日期字串 (格式需與 ClassView 存入的一致，通常是 YYYY-MM-DD)
-    const today = new Date().toISOString().split('T')[0]; 
-    return currentClass.attendanceRecords[today] || {};
-  }, [currentClass]); // 當 currentClass 變動時 (例如有人被標記缺席)，這裡會更新
+	  const handleToggleSystemSound = useCallback(() => {
+		setIsSystemSoundEnabled(prev => !prev);
+	  }, [setIsSystemSoundEnabled]);
+
+	  const todayAttendance = useMemo(() => {
+		if (!currentClass?.attendanceRecords) return {};
+	  const today = new Date().toLocaleDateString('en-CA'); 
+		return currentClass.attendanceRecords[today] || {};
+	  }, [currentClass?.attendanceRecords]);
+
+	const closeSettings = useCallback(() => setShowSettings(false), []);
+	const closeTools = useCallback(() => setShowTools(false), []);
+	const closeBroadcastInput = useCallback(() => setShowBroadcastInput(false), []);
+	const closeMessageInput = useCallback(() => setIsEditingMessage(false), []);
 
   // --- Render ---
   return (
@@ -202,7 +209,7 @@ const DashboardContent = ({ theme, cycleTheme}) => {
 
       {/* 天氣小工具 */}
 	  {weatherConfig.enabled && statusMode !== 'eco' && statusMode !== 'special' && statusMode !== 'off-hours' && (
-		<div className={`absolute right-8 z-30`}>
+		<div className={`absolute top-5 right-8 z-30`}>
             <ErrorBoundary 
               fallback={
                 <div className="bg-white/80 backdrop-blur px-3 py-2 rounded-xl text-xs font-bold text-slate-500 border border-slate-200 shadow-sm">
@@ -272,10 +279,11 @@ const DashboardContent = ({ theme, cycleTheme}) => {
           <EcoView 
             now={now} schedule={schedule} currentSlot={currentSlot} is24Hour={is24Hour}
             onWake={() => { setIsManualEco(false); setIsAutoEcoOverride(true); }}
+			weatherConfig={weatherConfig}
           />
         )}
         
-        {statusMode === 'off-hours' && <OffHoursView now={now} is24Hour={is24Hour} />}
+        {statusMode === 'off-hours' && <OffHoursView now={now} is24Hour={is24Hour} weatherConfig={weatherConfig}/>}
         
         {/* 全螢幕廣播 */}
 		{statusMode === 'special' && specialStatus?.mode !== 'marquee' && (
@@ -288,7 +296,7 @@ const DashboardContent = ({ theme, cycleTheme}) => {
         )}
 
         {/* 控制列 */}
-        <MemoizedControlDock 
+		<MemoizedControlDock 
             statusMode={statusMode} 
             setSpecialStatus={setSpecialStatus} 
             setIsManualEco={setIsManualEco} 
@@ -296,24 +304,24 @@ const DashboardContent = ({ theme, cycleTheme}) => {
             toggleFullScreen={toggleFullScreen} 
             setShowSettings={setShowSettings} 
             isAutoNapActive={isAutoNapActive} 
-            onBroadcastClick={() => setShowBroadcastInput(true)} 
+            onBroadcastClick={handleBroadcastClick} // ✅ 使用穩定的函式
             visibleButtons={visibleButtons} 
             setShowTools={setShowTools}
             theme={theme}
             cycleTheme={cycleTheme}
             showSidebar={showSidebar}
-            toggleSidebar={() => setShowSidebar(!showSidebar)}
-			isSystemSoundEnabled={isSystemSoundEnabled}
-			toggleSystemSound={() => setIsSystemSoundEnabled(!isSystemSoundEnabled)}
-			customPresets={customPresets} // 傳入自訂按鈕資料
-			onCustomBroadcast={onCustomBroadcast} // 傳入發布函式
+            toggleSidebar={handleToggleSidebar} // ✅ 使用穩定的函式
+            isSystemSoundEnabled={isSystemSoundEnabled}
+            toggleSystemSound={handleToggleSystemSound} // ✅ 使用穩定的函式
+            customPresets={customPresets}
+            onCustomBroadcast={onCustomBroadcast} // ✅ 使用穩定的函式
         />
       </div>
 
       
       {/* 彈出視窗 */}
       <MemoizedSettingsModal 
-        isOpen={showSettings} onClose={() => setShowSettings(false)} 
+        isOpen={showSettings} onClose={closeSettings} 
         timeSlots={timeSlots} setTimeSlots={setTimeSlots} 
         schedule={schedule} setSchedule={setSchedule} 
         subjectHints={subjectHints} setSubjectHints={setSubjectHints} 
@@ -337,7 +345,7 @@ const DashboardContent = ({ theme, cycleTheme}) => {
       />
 
       <ToolsMenu 
-         isOpen={showTools} onClose={() => setShowTools(false)} 
+         isOpen={showTools} onClose={closeTools} 
          onOpenTool={(tool) => toggleTool(tool, true)}
       />
 
@@ -364,12 +372,12 @@ const DashboardContent = ({ theme, cycleTheme}) => {
 
       <BroadcastInputModal 
         isOpen={showBroadcastInput} 
-        onClose={() => setShowBroadcastInput(false)} 
+        onClose={closeBroadcastInput} 
         onConfirm={handleBroadcastConfirm}
         customPresets={customPresets} 
         setCustomPresets={setCustomPresets} 
       />
-      <MessageInput isOpen={isEditingMessage} onClose={() => setIsEditingMessage(false)} message={teacherMessage} setMessage={setTeacherMessage} />
+      <MessageInput isOpen={isEditingMessage} onClose={closeMessageInput} message={teacherMessage} setMessage={setTeacherMessage} />
     </div>
   );
 };

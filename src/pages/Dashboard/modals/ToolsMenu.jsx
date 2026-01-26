@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback} from 'react';
 import { 
   Clock, Shuffle, Volume2, X, Box
 } from 'lucide-react';
@@ -18,13 +18,28 @@ const ToolCard = ({ icon: Icon, title, desc, colorClass, onClick }) => (
 );
 
 const ToolsMenu = ({ isOpen, onClose, onOpenTool }) => {
+	const stopPropagation = useCallback((e) => {
+	  e.stopPropagation();
+	}, []);
+
+	const onOverlayClick = useCallback(() => {
+	  onClose?.();
+	}, [onClose]);
+
+	const makeOpenToolHandler = useCallback((toolId) => {
+	  return () => {
+		onOpenTool?.(toolId);
+		onClose?.();
+	  };
+	}, [onOpenTool, onClose]);
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[200] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={onClose}>
       <div 
         className={`${UI_THEME.SURFACE_MAIN} w-full max-w-2xl rounded-[2rem] shadow-2xl overflow-hidden border ${UI_THEME.BORDER_LIGHT} animate-in zoom-in-95 duration-200`}
-        onClick={e => e.stopPropagation()}
+        onClick={stopPropagation}
       >
         {/* Header */}
         <div className={`p-6 border-b flex justify-between items-center ${UI_THEME.BORDER_LIGHT}`}>
@@ -49,21 +64,21 @@ const ToolsMenu = ({ isOpen, onClose, onOpenTool }) => {
             title="倒數計時" 
             desc="自訂時間、鈴聲提醒"
             colorClass="bg-gradient-to-br from-blue-400 to-blue-600"
-            onClick={() => { onOpenTool('timer'); onClose(); }}
+            onClick={makeOpenToolHandler('timer')}
           />
           <ToolCard 
             icon={Shuffle} 
             title="幸運抽籤" 
             desc="隨機抽選學生或號碼"
             colorClass="bg-gradient-to-br from-purple-400 to-purple-600"
-            onClick={() => { onOpenTool('lottery'); onClose(); }}
+            onClick={makeOpenToolHandler('lottery')}
           />
           <ToolCard 
             icon={Volume2} 
             title="課堂音效" 
             desc="掌聲、叮咚、警告音"
             colorClass="bg-gradient-to-br from-amber-400 to-orange-500"
-            onClick={() => { onOpenTool('sound'); onClose(); }}
+            onClick={makeOpenToolHandler('sound')}
           />
         </div>
         

@@ -41,7 +41,7 @@ const Sidebar = ({
   const importTextRef = useRef(null);
   const { undo, redo, canUndo, canRedo } = useClassroomContext();
   const [isBackupOpen, setIsBackupOpen] = useState(false);
-  const todayDate = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('en-CA');
   const currentAttendanceStatus = currentClass?.attendanceRecords?.[todayDate] || {};
 
   if (!isOpen) return null;

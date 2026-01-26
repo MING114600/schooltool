@@ -67,7 +67,7 @@ const ManagerContent = () => {
   const gridRef = useRef(null);
   const containerRef = useRef(null); 
 
-  const todayDate = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('en-CA');
   const currentAttendanceStatus = currentClass?.attendanceRecords?.[todayDate] || {};
 
   // --- 縮放與模式自動切換邏輯 ---

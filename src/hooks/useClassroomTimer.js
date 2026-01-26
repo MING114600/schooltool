@@ -34,8 +34,9 @@ export function useClassroomTimer({
   }, [timeOffset]);
 
   // 2. 計算今日有效的時段 (處理半天/全天)
+  const day = now.getDay();
   const activeTimeSlots = useMemo(() => {
-    const day = now.getDay();
+    
     if (day === 0 || day === 6) return []; // 週末
     
     const isHalfDay = dayTypes[day] === 'half';
@@ -59,7 +60,7 @@ export function useClassroomTimer({
        halfDaySlots.push(slot);
     }
     return halfDaySlots;
-  }, [timeSlots, dayTypes, now.getDay()]);
+  }, [timeSlots, dayTypes, day]);
 
   // 3. 核心狀態判定邏輯
   useEffect(() => {
