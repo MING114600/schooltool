@@ -14,7 +14,7 @@ const Sidebar = ({
   // UI 狀態 (從父層傳入)
   isOpen, onClose,
   activeTab, setActiveTab,
-    
+  onShowDialog,
   // 未排座位區 UI 狀態與互動
   isEditingList, setIsEditingList, 
   onImportList,
@@ -42,7 +42,7 @@ const Sidebar = ({
   const { undo, redo, canUndo, canRedo } = useClassroomContext();
   const [isBackupOpen, setIsBackupOpen] = useState(false);
   const today = new Date().toLocaleDateString('en-CA');
-  const currentAttendanceStatus = currentClass?.attendanceRecords?.[todayDate] || {};
+  const currentAttendanceStatus = currentClass?.attendanceRecords?.[today] || {};
 
   if (!isOpen) return null;
 
@@ -59,24 +59,51 @@ const Sidebar = ({
       }
   };
 
-  const handleAddClass = () => {
-    const name = prompt('請輸入新班級的名稱：');
-    if (name && name.trim()) addClass(name);
-  };
+	const handleAddClass = () => {
+		onShowDialog({
+			type: 'prompt',
+			title: '新增班級',
+			message: '請輸入新班級的名稱：',
+			placeholder: '例如：一年二班',
+			confirmText: '新增',
+			onConfirm: (name) => {
+				if (name && name.trim()) addClass(name);
+			}
+		});
+	  };
 
   const handleEditClassName = () => {
-    const newName = prompt('請輸入新的班級名稱：', currentClass.name);
-    if (newName && newName.trim()) updateClass({ ...currentClass, name: newName.trim() });
+    onShowDialog({
+        type: 'prompt',
+        title: '重新命名',
+        message: `請輸入「${currentClass.name}」的新名稱：`,
+        defaultValue: currentClass.name,
+        confirmText: '更新',
+        onConfirm: (newName) => {
+            if (newName && newName.trim()) updateClass({ ...currentClass, name: newName.trim() });
+        }
+    });
   };
 
   const handleDeleteClass = () => {
     if (classes.length <= 1) { 
-        alert('這是最後一個班級，無法刪除。'); 
+        onShowDialog({
+            type: 'alert',
+            title: '無法刪除',
+            message: '這是最後一個班級，無法刪除。',
+            variant: 'warning'
+        });
         return; 
     }
-    if (confirm(`確定要刪除「${currentClass.name}」嗎？\n此動作無法復原。`)) {
-        deleteClass();
-    }
+    
+    onShowDialog({
+        type: 'confirm',
+        title: '刪除班級',
+        message: `確定要刪除「${currentClass.name}」嗎？\n此動作無法復原，所有相關的學生與紀錄將被移除。`,
+        variant: 'danger', // 紅色按鈕
+        confirmText: '確認刪除',
+        onConfirm: () => deleteClass()
+    });
   };
 
   const handleLocalImportList = () => {
@@ -84,6 +111,7 @@ const Sidebar = ({
           onImportList(importTextRef.current.value);
       }
   };
+
 
   // --- 內部渲染：管理分頁 ---
   const renderManagementTab = () => (
@@ -241,10 +269,13 @@ const Sidebar = ({
                  <h4 className={`text-xs font-bold ${UI_THEME.TEXT_MUTED} uppercase tracking-wider flex items-center gap-1`}><History size={12}/> 近期動態 (最新15筆)</h4>
                  {logs.length > 0 && (
                      <button 
-                        onClick={() => { if(confirm('確定清除所有近期動態紀錄嗎？')) clearScoreLogs(); }}
-                        className={`p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-900/30 text-slate-400 hover:text-rose-500 transition-colors`}
-                        title="清除紀錄"
-                     >
+                        onClick={() => onShowDialog({
+						  type: 'confirm',
+						  title: '清除紀錄',
+						  message: '確定清除所有近期動態紀錄嗎？',
+						  variant: 'warning',
+						  onConfirm: () => clearScoreLogs()
+					  })} >
                          <Trash2 size={12}/>
                      </button>
                  )}

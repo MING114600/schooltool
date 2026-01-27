@@ -30,7 +30,7 @@ import BehaviorSettingsModal from './pages/Manager/modals/BehaviorSettingsModal'
 import ExportStatsModal from './pages/Manager/modals/ExportStatsModal';
 import ScoringModal from './pages/Manager/modals/ScoringModal';
 import EditStudentModal from './pages/Manager/modals/EditStudentModal';
-import DialogModal from './pages/Manager/modals/DialogModal';
+import DialogModal from './components/common/DialogModal';
 
 const ManagerContent = () => {
   const {
@@ -38,13 +38,36 @@ const ManagerContent = () => {
     updateClass, saveTemplate, deleteTemplate, applyTemplate,
     toggleLock, toggleVoid, seatDrop, sidebarDrop, 
     updateStudents, scoreStudent, resetScores, updateBehaviors, updateAttendance,
-    templates, feedbacks, clearSeats
+    templates, feedbacks, clearSeats 
   } = useClassroomContext();
-  
+
   const { parseImportText } = useStudentImport();
   
   // ✅ 整合後的 Modal 管理器
-  const { activeModal, modalData, openModal, closeModal, isModalOpen } = useModalManager();
+  const { 
+      activeModal, 
+      modalData, 
+      openModal, 
+      closeModal, 
+      isModalOpen,
+      dialogConfig,
+      openDialog,
+      closeDialog
+  } = useModalManager();
+
+  const handleShowDialog = useCallback((config) => {
+      if (openDialog) {
+          openDialog({
+              ...config,
+              onConfirm: (result) => {
+                  if (config.onConfirm) config.onConfirm(result);
+                  closeDialog(); 
+              }
+          });
+      } else {
+          console.error("openDialog is not defined in useModalManager");
+      }
+  }, [openDialog, closeDialog]);
 
   // --- UI 狀態 (保留必要的核心控制) ---
   const [isTeacherView, setIsTeacherView] = useState(false); 
@@ -68,7 +91,7 @@ const ManagerContent = () => {
   const containerRef = useRef(null); 
 
   const today = new Date().toLocaleDateString('en-CA');
-  const currentAttendanceStatus = currentClass?.attendanceRecords?.[todayDate] || {};
+  const currentAttendanceStatus = currentClass?.attendanceRecords?.[today] || {};
 
   // --- 縮放與模式自動切換邏輯 ---
   useEffect(() => {
@@ -100,27 +123,28 @@ const ManagerContent = () => {
   // --- 業務處理邏輯 ---
   const handleImportList = (text) => {
     const newStudents = parseImportText(text);
-    if (newStudents.length > 0) {
-      openModal(MODAL_ID.DIALOG, {
-        type: 'confirm',
-        title: '確認匯入名單',
-        message: `成功解析 ${newStudents.length} 筆資料。\n這將重置座位表，確定嗎？`,
-        onConfirm: () => {
-          updateClass({
-            ...currentClass,
-            students: newStudents,
-            layout: { ...currentClass.layout, seats: {}, voidSeats: [] },
-            scoreLogs: []
-          });
-          setIsEditingList(false);
-          closeModal();
-        }
-      });
-    } else {
-      openModal(MODAL_ID.DIALOG, {
-        type: 'alert', title: '格式錯誤', message: '無法解析資料，請檢查格式是否包含：座號 姓名'
-      });
-    }
+      if (newStudents.length > 0) {
+	  handleShowDialog({
+      type: 'confirm',
+      title: '確認匯入名單',
+      message: `成功解析 ${newStudents.length} 筆資料。\n這將重置座位表，確定嗎？`,
+      onConfirm: () => {
+        updateClass({
+          ...currentClass,
+          students: newStudents,
+          layout: { ...currentClass.layout, seats: {}, voidSeats: [] },
+          scoreLogs: []
+        });
+        setIsEditingList(false);
+      }
+    });
+  } else {
+    handleShowDialog({
+      type: 'alert',
+      title: '格式錯誤',
+      message: '無法解析資料，請檢查格式是否包含：座號 姓名'
+    });
+  }
   };
 
   const handleSaveAttendance = (date, statusMap) => {
@@ -234,8 +258,9 @@ const toggleFullscreen = () => {
         attendanceRecords={currentClass?.attendanceRecords || {}} onResetScores={resetScores} 
       />
       <DialogModal 
-        isOpen={isModalOpen(MODAL_ID.DIALOG)} onClose={closeModal} 
-        {...(modalData || {})} // 動態帶入 title, message, onConfirm
+        isOpen={!!dialogConfig} 
+        onClose={closeDialog} 
+        {...(dialogConfig || {})} 
       />
       
       <ScoreFeedback feedbacks={feedbacks} />
@@ -271,6 +296,7 @@ const toggleFullscreen = () => {
         onDragStart={(e, id) => e.dataTransfer.setData("studentId", id)} onDrop={sidebarDrop} onImportList={handleImportList} 
         onOpenAttendance={() => openModal(MODAL_ID.ATTENDANCE)} onOpenBatchGroup={() => openModal(MODAL_ID.BATCH_GROUP)}
         onOpenExportStats={() => openModal(MODAL_ID.EXPORT_STATS)} onOpenSettings={() => openModal(MODAL_ID.BEHAVIOR_SETTINGS)}
+		onShowDialog={handleShowDialog}
       />
 
       <div className={`flex-1 flex flex-col relative overflow-hidden ${UI_THEME.CONTENT_AREA} transition-all duration-500`}>
@@ -290,6 +316,7 @@ const toggleFullscreen = () => {
           isSoundBoardOpen={isSoundBoardOpen} setIsSoundBoardOpen={setIsSoundBoardOpen}
           isScoreTickerOpen={isScoreTickerOpen} setIsScoreTickerOpen={setIsScoreTickerOpen}
           isFocusMode={isFocusMode} setIsFocusMode={setIsFocusMode}
+		  onShowDialog={handleShowDialog}
         />
         
         <GroupScoreTicker 

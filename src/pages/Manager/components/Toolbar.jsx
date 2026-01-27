@@ -27,8 +27,7 @@ const Toolbar = ({
   handleExportImage, toggleFullscreen,
   isSoundBoardOpen, setIsSoundBoardOpen,
   isScoreTickerOpen, setIsScoreTickerOpen,
-   
-  
+  onShowDialog,  
   isFocusMode, setIsFocusMode
   // 主題
   //theme, cycleTheme 
@@ -50,9 +49,14 @@ const Toolbar = ({
   };
 
   const handleClear = () => {
-    if(window.confirm('確定要清空目前的座位表嗎？\n學生將回到未排區，此動作無法復原。')) {
-        clearSeats();
-    }
+    onShowDialog({
+        type: 'confirm',
+        title: '清空座位表',
+        message: '確定要清空目前的座位表嗎？\n學生將回到未排區，但分數與分組紀錄會保留。',
+        variant: 'danger',
+        confirmText: '清空',
+        onConfirm: () => clearSeats()
+    });
   };
 
 	const handlePrintPDF = () => {

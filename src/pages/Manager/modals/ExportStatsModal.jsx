@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Table, X, Users, User, Copy, Download, Trash2, CalendarDays } from 'lucide-react';
 
-const ExportStatsModal = ({ isOpen, onClose, students, groupScores, attendanceRecords, onResetScores }) => {
+const ExportStatsModal = ({ isOpen, onClose, students, groupScores, attendanceRecords, onResetScores, onShowDialog }) => {
   if (!isOpen) return null;
 
   const individualStats = students.map(s => {
@@ -28,7 +28,14 @@ const ExportStatsModal = ({ isOpen, onClose, students, groupScores, attendanceRe
   };
   const copyToClipboard = (headers, rows) => {
       const text = [headers.join('\t'), ...rows.map(row => row.join('\t'))].join('\n');
-      navigator.clipboard.writeText(text).then(() => alert('內容已複製到剪貼簿！(可直接貼上 Excel)'));
+      navigator.clipboard.writeText(text).then(() => {
+          onShowDialog({
+              type: 'alert',
+              title: '複製成功',
+              message: '內容已複製到剪貼簿！(可直接貼上 Excel)',
+              variant: 'success'
+          });
+      });
   };
 
   const handleExportIndividual = (mode) => {
@@ -135,13 +142,33 @@ const ExportStatsModal = ({ isOpen, onClose, students, groupScores, attendanceRe
             {onResetScores && (
                 <div className="flex gap-2">
                     <button 
-                        onClick={() => { if(confirm('確定要結算並清除所有「學生個人」的分數嗎？\n請確認您已匯出備份。')) { onResetScores('student'); onClose(); } }}
+                        onClick={() => onShowDialog({
+                            type: 'confirm',
+                            title: '結算個人分數',
+                            message: '確定要結算並清除所有「學生個人」的分數嗎？\n請確認您已匯出備份，此動作無法復原。',
+                            variant: 'danger',
+                            confirmText: '結算並清除',
+                            onConfirm: () => {
+                                onResetScores('student');
+                                onClose();
+                            }
+                        })}
                         className="px-4 py-2 bg-white dark:bg-slate-800 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 text-xs font-bold rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:border-rose-300 dark:hover:border-rose-800 transition-all flex items-center gap-2"
                     >
                         <Trash2 size={14}/> 結算個人分數
                     </button>
                     <button 
-                        onClick={() => { if(confirm('確定要結算並清除所有「小組」的分數嗎？\n請確認您已匯出備份。')) { onResetScores('group'); onClose(); } }}
+                        onClick={() => onShowDialog({
+                            type: 'confirm',
+                            title: '結算小組分數',
+                            message: '確定要結算並清除所有「小組」的分數嗎？\n請確認您已匯出備份，此動作無法復原。',
+                            variant: 'danger',
+                            confirmText: '結算並清除',
+                            onConfirm: () => {
+                                onResetScores('group');
+                                onClose();
+                            }
+                        })}
                         className="px-4 py-2 bg-white dark:bg-slate-800 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 text-xs font-bold rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:border-rose-300 dark:hover:border-rose-800 transition-all flex items-center gap-2"
                     >
                         <Trash2 size={14}/> 結算小組分數

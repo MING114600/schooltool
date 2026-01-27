@@ -4,27 +4,44 @@ import { useState, useCallback } from 'react';
  * 整合所有彈窗狀態的管理 Hook
  */
 export const useModalManager = () => {
-  const [activeModal, setActiveModal] = useState(null); // 記錄目前開啟的 Modal ID
-  const [modalData, setModalData] = useState(null);     // 傳遞給 Modal 的暫存資料
+  // 1. 原有的邏輯 (保持不變，管理主要功能視窗)
+    const [activeModal, setActiveModal] = useState(null); 
+  const [modalData, setModalData] = useState(null);     
 
-  // 開啟特定的 Modal
   const openModal = useCallback((modalId, data = null) => {
     setActiveModal(modalId);
     setModalData(data);
   }, []);
 
-  // 關閉 Modal
   const closeModal = useCallback(() => {
     setActiveModal(null);
     setModalData(null);
   }, []);
 
+  // ============================================================
+  // ★ 2. 新增：獨立的 Dialog 管理邏輯 (這是您漏掉的部分)
+  // ============================================================
+  const [dialogConfig, setDialogConfig] = useState(null); // 存 Dialog 的 props
+
+  const openDialog = useCallback((config) => {
+    setDialogConfig(config);
+  }, []);
+
+  const closeDialog = useCallback(() => {
+    setDialogConfig(null);
+  }, []);
+
   return {
+    // 原本的介面
     activeModal,
     modalData,
     openModal,
     closeModal,
-    // 輔助判斷函式
-    isModalOpen: (modalId) => activeModal === modalId
+    isModalOpen: (modalId) => activeModal === modalId,
+
+    // ★ 必須回傳這些新函式，ClassroomManager 才抓得到！
+    dialogConfig,
+    openDialog,
+    closeDialog
   };
 };

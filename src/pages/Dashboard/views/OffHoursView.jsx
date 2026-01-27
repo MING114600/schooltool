@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { UI_THEME } from '../../../utils/constants';
 import { Coffee } from 'lucide-react';
 import WeatherWidget from '../components/WeatherWidget';
 import StarryBackground from '../components/StarryBackground'; 
+
+
 
 const OffHoursView = ({ now, is24Hour, weatherConfig }) => {
   const formatROCDate = (date) => {
@@ -11,11 +13,13 @@ const OffHoursView = ({ now, is24Hour, weatherConfig }) => {
     return `民國${rocYear}年${(date.getMonth() + 1).toString().padStart(2,'0')}月${date.getDate().toString().padStart(2,'0')}日 星期${week}`;
   };
 
+const [currentTheme, setCurrentTheme] = useState('galaxy');
+
   return (
     <div className="flex-1 bg-slate-900 relative overflow-hidden flex flex-col items-center justify-center p-8 transition-colors duration-1000">
-	<div className="absolute inset-0 z-0 opacity-60">
+	<div className="absolute inset-0 z-0 ">
           {/* opacity-60 是為了不要讓背景太搶眼，你可以自己調整 */}
-          <StarryBackground />
+          <StarryBackground theme={currentTheme} />
       </div>
         <div className="text-center z-10">
             <div className="mb-8">

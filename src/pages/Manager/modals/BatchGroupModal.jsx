@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Layers, X, Shuffle, Trash2, Users, GripVertical, TrendingUp, Scale } from 'lucide-react';
 import { GROUP_THEME } from '../../../utils/constants';
 
-const BatchGroupModal = ({ isOpen, onClose, students, onUpdateStudents }) => {
+const BatchGroupModal = ({ isOpen, onClose, students, onUpdateStudents, onShowDialog }) => {
   const [localStudents, setLocalStudents] = useState([]);
   const [groupCount, setGroupCount] = useState(6); 
   const [styleMode, setStyleMode] = useState('filled');
@@ -78,7 +78,18 @@ const BatchGroupModal = ({ isOpen, onClose, students, onUpdateStudents }) => {
       const groupMap = {}; finalStudents.forEach(s => groupMap[s.id] = s.group);
       setLocalStudents(prev => prev.map(s => ({ ...s, group: groupMap[s.id] !== undefined ? groupMap[s.id] : '' })));
   };
-  const handleClearGroups = () => { if (confirm('確定要清除所有分組設定嗎？')) setLocalStudents(prev => prev.map(s => ({ ...s, group: '' }))); };
+  const handleClearGroups = () => { 
+    onShowDialog({
+        type: 'confirm',
+        title: '清除分組',
+        message: '確定要清除所有分組設定嗎？\n學生將回到未分組狀態。',
+        variant: 'warning',
+        confirmText: '清除',
+        onConfirm: () => {
+            setLocalStudents(prev => prev.map(s => ({ ...s, group: '' })));
+        }
+    });
+  };
   const handleSave = () => { onUpdateStudents(localStudents); onClose(); };
   const handleDragStart = (e, studentId) => { e.dataTransfer.setData("studentId", studentId); e.dataTransfer.effectAllowed = "move"; };
   const handleDrop = (e, targetGroupId) => { e.preventDefault(); const studentId = e.dataTransfer.getData("studentId"); if (!studentId) return; setLocalStudents(prev => prev.map(s => { if (s.id === studentId) return { ...s, group: targetGroupId }; return s; })); };
