@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Layers, X, Shuffle, Trash2, Users, GripVertical, TrendingUp, Scale } from 'lucide-react';
 import { GROUP_THEME } from '../../../utils/constants';
 
+// ★ 新增 prop: onShowDialog
 const BatchGroupModal = ({ isOpen, onClose, students, onUpdateStudents, onShowDialog }) => {
   const [localStudents, setLocalStudents] = useState([]);
   const [groupCount, setGroupCount] = useState(6); 
@@ -19,7 +20,7 @@ const BatchGroupModal = ({ isOpen, onClose, students, onUpdateStudents, onShowDi
 
   const hasPerformanceData = localStudents.some(s => s.performance !== undefined && s.performance !== null);
 
-  // ... (演算法邏輯保持不變)
+  // ... (演算法邏輯保持不變) ...
   const handleRandomDistribute = () => {
     const shuffled = [...localStudents].sort(() => Math.random() - 0.5);
     setLocalStudents(shuffled.map((s, i) => ({ ...s, group: ((i % groupCount) + 1).toString() })));
@@ -41,6 +42,7 @@ const BatchGroupModal = ({ isOpen, onClose, students, onUpdateStudents, onShowDi
       distributeWithReset(boys); distributeWithReset(girls); distributeWithReset(others);
       flattenAndSet(groups);
   };
+
   const handleScoreBalanced = () => {
       const sorted = [...localStudents].sort((a, b) => (parseFloat(b.performance)||0) - (parseFloat(a.performance)||0));
       const groups = Array.from({ length: groupCount }, () => []);
@@ -52,6 +54,7 @@ const BatchGroupModal = ({ isOpen, onClose, students, onUpdateStudents, onShowDi
       });
       flattenAndSet(groups);
   };
+
   const handleFullBalanced = () => {
       const boys = localStudents.filter(s => s.gender === 'M').sort((a, b) => (parseFloat(b.performance)||0) - (parseFloat(a.performance)||0));
       const girls = localStudents.filter(s => s.gender === 'F').sort((a, b) => (parseFloat(b.performance)||0) - (parseFloat(a.performance)||0));
@@ -69,6 +72,7 @@ const BatchGroupModal = ({ isOpen, onClose, students, onUpdateStudents, onShowDi
       distributeSortedList(boys, 1); distributeSortedList(girls, -1); distributeSortedList(others, 1);
       flattenAndSet(groups);
   };
+
   const flattenAndSet = (groups) => {
       const finalStudents = [];
       groups.forEach((gList, idx) => {
@@ -78,6 +82,8 @@ const BatchGroupModal = ({ isOpen, onClose, students, onUpdateStudents, onShowDi
       const groupMap = {}; finalStudents.forEach(s => groupMap[s.id] = s.group);
       setLocalStudents(prev => prev.map(s => ({ ...s, group: groupMap[s.id] !== undefined ? groupMap[s.id] : '' })));
   };
+
+  // ★ 修改：使用 onShowDialog 取代 window.confirm
   const handleClearGroups = () => { 
     onShowDialog({
         type: 'confirm',
@@ -90,6 +96,7 @@ const BatchGroupModal = ({ isOpen, onClose, students, onUpdateStudents, onShowDi
         }
     });
   };
+
   const handleSave = () => { onUpdateStudents(localStudents); onClose(); };
   const handleDragStart = (e, studentId) => { e.dataTransfer.setData("studentId", studentId); e.dataTransfer.effectAllowed = "move"; };
   const handleDrop = (e, targetGroupId) => { e.preventDefault(); const studentId = e.dataTransfer.getData("studentId"); if (!studentId) return; setLocalStudents(prev => prev.map(s => { if (s.id === studentId) return { ...s, group: targetGroupId }; return s; })); };
@@ -118,10 +125,7 @@ const BatchGroupModal = ({ isOpen, onClose, students, onUpdateStudents, onShowDi
               </div>
           </div>
           <div className="flex items-center gap-3">
-
-
               <div className="h-6 w-px bg-slate-600 mx-2"></div>
-
               <div className="flex items-center bg-slate-700 rounded-lg p-1">
                   <span className="text-xs font-bold px-2 text-slate-300">組數:</span>
                   <button onClick={() => setGroupCount(c => Math.max(2, c-1))} className="w-6 h-6 flex items-center justify-center bg-slate-600 hover:bg-slate-500 rounded text-white font-bold">-</button>
@@ -132,7 +136,7 @@ const BatchGroupModal = ({ isOpen, onClose, students, onUpdateStudents, onShowDi
           </div>
         </div>
 
-        {/* Toolbar - 深色適配 */}
+        {/* Toolbar */}
         <div className="p-3 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex flex-wrap gap-2 shrink-0 items-center">
             <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase mr-1">自動分配：</span>
             
@@ -163,7 +167,7 @@ const BatchGroupModal = ({ isOpen, onClose, students, onUpdateStudents, onShowDi
             </button>
         </div>
 
-        {/* Board Area */}
+        {/* Board Area - 以下程式碼保持不變 */}
         <div className="flex-1 flex overflow-hidden bg-slate-200/50 dark:bg-slate-950/50">
             {/* 左側：未分組 */}
             <div 
@@ -205,7 +209,6 @@ const BatchGroupModal = ({ isOpen, onClose, students, onUpdateStudents, onShowDi
                             avgScore = Math.round(total / count);
                         }
                         
-                        // ✅ 改用新的 GROUP_THEME 結構，無需再手動串接 .dark
                         const theme = GROUP_THEME[(idx + 1) % 9] || GROUP_THEME[0];
 
                         return (
@@ -264,7 +267,7 @@ const BatchGroupModal = ({ isOpen, onClose, students, onUpdateStudents, onShowDi
   );
 };
 
-// 內部小卡片
+// 內部小卡片 (無變更)
 const DraggableStudentCard = ({ student, onDragStart, showPerformance }) => {
     return (
         <div 

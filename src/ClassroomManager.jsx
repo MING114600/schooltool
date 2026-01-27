@@ -238,6 +238,7 @@ const toggleFullscreen = () => {
       <BatchGroupModal 
         isOpen={isModalOpen(MODAL_ID.BATCH_GROUP)} onClose={closeModal} 
         students={currentClass?.students} onUpdateStudents={updateStudents}
+		onShowDialog={handleShowDialog}
       />
       <AttendanceModal 
         isOpen={isModalOpen(MODAL_ID.ATTENDANCE)} onClose={closeModal} 
@@ -251,11 +252,13 @@ const toggleFullscreen = () => {
       <BehaviorSettingsModal 
         isOpen={isModalOpen(MODAL_ID.BEHAVIOR_SETTINGS)} onClose={closeModal} 
         behaviors={currentClass?.behaviors} onUpdateBehaviors={updateBehaviors} onResetScores={resetScores}
+		onShowDialog={handleShowDialog}
       />
       <ExportStatsModal 
         isOpen={isModalOpen(MODAL_ID.EXPORT_STATS)} onClose={closeModal} 
         students={currentClass?.students} groupScores={currentClass?.groupScores} 
         attendanceRecords={currentClass?.attendanceRecords || {}} onResetScores={resetScores} 
+		onShowDialog={handleShowDialog}
       />
       <DialogModal 
         isOpen={!!dialogConfig} 

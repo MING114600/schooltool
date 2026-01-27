@@ -9,12 +9,11 @@ import StudentCard from '../../../components/business/StudentCard';
 import { useClassroomContext } from '../../../context/ClassroomContext';
 import { UI_THEME } from '../../../utils/constants'; 
 
-
 const Sidebar = ({
   // UI 狀態 (從父層傳入)
   isOpen, onClose,
   activeTab, setActiveTab,
-  onShowDialog,
+    
   // 未排座位區 UI 狀態與互動
   isEditingList, setIsEditingList, 
   onImportList,
@@ -28,18 +27,20 @@ const Sidebar = ({
   onOpenSettings,
   
   // 顯示設定
-  displayMode, appMode
+  displayMode, appMode,
+  
+  // ★ 新增：接收 Dialog 控制函式
+  onShowDialog
 }) => {
   const { 
     classes, currentClass, setCurrentClassId, unseatedStudents, 
     addClass, updateClass, deleteClass, importData,
-    historyIndex, historyLength, clearScoreLogs ,toggleLock
+    historyIndex, historyLength, clearScoreLogs ,toggleLock,
+    undo, redo, canUndo, canRedo 
   } = useClassroomContext();
 
-  
   const fileInputRef = useRef(null);
   const importTextRef = useRef(null);
-  const { undo, redo, canUndo, canRedo } = useClassroomContext();
   const [isBackupOpen, setIsBackupOpen] = useState(false);
   const today = new Date().toLocaleDateString('en-CA');
   const currentAttendanceStatus = currentClass?.attendanceRecords?.[today] || {};
@@ -59,19 +60,21 @@ const Sidebar = ({
       }
   };
 
-	const handleAddClass = () => {
-		onShowDialog({
-			type: 'prompt',
-			title: '新增班級',
-			message: '請輸入新班級的名稱：',
-			placeholder: '例如：一年二班',
-			confirmText: '新增',
-			onConfirm: (name) => {
-				if (name && name.trim()) addClass(name);
-			}
-		});
-	  };
+  // ★ 修改：新增班級 (Prompt)
+  const handleAddClass = () => {
+    onShowDialog({
+        type: 'prompt',
+        title: '新增班級',
+        message: '請輸入新班級的名稱：',
+        placeholder: '例如：一年二班',
+        confirmText: '新增',
+        onConfirm: (name) => {
+            if (name && name.trim()) addClass(name);
+        }
+    });
+  };
 
+  // ★ 修改：編輯班級名稱 (Prompt)
   const handleEditClassName = () => {
     onShowDialog({
         type: 'prompt',
@@ -85,6 +88,7 @@ const Sidebar = ({
     });
   };
 
+  // ★ 修改：刪除班級 (Alert + Confirm)
   const handleDeleteClass = () => {
     if (classes.length <= 1) { 
         onShowDialog({
@@ -100,7 +104,7 @@ const Sidebar = ({
         type: 'confirm',
         title: '刪除班級',
         message: `確定要刪除「${currentClass.name}」嗎？\n此動作無法復原，所有相關的學生與紀錄將被移除。`,
-        variant: 'danger', // 紅色按鈕
+        variant: 'danger',
         confirmText: '確認刪除',
         onConfirm: () => deleteClass()
     });
@@ -111,7 +115,6 @@ const Sidebar = ({
           onImportList(importTextRef.current.value);
       }
   };
-
 
   // --- 內部渲染：管理分頁 ---
   const renderManagementTab = () => (
@@ -149,14 +152,12 @@ const Sidebar = ({
           </div>
           
           {/* 備份還原 */}
-
 		  <button 
             onClick={() => setIsBackupOpen(true)} 
             className={`w-full py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors`}
           >
             <Download size={14}/> 系統資料備份/還原
           </button>
-
       </div>
       
       {/* 未排座位區 */}
@@ -268,14 +269,19 @@ const Sidebar = ({
              <div className="flex justify-between items-center mb-2">
                  <h4 className={`text-xs font-bold ${UI_THEME.TEXT_MUTED} uppercase tracking-wider flex items-center gap-1`}><History size={12}/> 近期動態 (最新15筆)</h4>
                  {logs.length > 0 && (
+                     // ★ 修改：清除紀錄 (Confirm)
                      <button 
                         onClick={() => onShowDialog({
-						  type: 'confirm',
-						  title: '清除紀錄',
-						  message: '確定清除所有近期動態紀錄嗎？',
-						  variant: 'warning',
-						  onConfirm: () => clearScoreLogs()
-					  })} >
+                            type: 'confirm',
+                            title: '清除紀錄',
+                            message: '確定清除所有近期動態紀錄嗎？分數本身不會受到影響。',
+                            variant: 'warning',
+                            confirmText: '清除',
+                            onConfirm: () => clearScoreLogs()
+                        })}
+                        className={`p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-900/30 text-slate-400 hover:text-rose-500 transition-colors`}
+                        title="清除紀錄"
+                     >
                          <Trash2 size={12}/>
                      </button>
                  )}
@@ -318,7 +324,7 @@ const Sidebar = ({
     <div className={`${UI_THEME.SURFACE_MAIN} border-r ${UI_THEME.BORDER_DEFAULT} flex flex-col shadow-lg z-20 shrink-0 transition-all duration-300 ease-in-out relative no-print ${isOpen ? 'w-80 translate-x-0' : 'w-0 -translate-x-full border-r-0 opacity-0 overflow-hidden'}`}>
 		<GlobalBackupModal isOpen={isBackupOpen} onClose={() => setIsBackupOpen(false)} />
         <div className="w-80 h-full flex flex-col">
-          {/* Tabs 區域 - 這裡使用稍微不同的背景色以區分 Tab */}
+          {/* Tabs 區域 */}
           <div className={`flex border-b ${UI_THEME.BORDER_LIGHT} bg-slate-50 dark:bg-slate-800`}>
               <button onClick={() => setActiveTab('management')} className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 transition-colors ${activeTab === 'management' ? `${UI_THEME.SURFACE_MAIN} text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400` : `${UI_THEME.TEXT_SECONDARY} hover:bg-slate-100 dark:hover:bg-slate-700`}`}><Users size={16}/> 班級管理</button>
               <button onClick={() => setActiveTab('scores')} className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 transition-colors ${activeTab === 'scores' ? `${UI_THEME.SURFACE_MAIN} text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400` : `${UI_THEME.TEXT_SECONDARY} hover:bg-slate-100 dark:hover:bg-slate-700`}`}><BarChart3 size={16}/> 分數統計</button>

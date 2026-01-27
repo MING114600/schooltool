@@ -3,7 +3,8 @@ import { Settings, Plus, X, Trash2, Save, ThumbsUp, ThumbsDown, Smile, Frown, Ar
 
 const PRESET_ICONS = ['👍', '⭐', '❤️', '🔥', '💡', '🎓', '🏆', '🚀', '⚡', '📝', '🤝', '🗣️', '💤', '❌', '⚠️', '🐢', '📱', '🔊'];
 
-const BehaviorSettingsModal = ({ isOpen, onClose, behaviors = [], onUpdateBehaviors, onResetScores }) => {
+// ★ 新增：接收 onShowDialog
+const BehaviorSettingsModal = ({ isOpen, onClose, behaviors = [], onUpdateBehaviors, onResetScores, onShowDialog }) => {
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ icon: '⭐', label: '', score: 1, type: 'positive' });
 
@@ -14,8 +15,13 @@ const BehaviorSettingsModal = ({ isOpen, onClose, behaviors = [], onUpdateBehavi
 
   const handleEdit = (behavior) => { setEditingId(behavior.id); setFormData({ ...behavior }); };
   const handleAdd = (type) => { setEditingId('new'); setFormData({ id: `b_${Date.now()}`, icon: type === 'positive' ? '⭐' : '⚠️', label: '', score: type === 'positive' ? 1 : -1, type }); };
+  
+  // ★ 修改：驗證提示 (Alert)
   const handleSave = () => {
-      if (!formData.label.trim()) { alert('請輸入項目名稱'); return; }
+      if (!formData.label.trim()) { 
+          onShowDialog({ type: 'alert', title: '格式錯誤', message: '請輸入項目名稱', variant: 'warning' });
+          return; 
+      }
       let newBehaviors = [...behaviors];
       if (editingId === 'new') {
           if (formData.type === 'positive') {
@@ -26,7 +32,22 @@ const BehaviorSettingsModal = ({ isOpen, onClose, behaviors = [], onUpdateBehavi
       } else { newBehaviors = newBehaviors.map(b => b.id === editingId ? formData : b); }
       onUpdateBehaviors(newBehaviors); setEditingId(null);
   };
-  const handleDelete = (id) => { if (confirm('確定要刪除此評分項目嗎？')) { const newBehaviors = behaviors.filter(b => b.id !== id); onUpdateBehaviors(newBehaviors); if (editingId === id) setEditingId(null); } };
+
+  // ★ 修改：刪除確認 (Confirm)
+  const handleDelete = (id) => { 
+      onShowDialog({
+          type: 'confirm',
+          title: '刪除項目',
+          message: '確定要刪除此評分項目嗎？',
+          variant: 'danger',
+          onConfirm: () => {
+              const newBehaviors = behaviors.filter(b => b.id !== id);
+              onUpdateBehaviors(newBehaviors);
+              if (editingId === id) setEditingId(null);
+          }
+      });
+  };
+
   const handleMove = (e, item, direction) => { 
       e.stopPropagation(); 
       const isPositive = (item.score >= 0 || item.type === 'positive');
@@ -124,14 +145,27 @@ const BehaviorSettingsModal = ({ isOpen, onClose, behaviors = [], onUpdateBehavi
             <div className="p-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center shrink-0">
                 <span className="text-xs font-bold text-slate-400 dark:text-slate-500">系統操作</span>
                 <div className="flex gap-3">
+                    {/* ★ 修改：歸零分數 (Confirm) */}
                     <button 
-                        onClick={() => { if(confirm('確定要歸零所有學生的分數嗎？此操作無法復原。')) onResetScores('student'); }}
+                        onClick={() => onShowDialog({
+                            type: 'confirm',
+                            title: '歸零個人分數',
+                            message: '確定要歸零所有學生的分數嗎？此操作無法復原。',
+                            variant: 'danger',
+                            onConfirm: () => onResetScores('student')
+                        })}
                         className="px-3 py-1.5 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors border border-transparent hover:border-rose-200 dark:hover:border-rose-800"
                     >
                         歸零個人分數
                     </button>
                     <button 
-                        onClick={() => { if(confirm('確定要歸零所有小組的分數嗎？此操作無法復原。')) onResetScores('group'); }}
+                        onClick={() => onShowDialog({
+                            type: 'confirm',
+                            title: '歸零小組分數',
+                            message: '確定要歸零所有小組的分數嗎？此操作無法復原。',
+                            variant: 'danger',
+                            onConfirm: () => onResetScores('group')
+                        })}
                         className="px-3 py-1.5 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors border border-transparent hover:border-rose-200 dark:hover:border-rose-800"
                     >
                         歸零小組分數
