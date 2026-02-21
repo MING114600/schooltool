@@ -10,6 +10,7 @@ import {
 } from './pages/Dashboard/utils/dashboardConstants';
 import usePersistentState from './hooks/usePersistentState';
 import { useClassroomTimer } from './hooks/useClassroomTimer';
+import { useTTS } from './hooks/useTTS';
 import { useDashboardEvents } from './hooks/useDashboardEvents';
 import { useOS } from './context/OSContext';
 import { ClassroomProvider, useClassroomContext } from './context/ClassroomContext';
@@ -125,11 +126,13 @@ const DashboardContent = ({ theme, cycleTheme}) => {
 	}, [statusMode, dismissedNap]);
 
 	// --- Side Effects Hook (處理語音、全螢幕、快捷鍵) ---
+	const tts = useTTS();
 	const { isFullscreen, toggleFullScreen } = useDashboardEvents({
 	  specialStatus,
 	  isSystemSoundEnabled,
 	  uiState: uiKeyGuard,
-	  onCloseUI: handleCloseAll
+	  onCloseUI: handleCloseAll,
+	  tts
 	});
 
   // Helpers
@@ -248,7 +251,7 @@ const DashboardContent = ({ theme, cycleTheme}) => {
                   showZhuyin={specialStatus.showZhuyin}
                   onClose={() => {
                       setSpecialStatus(null);
-                      window.speechSynthesis.cancel();
+                       tts.cancel();
                   }}
                />
            </ErrorBoundary>

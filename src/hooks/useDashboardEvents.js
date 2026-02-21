@@ -5,12 +5,14 @@ export function useDashboardEvents({
   isSystemSoundEnabled, 
   // 傳入 UI 狀態，用來判斷 ESC 鍵的行為
   uiState, 
-  onCloseUI 
+  onCloseUI ,
+  tts
 }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // 1. 處理 TTS 語音廣播 (Side Effect)
   useEffect(() => {
+	if (!tts) return;
     // 如果沒有廣播狀態，或系統靜音，或該廣播不需要 TTS (可擴充)，則停止
     if (!specialStatus || !isSystemSoundEnabled) {
       return;
@@ -19,28 +21,16 @@ export function useDashboardEvents({
     // 建構語音內容
     const textToSpeak = `${specialStatus.message}。${specialStatus.sub || ''}`;
 
-    // 取得語音引擎
-    const synth = window.speechSynthesis;
-    
-    // 為了避免語音堆疊，先取消上一次的
-    synth.cancel();
+    // ✅ 統一交給 useTTS
+    // 參數：text, lang, rate, startIndex, pitch（pitch 即使 useTTS 目前沒接，也不會壞，JS 會忽略多餘參數）
+    tts.speak?.(textToSpeak, 'zh-TW', 0.9, 0, 1.05);
 
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.lang = 'zh-TW';
-    utterance.rate = 0.9; // 稍微慢一點點，比較清楚
-
-    // 嘗試抓取中文語音包 (優先選 Google 中文 或 微軟 Hanhan)
-    const voices = synth.getVoices();
-    const zhVoice = voices.find(v => v.lang.includes('zh-TW') || v.lang.includes('zh-CN'));
-    if (zhVoice) utterance.voice = zhVoice;
-
-    synth.speak(utterance);
-
-    // Cleanup: 組件卸載或狀態改變時，確保語音停止
     return () => {
-      synth.cancel();
-    };
-  }, [specialStatus, isSystemSoundEnabled]);
+  if (speechSynthesis.speaking) {
+    speechSynthesis.cancel();
+  }
+};
+}, [specialStatus, isSystemSoundEnabled, tts?.speak, tts?.cancel]);
 
   // 2. 處理全螢幕切換 (Action)
   const toggleFullScreen = useCallback(() => {

@@ -64,6 +64,12 @@ export const useClassState = () => {
 
         return () => clearTimeout(saveTimeoutRef.current);
     }, [classes]);
+	
+	useEffect(() => {
+	  if (currentClassId) {
+		localStorage.setItem(CLASS_ID_KEY, currentClassId);
+	  }
+	}, [currentClassId]);
 
     // 3. 狀態更新核心邏輯
     const updateState = (newClasses, newCurrentId) => {
@@ -83,9 +89,9 @@ export const useClassState = () => {
 	};
 
     const updateClass = useCallback((updatedClass) => {
-        const newClasses = classes.map(c => c.id === updatedClass.id ? updatedClass : c);
-        updateState(newClasses, null);
-    }, [classes, updateState]);
+	  const newClasses = classes.map(c => c.id === updatedClass.id ? updatedClass : c);
+	  updateState(newClasses, updatedClass.id); // 或 currentClassId
+	}, [classes, currentClassId]);
 
     // 4. Undo / Redo 邏輯
     const undo = useCallback(() => {
