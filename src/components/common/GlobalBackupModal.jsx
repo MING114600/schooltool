@@ -1,16 +1,16 @@
 // src/components/common/GlobalBackupModal.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // 🌟 記得引入 useEffect
 import { 
   X, Database, CloudUpload, CloudDownload, 
-  HardDriveDownload, HardDriveUpload, Loader2, AlertCircle, CheckCircle2 
-} from 'lucide-react';
+  HardDriveDownload, HardDriveUpload, Loader2, AlertCircle, CheckCircle2, Clock 
+} from 'lucide-react'; // 🌟 新增 Clock 圖示
 
 // 引入全域共用的對話框模組
 import DialogModal from './DialogModal';
 
 // 引入我們寫好的兩支核心工具
 import { exportSystemData, importSystemData, generateSystemPayload, restoreFromPayload } from '../../utils/backupService';
-import { syncToCloud, fetchFromCloud } from '../../utils/googleDriveService';
+import { syncToCloud, fetchFromCloud, getCloudBackupTime } from '../../utils/googleDriveService';
 
 const CLOUD_FILE_NAME = 'ClassroomOS_CloudSync.json';
 
@@ -22,8 +22,47 @@ const GlobalBackupModal = ({ isOpen, onClose, user, login }) => {
   const [cloudConfirmOpen, setCloudConfirmOpen] = useState(false);
   const [localConfirmOpen, setLocalConfirmOpen] = useState(false);
   const [pendingLocalFile, setPendingLocalFile] = useState(null); // 暫存老師選擇的實體檔案
+  
+  // 🌟 新增：備份時間狀態
+  const [lastBackupTime, setLastBackupTime] = useState(null);
+  const [isLoadingTime, setIsLoadingTime] = useState(false);
 
-  if (!isOpen) return null;
+  // 🌟 新增：憑證過期重登的 Dialog 狀態
+  const [authExpiredOpen, setAuthExpiredOpen] = useState(false);
+
+  // 🌟 新增：當 Modal 打開且有使用者登入時，自動抓取雲端備份時間
+useEffect(() => {
+    const fetchTime = async () => {           
+      if (!isOpen || !user || !user.accessToken) {
+        setLastBackupTime(null);
+        return;
+      }
+      
+      setIsLoadingTime(true);
+      try {        
+        const timeStr = await getCloudBackupTime(user.accessToken);
+                
+        if (timeStr) {
+          setLastBackupTime(new Date(timeStr).toLocaleString('zh-TW', {
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit'
+          }));
+        } else {
+          setLastBackupTime('尚無備份紀錄');
+        }
+      } catch (err) {        
+        if (err.message === 'TokenExpired') {
+          setLastBackupTime('憑證已過期');
+        } else {
+          setLastBackupTime('讀取失敗');
+        }
+      } finally {
+        setIsLoadingTime(false);
+      }
+    };
+    
+    fetchTime();
+  }, [isOpen, user]); // 確保依賴陣列有 isOpen 和 user
 
   // 輔助函式：顯示狀態訊息
   const showMessage = (type, text) => {
@@ -36,10 +75,7 @@ const GlobalBackupModal = ({ isOpen, onClose, user, login }) => {
   // ==========================================
   
   const handleCloudBackup = async () => {
-    if (!user) {
-      login();
-      return;
-    }
+    if (!user) { login(); return; }
     
     setIsProcessing(true);
     setStatusMessage({ type: '', text: '' });
@@ -47,10 +83,17 @@ const GlobalBackupModal = ({ isOpen, onClose, user, login }) => {
       const payload = await generateSystemPayload();
       await syncToCloud(user.accessToken, CLOUD_FILE_NAME, payload);
       showMessage('success', '雲端備份成功！資料已安全同步至 Google Drive。');
+      
+      // 🌟 備份成功後，更新畫面上顯示的時間
+      setLastBackupTime(new Date().toLocaleString('zh-TW', {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit'
+      }));
     } catch (err) {
-		console.error("🔥 雲端備份詳細錯誤:", err);
+      console.error("🔥 雲端備份詳細錯誤:", err);
       if (err.message === 'TokenExpired') {
-        showMessage('error', '登入憑證已過期，請關閉視窗並重新點擊「老師登入」。');
+        // 🌟 改為觸發重新登入視窗
+        setAuthExpiredOpen(true);
       } else {
         showMessage('error', '雲端備份失敗，請確認網路連線。');
       }
@@ -58,7 +101,7 @@ const GlobalBackupModal = ({ isOpen, onClose, user, login }) => {
       setIsProcessing(false);
     }
   };
-
+  
   // 觸發雲端還原確認視窗
   const triggerCloudRestore = () => {
     if (!user) {
@@ -85,9 +128,10 @@ const GlobalBackupModal = ({ isOpen, onClose, user, login }) => {
       setCloudConfirmOpen(false);
       setTimeout(() => window.location.reload(), 3000);
     } catch (err) {
-		console.error("🔥 雲端備份詳細錯誤:", err);
+      console.error("🔥 雲端備份詳細錯誤:", err);
       if (err.message === 'TokenExpired') {
-        showMessage('error', '登入憑證已過期，請關閉視窗並重新點擊「老師登入」。');
+        // 🌟 改為觸發重新登入視窗
+        setAuthExpiredOpen(true); 
       } else {
         showMessage('error', '雲端還原失敗，請確認網路連線或檔案完整性。');
       }
@@ -147,9 +191,28 @@ const GlobalBackupModal = ({ isOpen, onClose, user, login }) => {
     setLocalConfirmOpen(false);
     setPendingLocalFile(null);
   };
+  
+  if (!isOpen) return null;
 
   return (
     <>
+	  {/* 🌟 1. 新增憑證過期對話框 */}
+      <DialogModal
+        isOpen={authExpiredOpen}
+        title="登入安全時效已過"
+        message="為保護您的雲端資料安全，Google 登入憑證已過期。請點擊下方按鈕重新登入以繼續操作。"
+        type="confirm"
+        variant="warning"
+        confirmText="重新登入"
+        cancelText="取消"
+        onConfirm={() => {
+          setAuthExpiredOpen(false);
+          setTimeout(() => login(), 100); // 喚起登入
+        }}
+        onCancel={() => setAuthExpiredOpen(false)}
+        onClose={() => setAuthExpiredOpen(false)}
+      />
+	
       {/* 🌟 加入雲端還原的 DialogModal */}
       <DialogModal
         isOpen={cloudConfirmOpen}
@@ -215,8 +278,15 @@ const GlobalBackupModal = ({ isOpen, onClose, user, login }) => {
 
             {/* 區塊 1：雲端同步 */}
             <div className="border-2 border-blue-100 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl p-5">
-              <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-2">
-                ☁️ Google 雲端同步 (推薦)
+              <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-2 flex items-center justify-between">
+                <span className="flex items-center gap-2">☁️ Google 雲端同步 (推薦)</span>
+                {/* 🌟 2. 顯示最後備份時間 */}
+                {user && (
+                  <span className="text-sm font-normal flex items-center gap-1 bg-white dark:bg-slate-800 px-2 py-1 rounded-md shadow-sm">
+                    <Clock size={14} className="text-blue-500" />
+                    {isLoadingTime ? '讀取中...' : (lastBackupTime || '尚無紀錄')}
+                  </span>
+                )}
               </h4>
               <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 font-medium">
                 將所有設定與考卷安全備份至您的 Google 雲端隱私空間。換電腦時只要按一鍵即可無縫接軌。

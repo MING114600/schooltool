@@ -9,7 +9,8 @@ const ExamShareModal = ({ isOpen, onClose, shareId, examTitle }) => {
   if (!isOpen || !shareId) return null;
 
   // 自動組合出帶有 shareId 的專屬網址
-  const shareUrl = `${window.location.origin}/?shareId=${shareId}`;
+  //const shareUrl = `${window.location.origin}/?shareId=${shareId}`;
+  const shareUrl = `${window.location.origin}${window.location.pathname}?shareId=${shareId}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(shareUrl);

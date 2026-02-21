@@ -21,7 +21,8 @@ const checkResponse = async (res) => {
  */
 const findFileByName = async (token, fileName) => {
   const q = encodeURIComponent(`name='${fileName}' and trashed=false`);
-  const res = await fetch(`${DRIVE_API}?q=${q}&spaces=drive`, {
+  // 🌟 修改：在網址後面加上 &fields=files(id,modifiedTime) 讓它順便抓時間回來
+  const res = await fetch(`${DRIVE_API}?q=${q}&spaces=drive&fields=files(id,modifiedTime)`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   await checkResponse(res);
@@ -152,5 +153,19 @@ export const downloadSharedExam = async (shareId, apiKey) => {
   } catch (error) {
     console.error('下載派送考卷失敗:', error);
     throw error;
+  }
+};
+
+/**
+ * 🌟 新增：獲取雲端最後備份時間
+ */
+export const getCloudBackupTime = async (token) => {
+  try {
+    const file = await findFileByName(token, BACKUP_FILE_NAME);
+    return file ? file.modifiedTime : null;
+  } catch (error) {
+    if (error.message === 'TokenExpired') throw error;
+    console.error('獲取備份時間失敗:', error);
+    return null;
   }
 };
