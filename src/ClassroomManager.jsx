@@ -232,7 +232,7 @@ const ManagerContent = () => {
   };
 
   return (
-    <div className={`flex h-screen ${UI_THEME.BACKGROUND} transition-colors duration-500 overflow-hidden font-sans`}>
+    <div className={`flex h-full ${UI_THEME.BACKGROUND} transition-colors duration-500 overflow-hidden font-sans`}>
       
       {/* --- Modals --- */}
       {/* 這些 Modal 仍然需要 isOpen 與 onClose，因為它們是受控組件 */}
