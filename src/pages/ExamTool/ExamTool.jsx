@@ -150,7 +150,7 @@ const ExamTool = () => {
 
 
   return (
-    <div className={`w-full h-screen flex overflow-hidden ${UI_THEME.BACKGROUND}`}>
+    <div className={`w-full h-full flex overflow-hidden ${UI_THEME.BACKGROUND}`}>
       {/* Sidebar */}
       <div className={`relative transition-all duration-500 border-r ${UI_THEME.BORDER_DEFAULT} ${UI_THEME.SURFACE_MAIN} flex flex-col ${isSidebarOpen ? 'w-80' : 'w-0'} overflow-hidden`}>
         <div className="p-6 overflow-hidden min-w-[20rem]">

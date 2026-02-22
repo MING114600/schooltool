@@ -300,37 +300,64 @@ const ExamMainStage = ({
         )}
       </div>
 
-      {/* 2) 橫向膠囊計時器：永遠水平置中 */}
-	  <div className="relative w-full max-w-[80%]">
-      <div className="relative w-full h-48 md:h-64 rounded-[3rem] bg-slate-200 dark:bg-slate-800 shadow-inner overflow-hidden border-4 border-slate-100 dark:border-slate-700 ring-1 ring-slate-200 dark:ring-slate-800">
+{/* Timer：幾何正中央；Ticker：掛在 Timer 下方，不影響 Timer 置中 */}
+<div className="absolute inset-0 z-10 pointer-events-none">
+  {/* 1) Timer 本體：幾何置中 */}
+  <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[80%]">
+    {/* 膠囊計時器外殼 */}
+    <div className="relative w-full h-48 md:h-64 rounded-[3rem] bg-slate-200 dark:bg-slate-800 shadow-inner overflow-hidden border-4 border-slate-100 dark:border-slate-700 ring-1 ring-slate-200 dark:ring-slate-800">
+      {/* 進度條 */}
+      <div
+        className={`h-full ${getProgressColor()} transition-all duration-1000 ease-linear shadow-[0_0_30px_rgba(0,0,0,0.1)]`}
+        style={{ width: `${progress}%` }}
+      />
+
+      {/* Timer 字 */}
+      <div
+        className={`absolute inset-0 flex items-center justify-center ${timerTextColor} font-mono leading-none font-bold tracking-tighter tabular-nums select-none z-10`}
+      >
+        {isIdle ? (
+          <span className="text-[4rem] md:text-[6rem] tracking-widest opacity-80">
+            --:--
+          </span>
+        ) : (
+          <span className="text-[12rem] md:text-[15rem] leading-none">
+            {formatTime(remainingSeconds)}
+          </span>
+        )}
+      </div>
+    </div>
+
+    {/* 2) Ticker：掛在 Timer 下方（不影響 Timer 幾何置中） */}
+    <div
+      className="absolute left-1/2 top-full -translate-x-1/2 mt-6 w-[92vw] max-w-[92vw] flex justify-center z-20"
+      style={{
+        // ✅ 防止 iPad/小螢幕時 ticker 太長掉出畫面：最多佔視窗高度的一小段
+        maxHeight: "22vh",
+      }}
+    >
+      <div className="w-full text-center">
         <div
-          className={`h-full ${getProgressColor()} transition-all duration-1000 ease-linear shadow-[0_0_30px_rgba(0,0,0,0.1)]`}
-          style={{ width: `${progress}%` }}
-        />
-        <div className={`absolute inset-0 flex items-center justify-center ${timerTextColor} font-mono text-[12rem] md:text-[15rem] leading-none font-bold tracking-tighter tabular-nums select-none z-10`}>
-          {isIdle ? (
-                  // ★ 修改 2: Idle 狀態顯示文字
-                  <span className="text-[4rem] md:text-[6rem] tracking-widest opacity-80">
-                    --:--
-                  </span>
-                ) : (
-                  // 正常倒數
-                  <span className="text-[12rem] md:text-[15rem] leading-none">
-                    {formatTime(remainingSeconds)}
-                  </span>
-                )}
+          className={`font-bold tracking-wide ${UI_THEME.TEXT_PRIMARY} break-words`}
+          style={{
+            // ✅ 字再大一點，但有上限；在 iPad 也不會爆
+            fontSize: "clamp(2.4rem, 6.5vw, 7rem)",
+            lineHeight: 1.08,
+          }}
+        >
+          {/* ✅ 兩行保護：避免文字過多把底部擠出畫面 */}
+          <div className="line-clamp-2">
+            <SimpleTicker
+              isActive={tickerActive}
+              messages={tickerMessages}
+              isGlobalZhuyin={isGlobalZhuyin}
+            />
+          </div>
         </div>
       </div>
-	  
-      {/* 3) 提示詞：在計時器略下方 */}
-      <div className="absolute left-1/2 top-full mt-2 -translate-x-1/2 w-full flex justify-center z-20">
-		<div className={`px-8 py-3 rounded-2xl min-w-[50%] text-center`}>
-        <div className={`text-2xl md:text-9xl font-bold tracking-wide ${UI_THEME.TEXT_PRIMARY}`}>
-          <SimpleTicker isActive={tickerActive} messages={tickerMessages} isGlobalZhuyin={isGlobalZhuyin}/>
-        </div>
-      </div>
-	  </div>
-	</div>
+    </div>
+  </div>
+</div>
       {/* 4) 音訊播放（如果你想它可以點，這裡要把 pointer-events 打開） */}
       {audioUrl && !isBreak && (
         <div className="absolute bottom-6 right-6 z-30 pointer-events-auto">

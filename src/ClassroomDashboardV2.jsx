@@ -221,7 +221,7 @@ const DashboardContent = ({ theme, cycleTheme}) => {
 
   // --- Render ---
   return (
-    <div className={`flex h-screen w-screen overflow-hidden font-sans ${UI_THEME.BACKGROUND} ${UI_THEME.TEXT_PRIMARY} selection:bg-indigo-200 dark:selection:bg-indigo-900`}>
+    <div className={`flex w-full h-full overflow-hidden font-sans ${UI_THEME.BACKGROUND} ${UI_THEME.TEXT_PRIMARY} selection:bg-indigo-200 dark:selection:bg-indigo-900`}>
       <style>{`.no-scrollbar::-webkit-scrollbar { display: none; } .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }`}</style>
 
       {/* 天氣小工具 */}

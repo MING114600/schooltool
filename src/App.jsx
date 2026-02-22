@@ -287,7 +287,7 @@ const ClassroomOS = () => {
   const buttonPositionClass = launcherPosition === 'left' ? 'left-4' : 'right-4';
 
   return (
-    <div className={`relative w-full h-screen ${UI_THEME.BACKGROUND} overflow-hidden transition-colors duration-500`}>
+    <div className={`relative w-full h-full ${UI_THEME.BACKGROUND} overflow-hidden transition-colors duration-500`}>
       
       <button 
         onClick={() => setIsLauncherOpen(true)}

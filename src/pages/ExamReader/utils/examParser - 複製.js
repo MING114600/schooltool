@@ -1,5 +1,4 @@
 // src/pages/ExamReader/utils/examParser.js
-import { fixPolyphones } from '../../../constants/polyphoneDict';
 
 const FILTER_KEYWORDS = ['國小', '練習卷', '姓名', '座號', '班級', '得分', '閱卷', '定期考試','學年度', '期末考', '期中考', '試卷', '測驗卷', '試題'];
 
@@ -34,21 +33,18 @@ const toSubscript = (text) => text.split('').map(c => SUBSCRIPT_MAP[c] || c).joi
 
 // 🌟 新增：智慧切句器 (將一段文字依據全形標點切分成多個句子 Chunk)
 export const splitTextIntoSentenceChunks = (text, baseId, type) => {
-  // 🌟 新增：產生一份帶有 IVS 破音字選字碼的顯示專用文字
-  const visuallyCorrectedText = fixPolyphones(text);
-
+  // 為了保持排版與語意完整，選項 (A) 或填空題不進行細部切割，當作一整塊
   if (type === 'option' || type === 'blank') {
     return [{ 
       id: baseId, 
       type, 
-      text: type === 'option' ? `    ${visuallyCorrectedText}` : visuallyCorrectedText, // 畫面渲染用
-      spokenText: text // 🌟 語音維持原始純文字，交給 Web Speech API 處理
+      text: type === 'option' ? `    ${text}` : text, 
+      spokenText: text 
     }];
   }
 
   const chunks = [];
-  // 這裡的切割邏輯需要同步處理原始文字與修正後文字
-  // 為了簡化與確保對齊，最安全的作法是先切割原始文字，再對切割後的每個 chunk 分別套用 fixPolyphones
+  // 💡 關鍵：只使用「全形標點」切割，不使用半形逗號或小數點，避免切斷「1.」或「3.14」或「1,000」
   const parts = text.split(/([，。？！；：]+)/g);
   let tempText = '';
   let chunkIdx = 0;
@@ -58,32 +54,29 @@ export const splitTextIntoSentenceChunks = (text, baseId, type) => {
     if (!part) continue;
 
     tempText += part;
+    // 如果這個片段是標點符號，或者是字串的最後結尾，就打包成一個 Chunk
     if (/^[，。？！；：]+$/.test(part) || i === parts.length - 1) {
       if (tempText.trim()) {
          chunks.push({
            id: `${baseId}_sub_${chunkIdx++}`,
            type,
-           text: fixPolyphones(tempText), // 🌟 畫面渲染用 (含 IVS)
-           spokenText: tempText           // 🌟 語音發音用 (純文字)
+           text: tempText,
+           spokenText: tempText
          });
          tempText = '';
       }
     }
   }
   
+  // 收尾：如果最後有殘留的空白，補到最後一個 chunk 裡
   if (tempText && chunks.length > 0) {
-    chunks[chunks.length - 1].text += fixPolyphones(tempText);
+    chunks[chunks.length - 1].text += tempText;
     chunks[chunks.length - 1].spokenText += tempText;
   } else if (tempText) {
-    chunks.push({ 
-        id: `${baseId}_sub_${chunkIdx}`, 
-        type, 
-        text: fixPolyphones(tempText), 
-        spokenText: tempText 
-    });
+    chunks.push({ id: `${baseId}_sub_${chunkIdx}`, type, text: tempText, spokenText: tempText });
   }
 
-  return chunks.length > 0 ? chunks : [{ id: baseId, type, text: visuallyCorrectedText, spokenText: text }];
+  return chunks.length > 0 ? chunks : [{ id: baseId, type, text, spokenText: text }];
 };
 
 // 🌟 新增：將智慧後處理抽離為獨立、可匯出的共用函式
