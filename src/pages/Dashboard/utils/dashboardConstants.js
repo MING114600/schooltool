@@ -137,6 +137,7 @@ export const TAIWAN_LOCATIONS = {
     { name: '左營區', lat: 22.6845, lon: 120.2985 },
     { name: '鳳山區', lat: 22.6258, lon: 120.3550 },
     { name: '鼓山區', lat: 22.6429, lon: 120.2764 },
+    { name: '小港區', lat: 22.5653, lon: 120.3379 },
   ]
   // ... 其他縣市可依照此格式擴充
 };
