@@ -7,6 +7,18 @@ const getSecondsFromTime = (timeStr) => {
   return h * 3600 + m * 60;
 };
 
+// 🌟 新增輔助函式：將時間字串加上分鐘數，回傳新的時間字串 "HH:MM"
+const addMinutes = (timeStr, minutesToAdd) => {
+  if (!timeStr) return timeStr;
+  const [h, m] = timeStr.split(':').map(Number);
+  const totalMinutes = h * 60 + m + minutesToAdd;
+  
+  const newH = Math.floor(totalMinutes / 60) % 24;
+  const newM = totalMinutes % 60;
+  
+  return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
+};
+
 /**
  * 教室儀表板核心計時與狀態 Hook
  */
@@ -44,16 +56,30 @@ export function useClassroomTimer({
 
     const halfDaySlots = [];
     let isDismissed = false;
+    // P5 start time is hardcoded as '13:20' fallback if not found
     const p5Start = timeSlots.find(s => s.id === 'p5')?.start || '13:20';
 
     for (let slot of timeSlots) {
        if (isDismissed) continue;
        if (slot.id === 'break3') { 
+          // 半天課的大下課轉為打掃時間的特殊邏輯保留
           halfDaySlots.push({ ...slot, name: '打掃時間' }); 
           continue; 
        }
+       // 如果遇到下午的時段 (大於等於第五節開始時間)
        if (getSecondsFromTime(slot.start) >= getSecondsFromTime(p5Start)) {
-          halfDaySlots.push({ id: 'after', name: '放學', start: slot.start, end: '17:00', type: 'break' });
+          // 🌟 修正：放學時間長度設為 20 分鐘 (與正常放學一致)，而非硬編碼到 17:00
+          // 這樣 20 分鐘後就會自然進入 off-hours 模式
+          const dismissalEnd = addMinutes(slot.start, 20);
+          
+          halfDaySlots.push({ 
+            id: 'after', 
+            name: '放學', 
+            start: slot.start, 
+            end: dismissalEnd, 
+            type: 'break' 
+          });
+          
           isDismissed = true;
           continue;
        }
@@ -113,6 +139,8 @@ export function useClassroomTimer({
 
     // D. 根據時段類型決定模式
     if (!foundSlot) {
+      // 🌟 當半天課的「放學」時段(20分鐘)結束後，foundSlot 會變成 null，
+      // 自然就會進入這裡，切換為 off-hours
       setStatusMode('off-hours');
     } else if (foundSlot.type === 'class') {
       const startSec = getSecondsFromTime(foundSlot.start);

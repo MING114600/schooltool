@@ -17,6 +17,7 @@ import ImportModal from './components/ImportModal';
 import ExamShareModal from './components/ExamShareModal';
 import ExamPackageModal from './components/ExamPackageModal';
 import EditItemModal from './components/EditItemModal';
+import ExamHistoryModal from './components/ExamHistoryModal';
 
 const ExamReader = ({ user, login, shareId, setShareId }) => {
   const { speak, cancel, pauseTTS, resumeTTS, ttsState, voices, activeChunkId } = useTTS();
@@ -36,7 +37,8 @@ const ExamReader = ({ user, login, shareId, setShareId }) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [isFocusMode, setIsFocusMode] = useState(false);
-  
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false); // 🌟 新增：控制歷史清單開關
+    
   // 🌟 進入專注模式 (全螢幕 + 關閉側邊欄)
   const handleEnterFocusMode = async () => {
     setIsFocusMode(true);
@@ -176,6 +178,16 @@ const ExamReader = ({ user, login, shareId, setShareId }) => {
     speak(payloadChunks, subject, speechRate, clickedChunkId);
   };
   
+  // 🌟 新增：再次分享的處理函式
+  const handleReShare = (fileId, title) => {
+	setIsHistoryModalOpen(false);
+    setShareModalData({
+      isOpen: true,
+      shareId: fileId,
+      title: title
+    });
+  };
+  
   return (
     <div className={`w-full h-full flex flex-col ${UI_THEME.BACKGROUND} transition-colors duration-300 relative`}>
 	  {/* 🌟 3. 新增：學生端下載中的全螢幕遮罩 */}
@@ -211,6 +223,14 @@ const ExamReader = ({ user, login, shareId, setShareId }) => {
           await handlePackageShare(fullExams);
           setIsPackageModalOpen(false); // 派送完畢後關閉視窗
         }} 
+      />
+	  {/* 🌟 加入 ExamHistoryModal */}
+      <ExamHistoryModal 
+        isOpen={isHistoryModalOpen}
+        onClose={() => setIsHistoryModalOpen(false)}
+        token={user?.accessToken}
+        onReShare={handleReShare}
+		login={login}
       />
 	  
       {/* 匯入考卷功能 */}
@@ -285,6 +305,7 @@ const ExamReader = ({ user, login, shareId, setShareId }) => {
 		onExitFocusMode={handleExitFocusMode}
 		onEnterFocusMode={handleEnterFocusMode}
 		onUpdateSubject={handleUpdateExamSubject}
+		onOpenHistory={() => setIsHistoryModalOpen(true)} // 🌟 傳入開啟管理中心的函式
       />
 
       {/* 中央主畫面區塊 */}

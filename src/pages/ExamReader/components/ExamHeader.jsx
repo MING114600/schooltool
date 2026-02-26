@@ -3,7 +3,7 @@ import {
   PanelLeft, // 🌟 替換 List，更像側邊欄
   ZoomIn, ZoomOut, Import, Highlighter, Trash2, 
   BookA, // 🌟 替換 BookOpen，帶有字母A更像字典
-  Share2, Loader2, Play, LogOut
+  Share2, Loader2, Play, LogOut, Cloud
 } from 'lucide-react'; 
 import { UI_THEME } from '../../../utils/constants';
 
@@ -29,7 +29,8 @@ const ExamHeader = ({
   isFocusMode, 
   onExitFocusMode,
   onEnterFocusMode,
-  onUpdateSubject
+  onUpdateSubject,
+  onOpenHistory
 }) => {
 	// 取得目前選定考卷的科目，若無則預設為 general
   const currentExam = examList.find(e => e.id === activeExamId);
@@ -131,34 +132,66 @@ const ExamHeader = ({
          </div>
 
          {/* ================= 3. 最右側：考卷管理與模式切換 ================= */}
-         {isFocusMode ? (
-           <button onClick={onExitFocusMode} className="flex items-center gap-2 px-4 py-2 bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 dark:bg-rose-900/20 dark:border-rose-800 dark:text-rose-400 rounded-xl transition-all font-bold shadow-sm">
-             <LogOut size={18} />
-             <span className="hidden sm:inline text-sm">結束考試</span>
-           </button>
-         ) : (
-           <div className="flex items-center gap-2">
-             
-             {/* 🌟 匯入：淺藍底色，象徵「資料讀取/匯入」 */}
-             <button onClick={onOpenImport} className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400 rounded-xl transition-all font-bold shadow-sm">
-               <Import size={16} />
-               <span className="hidden lg:inline text-sm">匯入</span>
-             </button>
+{isFocusMode ? (
+  <button 
+    onClick={onExitFocusMode} 
+    className="flex items-center gap-2 px-4 py-2 bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 dark:bg-rose-900/20 dark:border-rose-800 dark:text-rose-400 rounded-xl transition-all font-bold shadow-sm active:scale-95"
+  >
+    <LogOut size={18} />
+    <span className="hidden sm:inline text-sm">結束考試</span>
+  </button>
+) : (
+  <div className="flex items-center gap-3">
+    
+    {/* 🌟 1. 匯入：維持淺藍色，但加入 active 效果 */}
+    <button 
+      onClick={onOpenImport} 
+      className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 hover:border-blue-200 dark:bg-blue-900/20 hover:dark:bg-blue-700 dark:border-blue-800 dark:hover:border-blue-300 dark:text-blue-400 hover:dark:text-blue-300 rounded-xl transition-all font-bold shadow-sm active:scale-95"
+    >
+      <Import size={18} />
+      <span className="hidden lg:inline text-sm">匯入</span>
+    </button>
 
-             {/* 🌟 派送：淺綠底色，象徵「資料發送/成功」 (維持不變) */}
-             <button onClick={onShareExam} disabled={!activeExamId || isSharing} className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-400 rounded-xl transition-all font-bold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
-               {isSharing ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
-               <span className="hidden lg:inline text-sm">{isSharing ? '產生中...' : '派送'}</span>
-             </button>
+    {/* 🌟 2. 派送與管理群組：Split Button (一體成型設計) */}
+    {/* 修改：外層負責邊框與圓角，內層負責背景色與互動 */}
+    <div className="flex items-center h-10 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 overflow-hidden shadow-sm transition-all hover:shadow-md hover:border-emerald-300">
+      
+      {/* 左半部：主要派送按鈕 */}
+      <button 
+        onClick={onShareExam} 
+        disabled={!activeExamId || isSharing} 
+        className="h-full px-3 flex items-center gap-2 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-800/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        title="派送目前考卷"
+      >
+        {isSharing ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
+        <span className="hidden lg:inline text-sm font-bold">派送</span>
+      </button>
 
-             {/* 🌟 進入考試：實心主按鈕 (維持不變) */}
-             <button onClick={onEnterFocusMode} disabled={!activeExamId} className="flex items-center gap-2 ml-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all font-bold shadow-md shadow-indigo-200 dark:shadow-none hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0 disabled:cursor-not-allowed">
-               <Play size={16} className="fill-current" />
-               <span className="hidden sm:inline text-sm">進入考試</span>
-             </button>
+      {/* 中間分隔線：使用 Emerald 色系讓整體感一致 */}
+      <div className="w-px h-5 bg-emerald-200 dark:bg-emerald-700 mx-0.5"></div>
+      
+      {/* 右半部：管理按鈕 */}
+      <button 
+        onClick={onOpenHistory}
+        className="h-full px-2.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-800/50 transition-colors flex items-center justify-center"
+        title="管理已派送考卷"
+      >
+        <Cloud size={18} />
+      </button>
+    </div>
 
-           </div>
-         )}
+    {/* 🌟 3. 進入考試：最強烈的視覺權重 (Indigo 實心) */}
+    <button 
+      onClick={onEnterFocusMode} 
+      disabled={!activeExamId} 
+      className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all font-bold shadow-md shadow-indigo-200 dark:shadow-none hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:opacity-50 disabled:hover:translate-y-0 disabled:cursor-not-allowed ml-1"
+    >
+      <Play size={16} className="fill-current" />
+      <span className="hidden sm:inline text-sm">進入考試</span>
+    </button>
+
+  </div>
+)}
 
       </div>
     </header>

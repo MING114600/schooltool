@@ -3,43 +3,50 @@ import { Settings2, Trophy } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 
 // --- 引入 Hooks 與 Constants ---
-import { useStudentImport } from './hooks/useStudentImport';
-import { useHotkeys } from './hooks/useHotkeys';
-import { useModalManager } from './hooks/useModalManager'; // 引入新 Hook
-import { UI_THEME, MODAL_ID } from './utils/constants';
+// 路徑修正：跳出兩層到 src 根目錄
+import { useStudentImport } from '../../hooks/useStudentImport';
+import { useHotkeys } from '../../hooks/useHotkeys';
+import { useModalManager } from '../../hooks/useModalManager';
+import { UI_THEME, MODAL_ID } from '../../utils/constants';
 
 // --- 引入 Context ---
-import { ClassroomProvider, useClassroomContext } from './context/ClassroomContext';
-import { ModalProvider, useModalContext } from './context/ModalContext'; // ★ 引入 ModalContext
+import { ClassroomProvider, useClassroomContext } from '../../context/ClassroomContext';
+import { ModalProvider, useModalContext } from '../../context/ModalContext';
 
-// --- 引入 UI 組件 ---
-import Toolbar from './pages/Manager/components/Toolbar';
-import Sidebar from './pages/Manager/components/Sidebar';
-import ScoreFeedback from './pages/Manager/components/ScoreFeedback'; 
-import GroupScoreTicker from './pages/Manager/components/GroupScoreTicker';
-import SeatGrid from './pages/Manager/components/SeatGrid';
+// --- 引入 UI 組件 (Manager Local) ---
+// 路徑修正：同層級 (Manager) 下的 components
+import Toolbar from './components/Toolbar';
+import Sidebar from './components/Sidebar';
+import ScoreFeedback from './components/ScoreFeedback'; 
+import GroupScoreTicker from './components/GroupScoreTicker';
+import SeatGrid from './components/SeatGrid';
 
-import TimerWidget from './components/common/widgets/TimerWidget';   
-import LotteryWidget from './components/common/widgets/LotteryWidget'; 
-import SoundBoard from './components/common/widgets/SoundBoard';
+// --- 引入 Widgets (Common) ---
+// 路徑修正：跳出兩層到 src/components/common/widgets
+import TimerWidget from '../../components/common/widgets/TimerWidget';   
+import LotteryWidget from '../../components/common/widgets/LotteryWidget'; 
+import SoundBoard from '../../components/common/widgets/SoundBoard';
 
-// --- 引入 Modals ---
-import LayoutTemplateModal from './pages/Manager/modals/LayoutTemplateModal';
-import AttendanceModal from './pages/Manager/modals/AttendanceModal';
-import BatchGroupModal from './pages/Manager/modals/BatchGroupModal';
-import BehaviorSettingsModal from './pages/Manager/modals/BehaviorSettingsModal';
-import ExportStatsModal from './pages/Manager/modals/ExportStatsModal';
-import ScoringModal from './pages/Manager/modals/ScoringModal';
-import EditStudentModal from './pages/Manager/modals/EditStudentModal';
-import DialogModal from './components/common/DialogModal';
+// --- 引入 Modals (Manager Local) ---
+// 路徑修正：同層級 (Manager) 下的 modals
+import LayoutTemplateModal from './modals/LayoutTemplateModal';
+import AttendanceModal from './modals/AttendanceModal';
+import BatchGroupModal from './modals/BatchGroupModal';
+import BehaviorSettingsModal from './modals/BehaviorSettingsModal';
+import ExportStatsModal from './modals/ExportStatsModal';
+import ScoringModal from './modals/ScoringModal';
+import EditStudentModal from './modals/EditStudentModal';
 
-const ManagerContent = () => {
+// --- 引入 Common Modals ---
+import DialogModal from '../../components/common/DialogModal';
+
+const Manager = () => {
   const {
     currentClass, 
     updateClass, saveTemplate, deleteTemplate, applyTemplate,
     toggleLock, toggleVoid, seatDrop, sidebarDrop, updateStudent,
     updateStudents, scoreStudent, resetScores, updateBehaviors, updateAttendance,
-    templates, feedbacks, undo, redo, canUndo, canRedo, // 確保有解構這些 undo/redo
+    templates, feedbacks, undo, redo, canUndo, canRedo,
     seatMode, setSeatMode 
   } = useClassroomContext();
 
@@ -48,29 +55,25 @@ const ManagerContent = () => {
   useHotkeys({
     // 1. 視窗控制
     'escape': () => {
-        // 優先順序：關閉 Modal -> 關閉 Sidebar/Toolbar
         if (activeModal) {
             closeModal();
         } else if (dialogConfig) {
             closeDialog();
         } else if (isSidebarOpen || isToolbarOpen) {
             setIsSidebarOpen(false);
-            // setIsToolbarOpen(false); // Toolbar 通常保留比較好，看您習慣
         }
     },
     'f': () => toggleFullscreen(),
 
     // 2. 編輯歷史 (Undo/Redo)
     'ctrl+z': () => { if (canUndo) undo(); },
-    'ctrl+y': () => { if (canRedo) redo(); }, // Windows 常見
-    'ctrl+shift+z': () => { if (canRedo) redo(); }, // Mac 常見
+    'ctrl+y': () => { if (canRedo) redo(); }, 
+    'ctrl+shift+z': () => { if (canRedo) redo(); },
 
     // 3. 模式切換 (Alt + Number)
     'alt+1': () => {
         setAppMode('score');
         setBatchScoreMode(null);
-        // 如果側邊欄沒開，可以自動打開 (選填)
-        // setIsSidebarOpen(true); 
     },
     'alt+2': () => {
         setAppMode('arrange');
@@ -78,17 +81,15 @@ const ManagerContent = () => {
     },
     
     // 4. 編輯模式下的工具切換
-    's': () => { if (appMode === 'arrange') setSeatMode('swap'); }, // Swap
-    'r': () => { if (appMode === 'arrange') setSeatMode('replace'); } // Replace
+    's': () => { if (appMode === 'arrange') setSeatMode('swap'); }, 
+    'r': () => { if (appMode === 'arrange') setSeatMode('replace'); } 
   });
   
-  // ★ 修改 1: 直接從 Context 取得狀態，不再自己呼叫 hook
   const { 
     activeModal, modalData, openModal, closeModal, isModalOpen, 
     dialogConfig, openDialog, closeDialog 
   } = useModalContext();
 
-  // ★ 修改 2: 封裝 handleShowDialog (給那些尚未改用 Context 的內部 Modal 使用)
   const handleShowDialog = useCallback((config) => {
       openDialog({
           ...config,
@@ -154,7 +155,6 @@ const ManagerContent = () => {
   const handleImportList = (text) => {
     const newStudents = parseImportText(text);
       if (newStudents.length > 0) {
-      // 直接呼叫 openDialog (來自 Context)
 	  openDialog({
       type: 'confirm',
       title: '確認匯入名單',
@@ -235,7 +235,6 @@ const ManagerContent = () => {
     <div className={`flex h-full ${UI_THEME.BACKGROUND} transition-colors duration-500 overflow-hidden font-sans`}>
       
       {/* --- Modals --- */}
-      {/* 這些 Modal 仍然需要 isOpen 與 onClose，因為它們是受控組件 */}
       <LayoutTemplateModal 
         isOpen={isModalOpen(MODAL_ID.LAYOUT_TEMPLATE)} onClose={closeModal} 
         currentLayout={currentClass?.layout} templates={templates}
@@ -306,7 +305,6 @@ const ManagerContent = () => {
           </div>
       )}
 
-      {/* ★ 修改 3: 移除 Sidebar 的 onOpenXxx 屬性，因為 Sidebar 現在自己會去 Context 拿 */}
       <Sidebar 
         isOpen={isSidebarOpen && !isFocusMode} onClose={() => setIsSidebarOpen(false)}
         activeTab={sidebarTab} setActiveTab={setSidebarTab} isEditingList={isEditingList} setIsEditingList={setIsEditingList}
@@ -315,7 +313,6 @@ const ManagerContent = () => {
       />
 
       <div className={`flex-1 flex flex-col relative overflow-hidden ${UI_THEME.CONTENT_AREA} transition-all duration-500`}>
-        {/* ★ 修改 4: 移除 Toolbar 的 setIsTemplateModalOpen 等屬性 */}
         <Toolbar 
           isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen}
           isToolbarOpen={isToolbarOpen && !isFocusMode} setIsToolbarOpen={setIsToolbarOpen}
@@ -379,4 +376,4 @@ const ManagerContent = () => {
   );
 };
 
-export default ManagerContent;
+export default Manager;

@@ -2,14 +2,14 @@
 import React, { useState, useEffect } from 'react'; // 🌟 記得引入 useEffect
 import { 
   X, Database, CloudUpload, CloudDownload, 
-  HardDriveDownload, HardDriveUpload, Loader2, AlertCircle, CheckCircle2, Clock 
+  HardDriveDownload, HardDriveUpload, Loader2, AlertCircle, CheckCircle2, Clock, Trash2, AlertTriangle
 } from 'lucide-react'; // 🌟 新增 Clock 圖示
 
 // 引入全域共用的對話框模組
 import DialogModal from './DialogModal';
 
 // 引入我們寫好的兩支核心工具
-import { exportSystemData, importSystemData, generateSystemPayload, restoreFromPayload } from '../../utils/backupService';
+import { exportSystemData, importSystemData, generateSystemPayload, restoreFromPayload, resetSystem } from '../../utils/backupService';
 import { syncToCloud, fetchFromCloud, getCloudBackupTime } from '../../utils/googleDriveService';
 
 const CLOUD_FILE_NAME = 'ClassroomOS_CloudSync.json';
@@ -22,6 +22,7 @@ const GlobalBackupModal = ({ isOpen, onClose, user, login }) => {
   const [cloudConfirmOpen, setCloudConfirmOpen] = useState(false);
   const [localConfirmOpen, setLocalConfirmOpen] = useState(false);
   const [pendingLocalFile, setPendingLocalFile] = useState(null); // 暫存老師選擇的實體檔案
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false); // 控制重置確認框
   
   // 🌟 新增：備份時間狀態
   const [lastBackupTime, setLastBackupTime] = useState(null);
@@ -192,6 +193,21 @@ useEffect(() => {
     setPendingLocalFile(null);
   };
   
+  // 執行重置
+  const executeReset = async () => {
+    setIsProcessing(true);
+    try {
+      await resetSystem();
+      showMessage('success', '系統已重置，即將重新整理頁面...');
+      setTimeout(() => window.location.reload(), 1500); // 重整頁面生效
+    } catch (err) {
+      showMessage('error', '重置失敗，請手動清除瀏覽器快取');
+    } finally {
+      setIsProcessing(false);
+      setIsResetConfirmOpen(false);
+    }
+  };
+  
   if (!isOpen) return null;
 
   return (
@@ -241,6 +257,21 @@ useEffect(() => {
         onConfirm={executeLocalRestore}
         onCancel={cancelLocalRestore}
         onClose={cancelLocalRestore}
+      />
+	  
+	  {/* 🌟 新增：重置確認對話框 */}
+      <DialogModal
+        isOpen={isResetConfirmOpen}
+        title="警告：即將清除所有資料"
+        message={`您確定要恢復原廠設定嗎？\n\n此操作將會：\n1. 刪除所有本地考卷\n2. 清空儀表板所有設定\n3. 清除抽籤與計時紀錄\n\n⚠️ 此動作無法復原！(雲端備份不會被刪除)`}
+        type="confirm"
+        variant="danger"
+        confirmText={isProcessing ? "清除中..." : "確定清除"}
+        cancelText="取消"
+        isBusy={isProcessing}
+        onConfirm={executeReset}
+        onCancel={() => setIsResetConfirmOpen(false)}
+        onClose={() => setIsResetConfirmOpen(false)}
       />
 
       <div className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={onClose}>
@@ -328,7 +359,24 @@ useEffect(() => {
               </div>
             </div>
 
-          </div>
+          {/* 🌟 新增：危險區域 */}
+                <div className="border-2 border-rose-100 dark:border-rose-900/30 bg-rose-50/50 dark:bg-rose-900/10 rounded-xl p-5 mt-2">
+                  <h4 className="font-bold text-rose-700 dark:text-rose-400 mb-2 flex items-center gap-2">
+                    <AlertTriangle size={20} />
+                    危險區域
+                  </h4>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 font-medium">
+                    如果遇到系統異常，或希望在公用電腦上移除您的個人資料，可以執行此操作。
+                  </p>
+                  <button 
+                    onClick={() => setIsResetConfirmOpen(true)}
+                    className="w-full flex items-center justify-center gap-2 bg-white dark:bg-rose-950 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white dark:hover:bg-rose-900 transition-all py-2.5 rounded-lg font-bold shadow-sm"
+                  >
+                    <Trash2 size={18} />
+                    清除所有本地資料 (恢復原廠設定)
+                  </button>
+                </div>
+            </div>
         </div>
       </div>
     </>

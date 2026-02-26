@@ -182,3 +182,16 @@ html.dark {
 .overflow-auto, .overflow-y-auto {
   touch-action: pan-y; /* 允許垂直捲動 */
 }
+
+@keyframes moonGlow {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.05);
+  }
+}
+
+.animate-moonGlow {
+  animation: moonGlow 16s ease-in-out infinite;
+}

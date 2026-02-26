@@ -2,65 +2,61 @@ import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { Megaphone, Users, BookOpen, Eye, Bell, MessageSquare, 
   Star, Heart, AlertTriangle, Info, Zap } from 'lucide-react';
 
-import { UI_THEME, STANDARD_TIME_SLOTS } from './utils/constants';
+// --- Utils & Constants ---
+import { UI_THEME, STANDARD_TIME_SLOTS } from '../../utils/constants';
 import { 
   DEFAULT_SCHEDULE, DEFAULT_SUBJECT_HINTS, 
   DEFAULT_DAY_TYPES, SYSTEM_BUTTONS_CONFIG, DEFAULT_CUSTOM_BROADCASTS ,
   DEFAULT_WEATHER_CONFIG
-} from './pages/Dashboard/utils/dashboardConstants';
-import usePersistentState from './hooks/usePersistentState';
-import { useClassroomTimer } from './hooks/useClassroomTimer';
-import { useTTS } from './hooks/useTTS';
-import { useDashboardEvents } from './hooks/useDashboardEvents';
-import { useOS } from './context/OSContext';
-import { ClassroomProvider, useClassroomContext } from './context/ClassroomContext';
+} from './utils/dashboardConstants';
 
-// --- Components ---
-import ErrorBoundary from './components/common/ErrorBoundary';
-import SettingsModal from './pages/Dashboard/modals/SettingsModal';
-import TimelineSidebar from './pages/Dashboard/components/TimelineSidebar';
-import ControlDock from './pages/Dashboard/components/ControlDock';
-import ToolsMenu from './pages/Dashboard/modals/ToolsMenu';
-import BroadcastInputModal from './pages/Dashboard/modals/BroadcastInputModal';
-import MessageInput from './pages/Dashboard/modals/MessageInput';
+import usePersistentState from '../../hooks/usePersistentState';
+import { useClassroomTimer } from '../../hooks/useClassroomTimer';
+import { useTTS } from '../../hooks/useTTS';
+import { useDashboardEvents } from '../../hooks/useDashboardEvents';
+import { useOS } from '../../context/OSContext';
+import { useClassroomContext } from '../../context/ClassroomContext';
+
+// --- Components (Common) ---
+import ErrorBoundary from '../../components/common/ErrorBoundary';
+
+// --- Components (Dashboard Local) ---
+import SettingsModal from './modals/SettingsModal';
+import TimelineSidebar from './components/TimelineSidebar';
+import ControlDock from './components/ControlDock';
+import ToolsMenu from './modals/ToolsMenu';
+import BroadcastInputModal from './modals/BroadcastInputModal';
+import MessageInput from './modals/MessageInput';
 
 // --- Views ---
-import ClassView from './pages/Dashboard/views/ClassView';
-import BreakView from './pages/Dashboard/views/BreakView';
-import EcoView from './pages/Dashboard/views/EcoView';
-import OffHoursView from './pages/Dashboard/views/OffHoursView';
-import SpecialView from './pages/Dashboard/views/SpecialView';
-import MarqueeView from './pages/Dashboard/views/MarqueeView';
+import ClassView from './views/ClassView';
+import BreakView from './views/BreakView';
+import EcoView from './views/EcoView';
+// import OffHoursView from './views/OffHoursView'; // 已移除，由 EcoView 接管
+import SpecialView from './views/SpecialView';
+import MarqueeView from './views/MarqueeView';
 
 // --- Widgets ---
-import TimerWidget from './components/common/widgets/TimerWidget';
-import LotteryWidget from './components/common/widgets/LotteryWidget';
-import SoundBoard from './components/common/widgets/SoundBoard';
-import WeatherWidget from './pages/Dashboard/components/WeatherWidget';
-
-const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
+import TimerWidget from '../../components/common/widgets/TimerWidget';
+import LotteryWidget from '../../components/common/widgets/LotteryWidget';
+import SoundBoard from '../../components/common/widgets/SoundBoard';
+import WeatherWidget from './components/WeatherWidget';
 
 const ICON_MAP = {
   Megaphone, Users, BookOpen, Eye, Bell, MessageSquare, 
   Star, Heart, AlertTriangle, Info, Zap
 };
 
-// --- 效能優化包裝 (Memoized Components) ---
-// 1. 天氣小工具：只有 weatherConfig 改變時才重繪 (不用每秒重繪)
+// --- Memoized Components ---
 const MemoizedWeatherWidget = React.memo(WeatherWidget);
-// 2. 控制列：只有 statusMode 或 visibleButtons 改變時才重繪
 const MemoizedControlDock = React.memo(ControlDock);
-// 3. 側邊欄：雖然它需要顯示時間線，但不需要 "每秒" 更新，可以優化
-// (注意：如果你側邊欄有紅線要每秒跑，就不適合 Memo，或者要自訂比較邏輯)
 const MemoizedTimelineSidebar = React.memo(TimelineSidebar);
-// 4. 設定視窗：隱藏時完全不該消耗效能，開啟時也不該受時間影響
 const MemoizedSettingsModal = React.memo(SettingsModal);
-// 5. 跑馬燈：只有訊息改變時才重繪
 const MemoizedMarqueeView = React.memo(MarqueeView);
 
 // --- 主應用組件 ---
-const DashboardContent = ({ theme, cycleTheme}) => {
-  // --- Persistence States (一行搞定讀取 + 自動存檔) ---
+const Dashboard = ({ theme, cycleTheme}) => {
+  // --- Persistence States ---
   const { isGlobalZhuyin } = useOS();
   const { classes, currentClassId, currentClass } = useClassroomContext();
   const [timeSlots, setTimeSlots] = usePersistentState('timeSlots', STANDARD_TIME_SLOTS);
@@ -73,11 +69,9 @@ const DashboardContent = ({ theme, cycleTheme}) => {
       ...SYSTEM_BUTTONS_CONFIG.singles.map(b => b.id), 
       ...SYSTEM_BUTTONS_CONFIG.groups.flatMap(g => g.items.map(b => b.id))
   ]);
-
-  // 天氣設定
   const [weatherConfig, setWeatherConfig] = usePersistentState('weatherConfig', DEFAULT_WEATHER_CONFIG);
 
-  // UI States
+  // --- UI States ---
   const [teacherMessage, setTeacherMessage] = usePersistentState('teacherMessage', '');
   const [isEditingMessage, setIsEditingMessage] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -87,19 +81,18 @@ const DashboardContent = ({ theme, cycleTheme}) => {
   const [showSidebar, setShowSidebar] = usePersistentState('showSidebar', true);
   const [isSystemSoundEnabled, setIsSystemSoundEnabled] = usePersistentState('isSystemSoundEnabled', false);
   
-  // Logic States
+  // --- Logic States ---
   const [specialStatus, setSpecialStatus] = useState(null);
   const [isManualEco, setIsManualEco] = useState(false); 
   const [isAutoEcoOverride, setIsAutoEcoOverride] = useState(false);
   const [dismissedNap, setDismissedNap] = useState(false);
   
-
   // Widget States
   const [toolsState, setToolsState] = useState({ timer: false, lottery: false, sound: false });
   
-	const { 
+  const { 
     now, statusMode, currentSlot, nextSlot, progress, secondsRemaining, activeTimeSlots 
-	} = useClassroomTimer({
+  } = useClassroomTimer({
     timeSlots,
     dayTypes,
     specialStatus,
@@ -108,32 +101,53 @@ const DashboardContent = ({ theme, cycleTheme}) => {
     timeOffset
   });
 
-	const uiKeyGuard = useMemo(() => ({
-	  isEditingMessage,
-	  showSettings,
-	  showBroadcastInput,
-	}), [isEditingMessage, showSettings, showBroadcastInput]);
-	
-	// 統一的關閉邏輯 (ESC Handler)
-	const handleCloseAll = useCallback(() => {
-	  setShowSettings(false);
-	  setShowTools(false);
-	  setShowBroadcastInput(false);
-	  setSpecialStatus(null);
-	  setIsEditingMessage(false);
+  // --- View Logic: Determine Active View ---
+  // 判斷是否為放學時間 (statusMode 為 off-hours 或 slot 為 after)
+  const isOffHours = useMemo(() => {
+    return statusMode === 'off-hours' || currentSlot?.id === 'after';
+  }, [statusMode, currentSlot]);
 
-	  if (statusMode === 'break' && !dismissedNap) setDismissedNap(true);
-	}, [statusMode, dismissedNap]);
+  // 決定目前顯示哪個 View
+  // 優先級: 手動省電 > 放學自動省電 > 一般狀態
+  const activeView = useMemo(() => {
+      if (isManualEco) return 'eco-manual';
+      if (isOffHours) return 'eco-auto';
+      return statusMode; // 'class', 'break', 'pre-bell', 'special'
+  }, [isManualEco, isOffHours, statusMode]);
 
-	// --- Side Effects Hook (處理語音、全螢幕、快捷鍵) ---
-	const tts = useTTS();
-	const { isFullscreen, toggleFullScreen } = useDashboardEvents({
-	  specialStatus,
-	  isSystemSoundEnabled,
-	  uiState: uiKeyGuard,
-	  onCloseUI: handleCloseAll,
-	  tts
-	});
+  // EcoView 背景點擊處理 (退出邏輯)
+  const handleEcoBackgroundClick = useCallback(() => {
+      // 只有手動進入的省電模式，點擊背景才允許退出
+      if (activeView === 'eco-manual') {
+          setIsManualEco(false);
+      }
+      // eco-auto (放學) 點擊背景不執行退出，只會觸發 EcoView 內部的 UI 喚醒
+  }, [activeView]);
+
+  const uiKeyGuard = useMemo(() => ({
+    isEditingMessage,
+    showSettings,
+    showBroadcastInput,
+  }), [isEditingMessage, showSettings, showBroadcastInput]);
+  
+  // 統一關閉邏輯
+  const handleCloseAll = useCallback(() => {
+    setShowSettings(false);
+    setShowTools(false);
+    setShowBroadcastInput(false);
+    setSpecialStatus(null);
+    setIsEditingMessage(false);
+    if (statusMode === 'break' && !dismissedNap) setDismissedNap(true);
+  }, [statusMode, dismissedNap]);
+
+  const tts = useTTS();
+  const { isFullscreen, toggleFullScreen } = useDashboardEvents({
+    specialStatus,
+    isSystemSoundEnabled,
+    uiState: uiKeyGuard,
+    onCloseUI: handleCloseAll,
+    tts
+  });
 
   // Helpers
   const isNapTime = currentSlot?.name.includes('午休') || currentSlot?.id === 'nap';
@@ -156,92 +170,103 @@ const DashboardContent = ({ theme, cycleTheme}) => {
 
   const toggleTool = (tool, isOpen) => setToolsState(prev => ({ ...prev, [tool]: isOpen }));
   
-	const handleBroadcastConfirm = useCallback((title, sub, options) => {
-	  const IconComponent = options.icon && typeof options.icon === 'string' 
-		  ? (ICON_MAP[options.icon] || Megaphone) 
-		  : Megaphone;
+  const handleBroadcastConfirm = useCallback((title, sub, options) => {
+    const IconComponent = options.icon && typeof options.icon === 'string' 
+      ? (ICON_MAP[options.icon] || Megaphone) 
+      : Megaphone;
 
-	  setSpecialStatus({ 
-		  message: title, 
-		  sub: sub, 
-		  color: options.color || 'from-pink-500 to-rose-500', 
-		  type: 'input', 
-		  id: Date.now(), 
-		  icon: IconComponent, 
-		  mode: options.mode,
-		  showZhuyin: options.showZhuyin,
-		  enableTTS: options.enableTTS ?? true,
-	  });
-	}, []);
+    setSpecialStatus({ 
+      message: title, 
+      sub: sub, 
+      color: options.color || 'from-pink-500 to-rose-500', 
+      type: 'input', 
+      id: Date.now(), 
+      icon: IconComponent, 
+      mode: options.mode,
+      showZhuyin: options.showZhuyin,
+      enableTTS: options.enableTTS ?? true,
+    });
+  }, []);
 
-	const onCustomBroadcast = useCallback((preset) => {
-		handleBroadcastConfirm(preset.title, preset.sub, { 
-			mode: preset.mode, 
-			enableTTS: preset.enableTTS,
-			color: preset.color, // ✅ 這裡一定要傳，不然點快捷鍵會變回預設粉紅色
-			icon: preset.icon ,   // ✅ 這裡也要傳
-			showZhuyin: preset.showZhuyin
-		});
-	  },  [handleBroadcastConfirm]); // 確保依賴項正確
+  const onCustomBroadcast = useCallback((preset) => {
+    handleBroadcastConfirm(preset.title, preset.sub, { 
+      mode: preset.mode, 
+      enableTTS: preset.enableTTS,
+      color: preset.color, 
+      icon: preset.icon , 
+      showZhuyin: preset.showZhuyin
+    });
+  }, [handleBroadcastConfirm]);
 
-	const handleBroadcastClick = useCallback(() => setShowBroadcastInput(true), []);
-	  
-	  const handleToggleSidebar = useCallback(() => {
-		setShowSidebar(prev => !prev);
-	  }, [setShowSidebar]);
+  const handleBroadcastClick = useCallback(() => setShowBroadcastInput(true), []);
+  const handleToggleSidebar = useCallback(() => setShowSidebar(prev => !prev), []);
+  const handleToggleSystemSound = useCallback(() => setIsSystemSoundEnabled(prev => !prev), []);
 
-	  const handleToggleSystemSound = useCallback(() => {
-		setIsSystemSoundEnabled(prev => !prev);
-	  }, [setIsSystemSoundEnabled]);
+  const todayAttendance = useMemo(() => {
+    if (!currentClass?.attendanceRecords) return {};
+    const today = new Date().toLocaleDateString('en-CA'); 
+    return currentClass.attendanceRecords[today] || {};
+  }, [currentClass?.attendanceRecords]);
 
-	  const todayAttendance = useMemo(() => {
-		if (!currentClass?.attendanceRecords) return {};
-	  const today = new Date().toLocaleDateString('en-CA'); 
-		return currentClass.attendanceRecords[today] || {};
-	  }, [currentClass?.attendanceRecords]);
-
-	const closeSettings = useCallback(() => setShowSettings(false), []);
-	const closeTools = useCallback(() => setShowTools(false), []);
-	const closeBroadcastInput = useCallback(() => setShowBroadcastInput(false), []);
-	const closeMessageInput = useCallback(() => setIsEditingMessage(false), []);
-	const prevStatusModeRef = useRef(statusMode);
-    
-    useEffect(() => {
-      // 偵測「從非上課 (例如 break 倒數結束) 變成上課 (class)」的打鐘瞬間
-      if (prevStatusModeRef.current !== 'class' && statusMode === 'class') {
-        // 如果畫面上剛好有跑馬燈，就自動銷毀它並停止語音
-        if (specialStatus?.mode === 'marquee') {
-          setSpecialStatus(null);
-          tts.cancel();
-        }
+  const closeSettings = useCallback(() => setShowSettings(false), []);
+  const closeTools = useCallback(() => setShowTools(false), []);
+  const closeBroadcastInput = useCallback(() => setShowBroadcastInput(false), []);
+  const closeMessageInput = useCallback(() => setIsEditingMessage(false), []);
+  
+  const prevStatusModeRef = useRef(statusMode);
+  useEffect(() => {
+    if (prevStatusModeRef.current !== 'class' && statusMode === 'class') {
+      if (specialStatus?.mode === 'marquee') {
+        setSpecialStatus(null);
+        tts.cancel();
       }
-      // 更新前一次的狀態紀錄
-      prevStatusModeRef.current = statusMode;
-    }, [statusMode, specialStatus, tts]);
+    }
+    prevStatusModeRef.current = statusMode;
+  }, [statusMode, specialStatus, tts]);
 
-  // --- Render ---
+  // 渲染 Dock 的共用函數 (減少重複代碼)
+  const renderDock = (isGhost = false) => (
+    <MemoizedControlDock 
+      statusMode={statusMode} 
+      setSpecialStatus={setSpecialStatus} 
+      setIsManualEco={setIsManualEco} 
+      isFullscreen={isFullscreen} 
+      toggleFullScreen={toggleFullScreen} 
+      setShowSettings={setShowSettings} 
+      isAutoNapActive={isAutoNapActive} 
+      onBroadcastClick={handleBroadcastClick}
+      visibleButtons={visibleButtons} 
+      setShowTools={setShowTools}
+      theme={theme}
+      cycleTheme={cycleTheme}
+      showSidebar={showSidebar}
+      toggleSidebar={handleToggleSidebar}
+      isSystemSoundEnabled={isSystemSoundEnabled}
+      toggleSystemSound={handleToggleSystemSound}
+      customPresets={customPresets}
+      onCustomBroadcast={onCustomBroadcast}
+      // 新增：Ghost Mode 參數
+      ghostMode={isGhost}
+      onToggleEco={() => setIsManualEco(false)} // 傳入退出函數
+    />
+  );
+
   return (
     <div className={`flex w-full h-full overflow-hidden font-sans ${UI_THEME.BACKGROUND} ${UI_THEME.TEXT_PRIMARY} selection:bg-indigo-200 dark:selection:bg-indigo-900`}>
       <style>{`.no-scrollbar::-webkit-scrollbar { display: none; } .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }`}</style>
 
-      {/* 天氣小工具 */}
-	  {weatherConfig.enabled && statusMode !== 'eco' && statusMode !== 'special' && statusMode !== 'off-hours' && (
-		<div className={`absolute top-5 right-8 z-30`}>
-            <ErrorBoundary 
-              fallback={
-                <div className="bg-white/80 backdrop-blur px-3 py-2 rounded-xl text-xs font-bold text-slate-500 border border-slate-200 shadow-sm">
-                   天氣資訊無法載入
-                </div>
-              }
-            >
+      {/* 天氣小工具 (非 Eco/Off-hours/Special 模式下顯示) */}
+      {weatherConfig.enabled && !activeView.startsWith('eco') && activeView !== 'special' && (
+        <div className={`absolute top-5 right-8 z-30`}>
+            <ErrorBoundary fallback={<div className="text-xs text-slate-500">Weather Error</div>}>
                 <MemoizedWeatherWidget weatherConfig={weatherConfig} />
             </ErrorBoundary>
          </div>
       )}
 
-      {/* 側邊欄 */}
-      {showSidebar && statusMode !== 'eco' && statusMode !== 'off-hours' && (
-		<ErrorBoundary>
+      {/* 側邊欄 (非 Eco/Off-hours 模式下顯示) */}
+      {showSidebar && !activeView.startsWith('eco') && (
+        <ErrorBoundary>
             <MemoizedTimelineSidebar 
               now={now} schedule={schedule} activeTimeSlots={activeTimeSlots}
               currentSlot={currentSlot} nextSlot={nextSlot} 
@@ -256,7 +281,7 @@ const DashboardContent = ({ theme, cycleTheme}) => {
         
         {/* 跑馬燈廣播 */}
         {specialStatus?.mode === 'marquee' && (
-			<ErrorBoundary>
+           <ErrorBoundary>
                <MemoizedMarqueeView 
                   message={specialStatus.message} 
                   sub={specialStatus.sub} 
@@ -271,72 +296,61 @@ const DashboardContent = ({ theme, cycleTheme}) => {
            </ErrorBoundary>
         )}
                 
-        {/* 各種視圖 */}
-        {(statusMode === 'break' || statusMode === 'pre-bell') && (
+        {/* --- Views 切換 --- */}
+
+        {/* 1. 下課/預備鐘 */}
+        {(activeView === 'break' || activeView === 'pre-bell') && (
           <BreakView 
             statusMode={statusMode} currentSlot={currentSlot} now={now} is24Hour={is24Hour}
             progress={progress} secondsRemaining={secondsRemaining}
             nextSubjectName={getNextSubjectName()} systemHint={getSystemHint()}
             teacherMessage={teacherMessage} setIsEditingMessage={setIsEditingMessage}
             dismissedNap={dismissedNap} setDismissedNap={setDismissedNap}
-			isGlobalZhuyin={isGlobalZhuyin}
+            isGlobalZhuyin={isGlobalZhuyin}
           />
         )}
         
-		{statusMode === 'class' && (
+        {/* 2. 上課 */}
+        {activeView === 'class' && (
             <ClassView 
                 schedule={schedule} 
                 now={now} 
                 currentSlot={currentSlot} 
-                isGlobalZhuyin={isGlobalZhuyin} // ✅ 補上這行
+                isGlobalZhuyin={isGlobalZhuyin}
             />
         )}
         
-        {statusMode === 'eco' && (
+        {/* 3. Eco / 放學 (整合) */}
+        {(activeView === 'eco-manual' || activeView === 'eco-auto') && (
           <EcoView 
             now={now} schedule={schedule} currentSlot={currentSlot} is24Hour={is24Hour}
-            onWake={() => { setIsManualEco(false); setIsAutoEcoOverride(true); }}
-			weatherConfig={weatherConfig}
+            // 點擊背景的行為：手動模式退出，自動模式不動作(僅喚醒UI)
+            onBackgroundClick={handleEcoBackgroundClick}
+            // 點擊UI喚醒回調 (通常是為了確保從睡眠回來重置狀態)
+            onWake={() => { if(activeView === 'eco-manual') setIsAutoEcoOverride(true); }}
+            weatherConfig={weatherConfig}
+            // 傳入幽靈模式的 Dock
+            controlDock={renderDock(true)}
           />
         )}
         
-        {statusMode === 'off-hours' && <OffHoursView now={now} is24Hour={is24Hour} weatherConfig={weatherConfig}/>}
-        
-        {/* 全螢幕廣播 */}
-		{statusMode === 'special' && specialStatus?.mode !== 'marquee' && (
+        {/* 4. 全螢幕廣播 */}
+        {activeView === 'special' && specialStatus?.mode !== 'marquee' && (
           <SpecialView 
             specialStatus={specialStatus} onClose={() => setSpecialStatus(null)}
             now={now} is24Hour={is24Hour} subjectHints={subjectHints}
             isSystemSoundEnabled={isSystemSoundEnabled}
-            isGlobalZhuyin={isGlobalZhuyin} // ✅ 補上這行
+            isGlobalZhuyin={isGlobalZhuyin}
           />
         )}
 
-        {/* 控制列 */}
-		<MemoizedControlDock 
-            statusMode={statusMode} 
-            setSpecialStatus={setSpecialStatus} 
-            setIsManualEco={setIsManualEco} 
-            isFullscreen={isFullscreen} 
-            toggleFullScreen={toggleFullScreen} 
-            setShowSettings={setShowSettings} 
-            isAutoNapActive={isAutoNapActive} 
-            onBroadcastClick={handleBroadcastClick} // ✅ 使用穩定的函式
-            visibleButtons={visibleButtons} 
-            setShowTools={setShowTools}
-            theme={theme}
-            cycleTheme={cycleTheme}
-            showSidebar={showSidebar}
-            toggleSidebar={handleToggleSidebar} // ✅ 使用穩定的函式
-            isSystemSoundEnabled={isSystemSoundEnabled}
-            toggleSystemSound={handleToggleSystemSound} // ✅ 使用穩定的函式
-            customPresets={customPresets}
-            onCustomBroadcast={onCustomBroadcast} // ✅ 使用穩定的函式
-        />
+        {/* 一般模式下的 ControlDock (懸浮於底部) */}
+        {!activeView.startsWith('eco') && activeView !== 'special' && renderDock(false)}
+
       </div>
 
       
-      {/* 彈出視窗 */}
+      {/* --- Modals & Overlays --- */}
       <MemoizedSettingsModal 
         isOpen={showSettings} onClose={closeSettings} 
         timeSlots={timeSlots} setTimeSlots={setTimeSlots} 
@@ -348,11 +362,9 @@ const DashboardContent = ({ theme, cycleTheme}) => {
         is24Hour={is24Hour} setIs24Hour={setIs24Hour} 
         visibleButtons={visibleButtons} setVisibleButtons={setVisibleButtons}
         systemButtonsConfig={SYSTEM_BUTTONS_CONFIG}
-        weatherConfig={weatherConfig}
-        setWeatherConfig={setWeatherConfig}
-		setCustomPresets={setCustomPresets}
-		customPresets={customPresets}
-		now={showSettings ? now : null}
+        weatherConfig={weatherConfig} setWeatherConfig={setWeatherConfig}
+        setCustomPresets={setCustomPresets} customPresets={customPresets}
+        now={showSettings ? now : null}
         defaultValues={{
            TIME_SLOTS: STANDARD_TIME_SLOTS,
            SCHEDULE: DEFAULT_SCHEDULE,
@@ -366,7 +378,7 @@ const DashboardContent = ({ theme, cycleTheme}) => {
          onOpenTool={(tool) => toggleTool(tool, true)}
       />
 
-		<ErrorBoundary>
+      <ErrorBoundary>
           <TimerWidget isOpen={toolsState.timer} onClose={() => toggleTool('timer', false)} />
       </ErrorBoundary>
       
@@ -375,14 +387,11 @@ const DashboardContent = ({ theme, cycleTheme}) => {
       </ErrorBoundary>
       
       <ErrorBoundary>
-		<LotteryWidget 
+        <LotteryWidget 
             isOpen={toolsState.lottery} 
             onClose={() => toggleTool('lottery', false)} 
-            // ✅ 改為傳入完整班級列表與當前 ID
             classes={classes}
             defaultClassId={currentClassId}            
-            // ⚠️ 注意：attendanceStatus 目前僅支援 ClassView 裡的即時狀態
-            // 如果你在 Dashboard 沒有用 useClassroom 來管理出席，這裡可以先傳空物件 {}
             attendanceStatus={todayAttendance} 
           />
       </ErrorBoundary>
@@ -399,4 +408,4 @@ const DashboardContent = ({ theme, cycleTheme}) => {
   );
 };
 
-export default DashboardContent
+export default Dashboard;

@@ -94,7 +94,7 @@ export const useExamCloud = ({
   }, [shareId]);
 
   // 🌟 2. 老師端：處理考卷包派送
-  const handlePackageShare = async (fullExams) => {
+  const handlePackageShare = async (fullExams, displayTitle, cloudFileName) => {
     if (!user) {
       login();
       return;
@@ -112,16 +112,20 @@ export const useExamCloud = ({
         type: 'exam_package',
         version: '4.0',
         timestamp: new Date().toISOString(),
-        packageTitle: `${new Date().toLocaleDateString()} 派送考卷包`,
+        packageTitle: displayTitle, // 🌟 使用傳入的標題 (單份名稱 或 派送包名稱)
         exams: fullExams,
         customDict: parsedDict 
       };
 
-      const newShareId = await shareExamToCloud(user.accessToken, packagePayload, packagePayload.packageTitle);
+      // 🌟 呼叫 Service 時，傳入計算好的 cloudFileName
+      const newShareId = await shareExamToCloud(user.accessToken, packagePayload, cloudFileName);
       
-      setShareModalData({ isOpen: true, shareId: newShareId, title: packagePayload.packageTitle });
+      // 🌟 更新 QR Code 彈窗的標題
+      setShareModalData({ isOpen: true, shareId: newShareId, title: displayTitle });
     } catch (error) {
       console.error("打包派送失敗:", error);
+      
+      // 🌟 關鍵修正：確保這裡能捕捉 TokenExpired 並彈出對話框
       if (error.message === 'TokenExpired') {
         setAlertDialog({
           isOpen: true,
@@ -132,7 +136,7 @@ export const useExamCloud = ({
           confirmText: '重新登入',
           onConfirm: () => {
             setAlertDialog(prev => ({ ...prev, isOpen: false }));
-            setTimeout(() => login(), 100); 
+            setTimeout(() => login(), 100); // 呼叫登入
           }
         });
       } else {
