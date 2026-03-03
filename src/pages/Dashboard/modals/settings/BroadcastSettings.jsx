@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Megaphone, Plus, Trash2, Edit3, Save } from 'lucide-react';
-import { UI_THEME } from '../../../../utils/constants';
+import { UI_THEME } from '../../../../constants';
 import SettingsSection from './SettingsSection';
 
 const BroadcastSettings = ({ 

@@ -8,18 +8,43 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
-  // 1. 初始化：網頁載入時檢查 localStorage 是否已有 Token
+  // 1. 初始化：網頁載入時檢查 localStorage 是否已有 Token 並驗證是否過期
   useEffect(() => {
-    const token = localStorage.getItem('google_access_token');
-    const profile = localStorage.getItem('google_user_profile');
-    
-    if (token) {
-      setUser({
-        accessToken: token,
-        profileObj: profile ? JSON.parse(profile) : null
-      });
-    }
-    setIsAuthLoading(false);
+    const checkTokenValidity = async () => {
+      const token = localStorage.getItem('google_access_token');
+      const profile = localStorage.getItem('google_user_profile');
+
+      if (token) {
+        try {
+          // 呼叫 Google TokenInfo API 驗證 Token 是否有效
+          const res = await fetch(`https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${token}`);
+
+          if (!res.ok) {
+            // Token 已過期或無效，清除本地紀錄，強制跳轉重新登入
+            console.warn('Google 登入權杖已過期或無效，已清除本地登入狀態。');
+            localStorage.removeItem('google_access_token');
+            localStorage.removeItem('google_user_profile');
+            setUser(null);
+          } else {
+            // Token 有效，恢復使用者狀態
+            setUser({
+              accessToken: token,
+              profileObj: profile ? JSON.parse(profile) : null
+            });
+          }
+        } catch (err) {
+          // 網路斷線等問題，保守假設 Token 仍然有效
+          console.error('無法驗證 Token 有效性，預設放行:', err);
+          setUser({
+            accessToken: token,
+            profileObj: profile ? JSON.parse(profile) : null
+          });
+        }
+      }
+      setIsAuthLoading(false);
+    };
+
+    checkTokenValidity();
   }, []);
 
   // 2. 實作 Google 登入 (請求 Drive 與 Sheets 權限)
@@ -35,7 +60,7 @@ export const AuthProvider = ({ children }) => {
         });
         const profile = await res.json();
         localStorage.setItem('google_user_profile', JSON.stringify(profile));
-        
+
         // 更新狀態
         setUser({ accessToken: token, profileObj: profile });
       } catch (error) {

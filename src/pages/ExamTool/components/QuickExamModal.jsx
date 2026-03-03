@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Timer, X, Type } from 'lucide-react';
-import { UI_THEME } from '../../../utils/constants';
+import { UI_THEME } from '../../../constants';
 
 const QuickExamModal = ({ isOpen, onClose, onConfirm }) => {
   const [minutes, setMinutes] = useState(10);

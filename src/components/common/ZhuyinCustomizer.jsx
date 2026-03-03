@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Plus, Trash2, ArrowRight, Save, Search, Edit2, RotateCcw, Book } from 'lucide-react';
 import { CHAR_PRONUNCIATION_MAP, IVS_CODES } from '../../constants/charMap';
-import { UI_THEME } from '../../utils/constants';
+import { UI_THEME } from '../../constants';
 import { useOS } from '../../context/OSContext'; // 改用 useOS，因 addCustomReading 在這裡
 import ZhuyinRenderer from './ZhuyinRenderer'; // 引入渲染器
 

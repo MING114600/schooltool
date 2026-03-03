@@ -1,8 +1,8 @@
 // src/hooks/useExamManager.js
 import { useState, useEffect } from 'react';
-import { saveExam, getAllExamMetas, getExamById, deleteExam } from '../utils/examDatabase';
+import { saveExam, getAllExamMetas, getExamById, deleteExam } from '../../../services/examDatabase';
 // 🌟 1. 新增引入 applySmartTTSPostProcessing
-import { splitTextIntoSentenceChunks, applySmartTTSPostProcessing } from '../pages/ExamReader/utils/examParser';
+import { splitTextIntoSentenceChunks, applySmartTTSPostProcessing } from '../utils/examParser';
 
 const INITIAL_DATA = [
   { id: 'welcome', type: 'section', text: '歡迎使用考卷報讀助理' },
@@ -10,8 +10,8 @@ const INITIAL_DATA = [
 ];
 
 export const useExamManager = ({ onStopAudio }) => {
-  const [examList, setExamList] = useState([]);      
-  const [activeExamId, setActiveExamId] = useState(''); 
+  const [examList, setExamList] = useState([]);
+  const [activeExamId, setActiveExamId] = useState('');
   const [examItems, setExamItems] = useState(INITIAL_DATA);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -21,7 +21,7 @@ export const useExamManager = ({ onStopAudio }) => {
 
   useEffect(() => {
     loadExamList();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadExamList = async () => {
@@ -31,7 +31,7 @@ export const useExamManager = ({ onStopAudio }) => {
       if (metas.length > 0 && !activeExamId) {
         handleSelectExam(metas[0].id);
       } else if (metas.length === 0) {
-        setExamItems(INITIAL_DATA); 
+        setExamItems(INITIAL_DATA);
       }
     } catch (err) {
       console.error("讀取考卷清單失敗", err);
@@ -41,12 +41,12 @@ export const useExamManager = ({ onStopAudio }) => {
   const handleSelectExam = async (id) => {
     if (!id) return;
     try {
-      if (onStopAudio) onStopAudio(); 
+      if (onStopAudio) onStopAudio();
       const fullExam = await getExamById(id);
       if (fullExam) {
         setActiveExamId(id);
         setExamItems(fullExam.items);
-        setCurrentIndex(0); 
+        setCurrentIndex(0);
       }
     } catch (err) {
       console.error("切換考卷失敗", err);
@@ -59,18 +59,18 @@ export const useExamManager = ({ onStopAudio }) => {
   };
 
   const executeDeleteExam = async () => {
-    const examIdToDelete = activeExamId; 
+    const examIdToDelete = activeExamId;
     if (!examIdToDelete) {
       setDeleteExamError('目前沒有可刪除的考卷。');
       return;
     }
-    if (isDeletingExam) return; 
+    if (isDeletingExam) return;
 
     setIsDeletingExam(true);
     setDeleteExamError('');
 
     try {
-      if (onStopAudio) onStopAudio(); 
+      if (onStopAudio) onStopAudio();
       await deleteExam(examIdToDelete);
 
       const metas = await getAllExamMetas();
@@ -82,7 +82,7 @@ export const useExamManager = ({ onStopAudio }) => {
         setActiveExamId('');
         setExamItems(INITIAL_DATA);
       }
-      setIsClearModalOpen(false); 
+      setIsClearModalOpen(false);
     } catch (err) {
       console.error('刪除失敗', err);
       setDeleteExamError('刪除失敗，請稍後再試。');
@@ -109,11 +109,11 @@ export const useExamManager = ({ onStopAudio }) => {
       console.error(err);
     }
   };
-  
+
   // 🌟 新增：更新指定考卷的科目標籤
   const handleUpdateExamSubject = async (examId, newSubject) => {
     // 1. 更新記憶體中的考卷清單狀態
-    setExamList(prevList => prevList.map(exam => 
+    setExamList(prevList => prevList.map(exam =>
       exam.id === examId ? { ...exam, subject: newSubject } : exam
     ));
 
@@ -171,7 +171,7 @@ export const useExamManager = ({ onStopAudio }) => {
       return newData;
     });
   };
-  
+
   // 🌟 新增：快速更新單一題目的純文字與語音文字，改寫更新題目邏輯，讓它不僅更新 text，也同步重組 chunks
   const handleUpdateItemText = async (itemId, newText) => {
     setExamItems(prevItems => {
@@ -217,7 +217,7 @@ export const useExamManager = ({ onStopAudio }) => {
                   tableSpokenText += '\n';
                 });
                 tableSpokenText += '表格結束。\n';
-                
+
                 // 舊版字串相容
                 updatedSpokenText += tableSpokenText;
 
@@ -272,7 +272,7 @@ export const useExamManager = ({ onStopAudio }) => {
     executeDeleteExam,
     handleImportSuccess,
     handleMoveMedia,
-    handleUpdateItemText,	
+    handleUpdateItemText,
     handleUpdateExamSubject
   };
 };

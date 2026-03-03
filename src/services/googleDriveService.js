@@ -10,7 +10,7 @@ const ROOT_FOLDER_NAME = '智慧教室儀表板';
 const EXAM_FOLDER_NAME = '考卷派送檔';
 const CASELOG_FOLDER_NAME = '個案日誌檔'; // 🌟 新增個案日誌資料夾
 const CASELOG_ATTACHMENTS_FOLDER_NAME = '個案日誌附件檔'; // 🌟 新增：專門存放上傳照片的資料夾
-const BACKUP_FILE_NAME = '智慧教室儀表板設定檔.json'; 
+const BACKUP_FILE_NAME = '智慧教室儀表板設定檔.json';
 
 /**
  * 輔助函式：檢查 Token 是否過期或 API 異常
@@ -94,10 +94,10 @@ export const syncToCloud = async (token, fileName, jsonData) => {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 
-          name: BACKUP_FILE_NAME, 
+        body: JSON.stringify({
+          name: BACKUP_FILE_NAME,
           mimeType: 'application/json',
-          parents: [rootFolderId] 
+          parents: [rootFolderId]
         })
       });
       await checkResponse(createRes);
@@ -113,7 +113,7 @@ export const syncToCloud = async (token, fileName, jsonData) => {
       body: JSON.stringify(jsonData)
     });
     await checkResponse(uploadRes);
-    
+
     return true;
   } catch (error) {
     console.error('雲端同步失敗:', error);
@@ -142,7 +142,7 @@ export const shareExamToCloud = async (token, examData, customFileName) => {
   try {
     const rootId = await getOrCreateFolder(token, ROOT_FOLDER_NAME);
     const examFolderId = await getOrCreateFolder(token, EXAM_FOLDER_NAME, rootId);
-    
+
     // 🌟 1. 終極防呆命名邏輯：從各種可能的位置提取標題
     let baseName = '未命名考卷';
     if (customFileName) {
@@ -164,7 +164,7 @@ export const shareExamToCloud = async (token, examData, customFileName) => {
     const hh = String(now.getHours()).padStart(2, '0');
     const min = String(now.getMinutes()).padStart(2, '0');
     const timeString = `${yyyy}${mm}${dd}_${hh}${min}`; // 產生如 20240315_0930 的字串
-	
+
     const finalFileName = `${baseName}_${timeString}.json`;
 
     const createRes = await fetch(DRIVE_API, {
@@ -173,7 +173,7 @@ export const shareExamToCloud = async (token, examData, customFileName) => {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         name: finalFileName,
         mimeType: 'application/json',
         parents: [examFolderId]
@@ -202,7 +202,7 @@ export const shareExamToCloud = async (token, examData, customFileName) => {
     });
     await checkResponse(permRes);
 
-    return file.id; 
+    return file.id;
   } catch (error) {
     console.error('派送考卷失敗:', error);
     throw error;
@@ -283,7 +283,7 @@ export const createCaseLogSheet = async (token, studentName) => {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         name: `[日誌] ${studentName}`,
         mimeType: 'application/vnd.google-apps.spreadsheet',
         parents: [caseLogFolderId]
@@ -382,28 +382,29 @@ export const fetchCaseLogData = async (token, spreadsheetId) => {
         console.log(`[Drive API] 檔案 ${spreadsheetId} 已被移至垃圾桶，拒絕讀取。`);
         throw new Error('FILE_MISSING_OR_TRASHED');
       }
-    } else if (driveRes.status === 404) {
-      // 如果 Drive API 說找不到 (代表已經從垃圾桶永久刪除了)
-      throw new Error('FILE_MISSING_OR_TRASHED');
+    } else if (driveRes.status === 404 || driveRes.status === 403) {
+      // ⚠️ 修改：如果是 404 或 403，有可能是因為它是「共編檔案」且我們只有 drive.file 權限
+      // 這時候不要馬上報錯，我們「放行」直接去試試看 Sheets API 能不能讀出內容！
+      console.warn(`[Drive API] 無法確認 ${spreadsheetId} 狀態，將直接嘗試使用 Sheets API 讀取。`);
     }
 
     // 🌟 2. 檔案狀態正常 (不在垃圾桶)，才繼續呼叫 Sheets API 讀取內容
     const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A2:G`, {
       headers: { Authorization: `Bearer ${token}` }
     });
-    
+
     // 🌟 新增：第二道防線，精準捕捉 Token 過期
     if (response.status === 401) {
       throw new Error('TokenExpired');
     }
-    
+
     if (!response.ok) {
       if (response.status === 404 || response.status === 403 || response.status === 400) {
         throw new Error('FILE_MISSING_OR_TRASHED');
       }
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     const data = await response.json();
     return data.values || [];
   } catch (error) {
@@ -434,7 +435,7 @@ export const shareSheetWithParent = async (token, spreadsheetId) => {
     });
     await checkResponse(fileRes);
     const fileData = await fileRes.json();
-    
+
     return fileData.webViewLink;
   } catch (error) {
     console.error('設定分享權限失敗:', error);
@@ -452,7 +453,7 @@ export const fetchPublicCaseLog = async (spreadsheetId, apiKey) => {
     const metaRes = await fetch(`${SHEETS_API}/${spreadsheetId}?key=${apiKey}`);
     if (!metaRes.ok) throw new Error('無法讀取，可能是權限未開放或網址有誤');
     const metaData = await metaRes.json();
-    
+
     // 移除我們建立檔案時加上的 "[日誌] " 前綴
     const studentName = metaData.properties.title.replace('[日誌] ', '');
 
@@ -473,6 +474,106 @@ export const fetchPublicCaseLog = async (spreadsheetId, apiKey) => {
 
 // src/utils/googleDriveService.js
 
+/**
+ * 🌟 新增：與其他老師共編 (給予特定 Email 編輯權限)
+ */
+export const shareSheetWithEmail = async (token, sheetId, email) => {
+  try {
+    const res = await fetch(`${DRIVE_API}/${sheetId}/permissions`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        role: 'writer',
+        type: 'user',
+        emailAddress: email
+      })
+    });
+
+    // 如果對方信箱不存在或無法授予權限，會拋出錯誤由外層接住
+    await checkResponse(res);
+    return true;
+  } catch (error) {
+    console.error(`分享給 ${email} 失敗:`, error);
+    throw error;
+  }
+};
+
+/**
+ * 🌟 新增：取得檔案目前的共用權限清單 (用來顯示已經分享給誰)
+ */
+export const getSharedPermissions = async (token, fileId) => {
+  const url = `${DRIVE_API}/${fileId}/permissions?fields=permissions(id,type,emailAddress,role)`;
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  await checkResponse(res);
+  const data = await res.json();
+  // 只回傳有 email 的 (使用者或群組)
+  return data.permissions?.filter(p => p.emailAddress) || [];
+};
+
+/**
+ * 🌟 新增：撤銷特定使用者的共用權限
+ * @param {string} token - Google Access Token
+ * @param {string} fileId - 試算表 ID
+ * @param {string} permissionId - 要撤銷的權限 ID (由 getSharedPermissions 取得)
+ */
+export const removeSharedPermission = async (token, fileId, permissionId) => {
+  try {
+    const res = await fetch(`${DRIVE_API}/${fileId}/permissions/${permissionId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (res.status !== 204) await checkResponse(res);
+    return true;
+  } catch (error) {
+    console.error(`撤銷權限失敗 (permissionId: ${permissionId}):`, error);
+    throw error;
+  }
+};
+
+/**
+ * 🌟 新增：取得試算表的基本資訊 (主要用於 B 老師匯入時，確認檔案存在並取得檔名)
+ */
+export const getSpreadsheetInfo = async (token, sheetId) => {
+  try {
+    // 因為使用者可能只有 drive.file 權限而沒有 spreadsheets 權限，
+    // 對於別人分享來的檔案，Drive API 可能回報 404 (如果還沒加到我的雲端硬碟)
+    // 我們直接嘗試用 Sheets API 去讀取 metadata。
+    // 在很多情況下，只要有編輯權限，即使用了 drive.file token 還是可以讀到基礎資訊。
+    const res = await fetch(`${SHEETS_API}/${sheetId}?fields=properties.title,spreadsheetUrl`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    // 如果連 Sheets API 都被擋，就拋出
+    await checkResponse(res);
+    const data = await res.json();
+    return {
+      id: sheetId,
+      name: data.properties.title,
+      webViewLink: data.spreadsheetUrl || `https://docs.google.com/spreadsheets/d/${sheetId}`
+    };
+  } catch (error) {
+    if (error.message.includes('404') || error.message.includes('403')) {
+      // 💡 終極退路：如果真的抓不到 metadata，但使用者確定有網址，我們可以直接回傳一個「未知名稱」的結構，
+      // 讓系統強行綁定這個 ID 進行後續日誌讀寫。如果後續讀寫失敗，自然會在那個階段報錯。
+      console.warn('無法取得試算表資訊 (可能權限不足)，將採用強制綁定模式', error);
+      return {
+        id: sheetId,
+        name: `[日誌] 匯入學生_${sheetId.slice(-4)}`, // 給個假名稱
+        webViewLink: `https://docs.google.com/spreadsheets/d/${sheetId}`
+      };
+    }
+    console.error('無法讀取試算表資訊:', error);
+    throw error;
+  }
+};
+
+
 // 🌟 更新特定列的日誌資料
 export const updateCaseLogRow = async (token, spreadsheetId, rowIndex, rowData) => {
   const response = await fetch(`${SHEETS_API}/${spreadsheetId}/values/A${rowIndex}:G${rowIndex}?valueInputOption=USER_ENTERED`, {
@@ -483,7 +584,7 @@ export const updateCaseLogRow = async (token, spreadsheetId, rowIndex, rowData) 
     },
     body: JSON.stringify({ values: [rowData] })
   });
-  
+
   // 🌟 直接使用您寫好的攔截器
   await checkResponse(response);
   return response.json();
@@ -495,7 +596,7 @@ export const clearCaseLogRow = async (token, spreadsheetId, rowIndex) => {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${token}` }
   });
-  
+
   // 🌟 直接使用您寫好的攔截器
   await checkResponse(response);
   return response.json();
@@ -505,19 +606,26 @@ export const clearCaseLogRow = async (token, spreadsheetId, rowIndex) => {
  * 上傳實體圖片至 Google Drive 並設定為公開檢視
  * @param {string} token - Google Access Token
  * @param {File} file - 來自 input 的 File 物件
+ * @param {string} studentName - 學生姓名
+ * @param {string} sheetId - 試算表 ID
  * @returns {Promise<Object>} 包含 driveId, url 與 name 的 Metadata
  */
-export const uploadImageToDrive = async (token, file) => {
+export const uploadImageToDrive = async (token, file, studentName, sheetId) => {
   try {
-    // 1. 確保附件資料夾存在
+    // 1. 確保附檔根目錄存在
     const rootId = await getOrCreateFolder(token, ROOT_FOLDER_NAME);
-    const attachmentsFolderId = await getOrCreateFolder(token, CASELOG_ATTACHMENTS_FOLDER_NAME, rootId);
+    const attachmentsRootId = await getOrCreateFolder(token, CASELOG_ATTACHMENTS_FOLDER_NAME, rootId);
 
-    // 2. 準備 Multipart 上傳資料 (中介資料 + 檔案本體)
+    // 2. 建立專屬學生的子資料夾：[附件] 學生姓名_SheetID後6碼
+    const suffix = sheetId ? sheetId.slice(-6) : 'unknown';
+    const folderName = `[附件] ${studentName}_${suffix}`;
+    const studentFolderId = await getOrCreateFolder(token, folderName, attachmentsRootId);
+
+    // 3. 準備 Multipart 上傳資料 (中介資料 + 檔案本體)
     const metadata = {
       name: `${Date.now()}_${file.name}`,
       mimeType: file.type,
-      parents: [attachmentsFolderId]
+      parents: [studentFolderId]
     };
 
     const form = new FormData();
@@ -533,7 +641,7 @@ export const uploadImageToDrive = async (token, file) => {
       },
       body: form
     });
-    
+
     await checkResponse(uploadRes);
     const fileData = await uploadRes.json();
 
@@ -556,5 +664,42 @@ export const uploadImageToDrive = async (token, file) => {
   } catch (error) {
     console.error('圖片上傳至 Drive 失敗:', error);
     throw error;
+  }
+};
+
+/**
+ * 依據資料夾名稱與父資料夾刪除整個資料夾
+ * 主要用於刪除學生時，連同其附件資料夾一併刪除
+ */
+export const deleteCloudFolderByName = async (token, folderName, parentFolderName = CASELOG_ATTACHMENTS_FOLDER_NAME) => {
+  try {
+    // 1. 取得根目錄與附件區的 ID
+    const rootId = await getOrCreateFolder(token, ROOT_FOLDER_NAME);
+    const attachmentsFolderId = await getOrCreateFolder(token, parentFolderName, rootId);
+
+    // 2. 尋找目標資料夾
+    const q = encodeURIComponent(`name='${folderName}' and '${attachmentsFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+    const res = await fetch(`${DRIVE_API}?q=${q}&fields=files(id)`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    await checkResponse(res);
+    const data = await res.json();
+
+    // 3. 如果找到資料夾，呼叫 DELETE API
+    if (data.files && data.files.length > 0) {
+      const folderId = data.files[0].id;
+      const deleteRes = await fetch(`${DRIVE_API}/${folderId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      // 204 No Content 代表成功
+      if (deleteRes.status !== 204) await checkResponse(deleteRes);
+      return true;
+    }
+    return false; // 資料夾不存在
+  } catch (error) {
+    console.error(`刪除資料夾 ${folderName} 失敗:`, error);
+    throw error; // 視需求決定是否要拋出
   }
 };

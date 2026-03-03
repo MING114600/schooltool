@@ -1,11 +1,12 @@
 // src/utils/caseLogDatabase.js
 
 const DB_NAME = 'ClassroomOS_CaseLogDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 const STORES = {
   STUDENTS: 'students',         // 儲存學生清單與 Sheet ID
   TEMPLATES: 'templates',       // 儲存學生專屬的日誌模板 JSON
+  GLOBAL_TEMPLATES: 'global_templates', // 🌟 新增：儲存系統公版模板庫
   LOGS: 'logs',                 // 儲存近期的日誌快取 (以 studentId 為 Index)
   SYNC_QUEUE: 'sync_queue'      // 離線待同步佇列 (存放尚未寫入 Google Drive 的操作)
 };
@@ -51,6 +52,11 @@ const initDB = () => {
       // 4. 離線同步佇列 Store (Key: 系統生成的 UUID 或 Timestamp)
       if (!db.objectStoreNames.contains(STORES.SYNC_QUEUE)) {
         db.createObjectStore(STORES.SYNC_QUEUE, { keyPath: 'id' });
+      }
+
+      // 5. 公版模板庫 Store (Key: id)
+      if (!db.objectStoreNames.contains(STORES.GLOBAL_TEMPLATES)) {
+        db.createObjectStore(STORES.GLOBAL_TEMPLATES, { keyPath: 'id' });
       }
     };
   });
@@ -119,21 +125,21 @@ export const caseLogDB = {
       transaction.onerror = () => reject(transaction.error);
     });
   },
-  
+
   deleteStudent: async (studentId) => {
     const db = await initDB();
     return new Promise((resolve, reject) => {
       // 開啟多個 Store 的 Transaction，一次清乾淨
       const transaction = db.transaction([STORES.STUDENTS, STORES.TEMPLATES, STORES.LOGS], 'readwrite');
-      
+
       transaction.objectStore(STORES.STUDENTS).delete(studentId);
       transaction.objectStore(STORES.TEMPLATES).delete(studentId);
-      
+
       // 刪除該學生的所有日誌
       const logsStore = transaction.objectStore(STORES.LOGS);
       const index = logsStore.index('studentId');
       const request = index.openCursor(IDBKeyRange.only(studentId));
-      
+
       request.onsuccess = (event) => {
         const cursor = event.target.result;
         if (cursor) {
@@ -147,12 +153,26 @@ export const caseLogDB = {
     });
   },
 
-  // --- 模板管理 ---
+  // --- 客製化模板管理 ---
   getTemplate: async (studentId) => {
     const data = await getItem(STORES.TEMPLATES, studentId);
     return data ? data.blocks : [];
   },
   saveTemplate: (studentId, blocks) => putItem(STORES.TEMPLATES, { studentId, blocks, updatedAt: new Date().toISOString() }),
+
+  // --- 公版模板庫管理 ---
+  getGlobalTemplates: () => getAll(STORES.GLOBAL_TEMPLATES),
+  saveGlobalTemplate: (template) => putItem(STORES.GLOBAL_TEMPLATES, { ...template, updatedAt: new Date().toISOString() }),
+  deleteGlobalTemplate: async (templateId) => {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORES.GLOBAL_TEMPLATES, 'readwrite');
+      const store = transaction.objectStore(STORES.GLOBAL_TEMPLATES);
+      const request = store.delete(templateId);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  },
 
   // --- 日誌快取管理 ---
   getLogsByStudent: async (studentId) => {
@@ -172,14 +192,25 @@ export const caseLogDB = {
     });
   },
   saveLog: (log) => putItem(STORES.LOGS, log),
-  
+
+  deleteLog: async (logId) => {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORES.LOGS, 'readwrite');
+      const store = transaction.objectStore(STORES.LOGS);
+      const request = store.delete(logId);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  },
+
   // 批次更新特定學生的日誌快取 (通常用於從 Google Drive 載入最新資料後覆蓋本地)
   syncLogsForStudent: async (studentId, logs) => {
     const db = await initDB();
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(STORES.LOGS, 'readwrite');
       const store = transaction.objectStore(STORES.LOGS);
-      
+
       // 寫入新資料 (由於使用 put，已存在的 ID 會被覆蓋)
       logs.forEach(log => {
         if (!log.studentId) log.studentId = studentId; // 確保有關聯 ID

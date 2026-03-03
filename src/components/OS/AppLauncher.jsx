@@ -12,7 +12,7 @@ import { useModalContext } from '../../context/ModalContext';
 
 // Config
 import { APPS_CONFIG } from '../../config/apps';
-import { APP_VERSION } from '../../utils/patchNotesData';
+import { APP_VERSION } from '../../data/patchNotesData';
 
 // Common Components
 // Common Components
@@ -43,18 +43,18 @@ const LauncherHeader = ({ user, login, onLogoutClick, currentAppId }) => {
       <div className="self-end md:self-auto">
         {user ? (
           <button
-            onClick={onLogoutClick}
+            onClick={(e) => { e.stopPropagation(); onLogoutClick(); }}
             className="group flex items-center gap-3 pl-1 pr-4 py-1.5 bg-white dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-rose-200 dark:hover:border-rose-900 transition-all focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none"
           >
-            <img src={user.profileObj?.picture} alt="" className="w-10 h-10 rounded-full border border-slate-200 dark:border-slate-600" />
-            <div className="flex flex-col items-start text-left">
-              <span className="text-sm font-bold text-slate-700 dark:text-slate-200 leading-none group-hover:text-rose-500 transition-colors">
+            <img src={user.profileObj?.picture} alt="" className="w-10 h-10 rounded-full border border-slate-200 dark:border-slate-600 pointer-events-none" />
+            <div className="flex flex-col items-start text-left pointer-events-none">
+              <span className="text-sm font-bold text-slate-700 dark:text-slate-200 leading-none group-hover:text-rose-500 transition-colors pointer-events-none">
                 {user.profileObj?.name}
               </span>
-              <span className="text-[10px] text-slate-400 font-mono mt-0.5 group-hover:hidden">
+              <span className="text-[10px] text-slate-400 font-mono mt-0.5 group-hover:hidden pointer-events-none">
                 {user.profileObj?.email?.split('@')[0]}
               </span>
-              <span className="text-[10px] text-rose-500 font-bold mt-0.5 hidden group-hover:block animate-in slide-in-from-bottom-1">
+              <span className="text-[10px] text-rose-500 font-bold mt-0.5 hidden group-hover:block animate-in slide-in-from-bottom-1 pointer-events-none">
                 點擊登出
               </span>
             </div>

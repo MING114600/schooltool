@@ -3,7 +3,7 @@ import {
   Cloud, CloudRain, Sun, CloudLightning, Snowflake, CloudFog, 
   MapPin, Umbrella, SunDim 
 } from 'lucide-react';
-import { UI_THEME } from '../../../utils/constants';
+import { UI_THEME } from '../../../constants';
 
 // 天氣代碼轉換圖示 (保持不變)
 const getWeatherIcon = (code) => {

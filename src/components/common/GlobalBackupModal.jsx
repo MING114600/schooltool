@@ -9,8 +9,8 @@ import {
 import DialogModal from './DialogModal';
 
 // 引入我們寫好的兩支核心工具
-import { exportSystemData, importSystemData, generateSystemPayload, restoreFromPayload, resetSystem } from '../../utils/backupService';
-import { syncToCloud, fetchFromCloud, getCloudBackupTime } from '../../utils/googleDriveService';
+import { exportSystemData, importSystemData, generateSystemPayload, restoreFromPayload, resetSystem } from '../../services/backupService';
+import { syncToCloud, fetchFromCloud, getCloudBackupTime } from '../../services/googleDriveService';
 
 const CLOUD_FILE_NAME = 'ClassroomOS_CloudSync.json';
 

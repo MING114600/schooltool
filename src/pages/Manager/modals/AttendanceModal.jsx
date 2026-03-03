@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CalendarCheck, X, Copy, AlertCircle } from 'lucide-react';
-import { ATTENDANCE_STATUS, ATTENDANCE_CYCLE, UI_THEME } from '../../../utils/constants'; // 確保引用 UI_THEME
+import { ATTENDANCE_STATUS, ATTENDANCE_CYCLE, UI_THEME } from '../../../constants'; // 確保引用 UI_THEME
 import { cn } from '../../../utils/cn'; // ★ 引入工具
 
 const AttendanceModal = ({ isOpen, onClose, students, attendanceRecords, onSave }) => {

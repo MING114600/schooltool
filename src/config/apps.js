@@ -7,49 +7,49 @@ import { Monitor, ClipboardCheck, Users, Headphones, Clipboard } from 'lucide-re
 const Dashboard = lazy(() => import('../pages/Dashboard/Dashboard.jsx'));
 const ExamTool = lazy(() => import('../pages/ExamTool/ExamTool.jsx'));
 const Manager = lazy(() => import('../pages/Manager/Manager.jsx'));
-const ExamReader = lazy(() => import('../pages/ExamReader/ExamReader.jsx')); 
+const ExamReader = lazy(() => import('../pages/ExamReader/ExamReader.jsx'));
 const CaseLog = lazy(() => import('../pages/CaseLog/CaseLog.jsx'));
 
 export const APPS_CONFIG = [
-  { 
-    id: 'dashboard', 
-    name: '電子看板', 
+  {
+    id: 'dashboard',
+    name: '電子看板',
     description: '課間提醒、公告與功課表',
-    icon: Monitor, 
-    color: 'bg-blue-500', 
-    component: Dashboard 
+    icon: Monitor,
+    color: 'bg-blue-500',
+    component: Dashboard
   },
-  { 
-    id: 'exam', 
-    name: '監考系統', 
+  {
+    id: 'exam',
+    name: '監考系統',
     description: '計時、點名、隨堂測驗',
-    icon: ClipboardCheck, 
-    color: 'bg-rose-500', 
-    component: ExamTool 
+    icon: ClipboardCheck,
+    color: 'bg-rose-500',
+    component: ExamTool
   },
-  { 
-    id: 'manager', 
-    name: '班級經營', 
+  {
+    id: 'manager',
+    name: '班級經營',
     description: '座位表管理、加扣分工具',
-    icon: Users, 
-    color: 'bg-amber-500', 
-    component: Manager 
+    icon: Users,
+    color: 'bg-amber-500',
+    component: Manager
   },
-  { 
-    id: 'reader', 
-    name: '報讀助理', 
+  {
+    id: 'reader',
+    name: '報讀助理',
     description: '匯入考卷、語音指讀',
-    icon: Headphones, 
-    color: 'bg-emerald-500', 
-    component: ExamReader 
+    icon: Headphones,
+    color: 'bg-emerald-500',
+    component: ExamReader
   },
   {
     id: 'caselog',
-    name: '個案日誌',
+    name: '學生日誌',
     icon: Clipboard, // 或使用 lucide-react 的 Clipboard
     path: '/caselog',
-    description: '單生單檔的隱私紀錄與動態日誌',
-	color: 'bg-orange-500',
-	component: CaseLog 
+    description: '可共編的學生動態日誌',
+    color: 'bg-orange-500',
+    component: CaseLog
   }
 ];

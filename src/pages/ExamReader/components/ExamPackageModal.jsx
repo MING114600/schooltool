@@ -1,7 +1,7 @@
 // src/components/common/ExamPackageModal.jsx
 import React, { useState, useEffect } from 'react';
 import { X, Box, CheckCircle2, Circle, Loader2, Send, Edit3 } from 'lucide-react';
-import { getAllExamMetas, getExamById } from '../../../utils/examDatabase';
+import { getAllExamMetas, getExamById } from '../../../services/examDatabase';
 
 const ExamPackageModal = ({ isOpen, onClose, onConfirm, isSharing }) => {
   const [list, setList] = useState([]);

@@ -1,17 +1,17 @@
 import React, { useState, Suspense, useEffect } from 'react';
 import { Grid, Loader2 } from 'lucide-react';
 
-import { UI_THEME } from './utils/constants';
+import { UI_THEME } from './constants';
 import { ThemeProvider, useThemeContext } from './context/ThemeContext';
 import { OSProvider, useOS } from './context/OSContext';
-import { ClassroomProvider } from './context/ClassroomContext';
+import { useClassroomStore } from './store/useClassroomStore';
 import { ModalProvider } from './context/ModalContext';
 // 🌟 1. 引入剛剛做好的 AuthContext
 import { useAuth } from './context/AuthContext';
 
 // 🌟 Config
 import { APPS_CONFIG } from './config/apps';
-import { APP_VERSION } from './utils/patchNotesData';
+import { APP_VERSION } from './data/patchNotesData';
 
 // 🌟 Components
 import AppLauncher from './components/OS/AppLauncher';
@@ -30,6 +30,19 @@ const LoadingScreen = () => (
     </div>
   </div>
 );
+
+const DataLoader = ({ children }) => {
+  const isLoading = useClassroomStore(state => state.isLoading);
+  const initStore = useClassroomStore(state => state.initStore);
+
+  useEffect(() => {
+    initStore();
+  }, [initStore]);
+
+  if (isLoading) return <LoadingScreen />;
+
+  return children;
+};
 
 // --- ClassroomOS 核心邏輯 ---
 const ClassroomOS = () => {
@@ -156,13 +169,13 @@ const ClassroomOS = () => {
 const App = () => (
   // 注意：AuthProvider 已經在 main.jsx 裡包在最外層，所以這裡不需要再寫一次
   <OSProvider>
-    <ClassroomProvider>
+    <DataLoader>
       <ModalProvider>
         <ThemeProvider>
           <ClassroomOS />
         </ThemeProvider>
       </ModalProvider>
-    </ClassroomProvider>
+    </DataLoader>
   </OSProvider>
 );
 

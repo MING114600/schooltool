@@ -1,6 +1,6 @@
 import React from 'react';
 import { Play, Square, SkipBack, SkipForward, Volume2, Pause } from 'lucide-react';
-import { UI_THEME } from '../../../utils/constants';
+import { UI_THEME } from '../../../constants';
 
 const ExamControls = ({
   speechRate, setSpeechRate,

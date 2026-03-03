@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useHotkeys } from './useHotkeys';
+import { useHotkeys } from '../../../hooks/useHotkeys';
 
 export const useManagerUI = ({
     currentClass,
@@ -18,12 +18,10 @@ export const useManagerUI = ({
     const [appMode, setAppMode] = useState('score');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [sidebarTab, setSidebarTab] = useState('management');
-    const [isToolbarOpen, setIsToolbarOpen] = useState(false);
     const [isSoundBoardOpen, setIsSoundBoardOpen] = useState(false);
     const [isTimerOpen, setIsTimerOpen] = useState(false);
     const [isLotteryOpen, setIsLotteryOpen] = useState(false);
     const [isScoreTickerOpen, setIsScoreTickerOpen] = useState(true);
-    const [isFocusMode, setIsFocusMode] = useState(true);
     const [batchScoreMode, setBatchScoreMode] = useState(null);
 
     const [hoveredGroup, setHoveredGroup] = useState(null);
@@ -40,7 +38,7 @@ export const useManagerUI = ({
                 closeModal();
             } else if (dialogConfig) {
                 closeDialog();
-            } else if (isSidebarOpen || isToolbarOpen) {
+            } else if (isSidebarOpen) {
                 setIsSidebarOpen(false);
             }
         },
@@ -87,11 +85,7 @@ export const useManagerUI = ({
         window.addEventListener('resize', handleResize);
         handleResize();
         return () => window.removeEventListener('resize', handleResize);
-    }, [isSidebarOpen, isToolbarOpen, isFocusMode]);
-
-    useEffect(() => {
-        if (isFocusMode) { setIsSidebarOpen(false); setIsToolbarOpen(false); }
-    }, [isFocusMode]);
+    }, [isSidebarOpen]);
 
     // --- 提供給 Toolbar 的快捷切換邏輯 ---
     const handleSwitchMode = useCallback((mode) => {
@@ -114,13 +108,13 @@ export const useManagerUI = ({
     return {
         state: {
             isTeacherView, isEditingList, showShuffleMenu, displayMode, appMode,
-            isSidebarOpen, sidebarTab, isToolbarOpen, isSoundBoardOpen, isTimerOpen,
-            isLotteryOpen, isScoreTickerOpen, isFocusMode, batchScoreMode, hoveredGroup, scale
+            isSidebarOpen, sidebarTab, isSoundBoardOpen, isTimerOpen,
+            isLotteryOpen, isScoreTickerOpen, batchScoreMode, hoveredGroup, scale
         },
         setters: {
             setIsTeacherView, setIsEditingList, setShowShuffleMenu, setDisplayMode, setAppMode,
-            setIsSidebarOpen, setSidebarTab, setIsToolbarOpen, setIsSoundBoardOpen, setIsTimerOpen,
-            setIsLotteryOpen, setIsScoreTickerOpen, setIsFocusMode, setBatchScoreMode, setHoveredGroup
+            setIsSidebarOpen, setSidebarTab, setIsSoundBoardOpen, setIsTimerOpen,
+            setIsLotteryOpen, setIsScoreTickerOpen, setBatchScoreMode, setHoveredGroup
         },
         actions: {
             handleSwitchMode, cycleDisplayMode, getDisplayModeLabel, toggleBatchMode

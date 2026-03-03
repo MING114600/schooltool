@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Check, FileText, Upload, BookOpen } from 'lucide-react';
-import { UI_THEME } from '../../../utils/constants';
+import { UI_THEME } from '../../../constants';
 import { parseExamText, parseExamHtml } from '../utils/examParser';
 import mammoth from 'mammoth';
 

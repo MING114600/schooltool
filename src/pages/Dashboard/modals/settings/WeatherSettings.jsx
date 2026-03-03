@@ -1,6 +1,6 @@
 import React from 'react';
 import { CloudSun, MapPin } from 'lucide-react';
-import { UI_THEME } from '../../../../utils/constants';
+import { UI_THEME } from '../../../../constants';
 import { TAIWAN_LOCATIONS } from '../../utils/dashboardConstants';
 import SettingsSection from './SettingsSection'; // 引入剛剛建立的外框
 

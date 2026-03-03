@@ -4,7 +4,7 @@ import {
   Laptop, MonitorOff, Monitor, Sidebar, Volume2, VolumeX, Edit3,
   Users, BookOpen, Eye, Bell, MessageSquare
 } from 'lucide-react';
-import { UI_THEME } from '../../../utils/constants';
+import { UI_THEME } from '../../../constants';
 import { SYSTEM_BUTTONS_CONFIG } from '../utils/dashboardConstants';
 
 const ICON_MAP = {

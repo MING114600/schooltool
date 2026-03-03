@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, User, Star, CheckCircle2, Tag, AlertCircle, Loader2 } from 'lucide-react';
-import { UI_THEME } from '../../../utils/constants';
+import { UI_THEME } from '../../../constants';
 
 // 🌟 引入真實的 API 與解碼工具
-import { fetchPublicCaseLog } from '../../../utils/googleDriveService';
+import { fetchPublicCaseLog } from '../../../services/googleDriveService';
 import { decodeRowData } from '../utils/sheetSchema';
 
 // 🌟 沿用您在 useExamCloud 中使用的 API Key
 const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
-  
-  // 建議加入錯誤檢查，避免部署時因遺漏變數而導致系統異常
-	if (!apiKey) {
-	  console.error("尚未設定 VITE_GOOGLE_API_KEY 環境變數");
-	}
+
+// 建議加入錯誤檢查，避免部署時因遺漏變數而導致系統異常
+if (!apiKey) {
+  console.error("尚未設定 VITE_GOOGLE_API_KEY 環境變數");
+}
 
 export default function ParentView() {
   const [logs, setLogs] = useState([]);
@@ -20,10 +20,31 @@ export default function ParentView() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // 🌟 文字放大縮小狀態 (加上 localStorage 記憶功能)
+  const [zoomLevel, setZoomLevel] = useState(() => {
+    const saved = localStorage.getItem('caseLog_zoomLevel');
+    return saved ? parseInt(saved, 10) : 0;
+  });
+
+  // 每次 zoomLevel 變更時，儲存到 localStorage
+  useEffect(() => {
+    localStorage.setItem('caseLog_zoomLevel', zoomLevel.toString());
+  }, [zoomLevel]);
+  const getZoomClasses = () => {
+    switch (zoomLevel) {
+      case 1: return { title: 'text-2xl', date: 'text-base', author: 'text-sm', label: 'text-sm', content: 'text-base' };
+      case 2: return { title: 'text-3xl', date: 'text-lg', author: 'text-base', label: 'text-base', content: 'text-lg' };
+      case 3: return { title: 'text-4xl', date: 'text-xl', author: 'text-lg', label: 'text-lg', content: 'text-xl' };
+      case 4: return { title: 'text-5xl', date: 'text-2xl', author: 'text-xl', label: 'text-xl', content: 'text-2xl' };
+      default: return { title: 'text-xl', date: 'text-sm', author: 'text-xs', label: 'text-xs', content: 'text-sm' };
+    }
+  };
+  const uiZoom = getZoomClasses();
+
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const sheetId = searchParams.get('id');
-	const tmsParam = searchParams.get('tms');
+    const tmsParam = searchParams.get('tms');
     const targetTimestamps = tmsParam ? tmsParam.split(',').map(decodeURIComponent) : null;
 
     if (!sheetId) {
@@ -38,7 +59,7 @@ export default function ParentView() {
       try {
         setIsLoading(true);
         const { studentName, values } = await fetchPublicCaseLog(sheetId, apiKey);
-        
+
         let parsedLogs = values.map((row, index) => {
           const uniqueId = `public_log_${index}_${row[0]}`;
           return decodeRowData(row, uniqueId);
@@ -60,7 +81,7 @@ export default function ParentView() {
 
     fetchPublicData();
   }, []);
-  
+
   // 唯讀積木渲染器
   const renderReadOnlyBlock = (block, value) => {
     if (value === undefined || value === null || value === '') return null;
@@ -70,21 +91,21 @@ export default function ParentView() {
         return (
           <div className="flex gap-1">
             {Array.from({ length: block.max || 5 }).map((_, i) => (
-              <Star 
-                key={i} 
-                size={18} 
-                className={i < value ? 'text-amber-400 fill-amber-400' : 'text-slate-200 dark:text-slate-700'} 
+              <Star
+                key={i}
+                size={18}
+                className={i < value ? 'text-amber-400 fill-amber-400' : 'text-slate-200 dark:text-slate-700'}
               />
             ))}
           </div>
         );
 
       case 'checkbox':
-        if (!Array.isArray(value) || value.length === 0) return <span className={`text-sm ${UI_THEME.TEXT_MUTED}`}>無紀錄</span>;
+        if (!Array.isArray(value) || value.length === 0) return <span className={`${uiZoom.content} ${UI_THEME.TEXT_MUTED} transition-all`}>無紀錄</span>;
         return (
           <div className="flex flex-wrap gap-2">
             {value.map((item, idx) => (
-              <span key={idx} className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800`}>
+              <span key={idx} className={`flex items-center gap-1 px-2.5 py-1 rounded-full ${uiZoom.author} font-bold bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800 transition-all`}>
                 <CheckCircle2 size={12} />
                 {item}
               </span>
@@ -94,7 +115,7 @@ export default function ParentView() {
 
       case 'select':
         return (
-          <span className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 w-fit border border-emerald-200 dark:border-emerald-800`}>
+          <span className={`flex items-center gap-1.5 px-3 py-1 rounded-lg ${uiZoom.content} font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 w-fit border border-emerald-200 dark:border-emerald-800 transition-all`}>
             <Tag size={14} />
             {value}
           </span>
@@ -102,7 +123,7 @@ export default function ParentView() {
 
       case 'text':
         return (
-          <p className={`text-sm leading-relaxed whitespace-pre-wrap ${UI_THEME.TEXT_PRIMARY} font-medium`}>
+          <p className={`${uiZoom.content} leading-relaxed whitespace-pre-wrap ${UI_THEME.TEXT_PRIMARY} font-medium transition-all`}>
             {value}
           </p>
         );
@@ -136,13 +157,38 @@ export default function ParentView() {
   return (
     <div className={`min-h-screen pb-12 ${UI_THEME.BACKGROUND}`}>
       {/* 頂部導覽列 (滿版置中) */}
-      <div className={`sticky top-0 z-10 px-6 py-5 flex flex-col items-center justify-center shadow-sm ${UI_THEME.SURFACE_GLASS} border-b ${UI_THEME.BORDER_DEFAULT}`}>
-        <h1 className={`text-xl font-bold tracking-wider ${UI_THEME.TEXT_PRIMARY}`}>
-          {studentName} 的個案日誌
-        </h1>
-        <p className={`text-sm mt-1 ${UI_THEME.TEXT_MUTED}`}>
-          ClassroomOS 智慧教室系統
-        </p>
+      <div className={`sticky top-0 z-10 px-6 py-4 flex items-center justify-between shadow-sm ${UI_THEME.SURFACE_GLASS} border-b ${UI_THEME.BORDER_DEFAULT}`}>
+        <div className="flex flex-col">
+          <h1 className={`font-bold flex-1 truncate ${uiZoom.title} ${UI_THEME.TEXT_PRIMARY} transition-all`}>
+            {studentName} 的學生日誌
+          </h1>
+          <p className={`${uiZoom.date} mt-0.5 ${UI_THEME.TEXT_MUTED} transition-all`}>
+            ClassroomOS 智慧教室系統
+          </p>
+        </div>
+
+        {/* 🌟 新增：文字放大縮小控制項 (家長端) */}
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1 border border-slate-200 dark:border-slate-700 shadow-inner">
+          <button
+            type="button"
+            onClick={() => setZoomLevel(prev => Math.max(0, prev - 1))}
+            disabled={zoomLevel === 0}
+            className={`px-3 py-1 text-sm font-bold rounded-md transition-colors ${zoomLevel === 0 ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed' : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 shadow-sm hover:text-indigo-600'}`}
+            title="縮小文字"
+          >
+            Aa-
+          </button>
+          <div className="w-px h-4 bg-slate-300 dark:bg-slate-600 mx-1"></div>
+          <button
+            type="button"
+            onClick={() => setZoomLevel(prev => Math.min(4, prev + 1))}
+            disabled={zoomLevel === 4}
+            className={`px-3 py-1 text-sm font-bold rounded-md transition-colors ${zoomLevel === 4 ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed' : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 shadow-sm hover:text-indigo-600'}`}
+            title="放大文字"
+          >
+            Aa+
+          </button>
+        </div>
       </div>
 
       {/* 🌟 響應式卡片牆：手機 1 欄 -> 平板 2 欄 -> 寬螢幕 3 欄 */}
@@ -154,19 +200,19 @@ export default function ParentView() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
             {logs.map((log) => (
-              <div 
-                key={log.id} 
+              <div
+                key={log.id}
                 className={`rounded-2xl overflow-hidden shadow-sm border ${UI_THEME.BORDER_DEFAULT} ${UI_THEME.SURFACE_MAIN} hover:shadow-md transition-shadow`}
               >
                 {/* 卡片標頭 */}
                 <div className={`px-5 py-4 border-b ${UI_THEME.BORDER_LIGHT} bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center`}>
                   <div className="flex items-center gap-2.5">
                     <Calendar size={18} className={UI_THEME.TEXT_SECONDARY} />
-                    <span className={`text-sm font-bold ${UI_THEME.TEXT_PRIMARY}`}>{log.date}</span>
+                    <span className={`${uiZoom.date} font-bold ${UI_THEME.TEXT_PRIMARY} transition-all`}>{log.date}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <User size={14} className={UI_THEME.TEXT_MUTED} />
-                    <span className={`text-xs font-bold ${UI_THEME.TEXT_SECONDARY}`}>{log.author.replace(' (已編輯)', '')}</span>
+                    <span className={`${uiZoom.author} font-bold ${UI_THEME.TEXT_SECONDARY} transition-all`}>{log.author.replace(' (已編輯)', '')}</span>
                   </div>
                 </div>
 
@@ -180,7 +226,7 @@ export default function ParentView() {
 
                     return (
                       <div key={block.id} className={`flex flex-col gap-1.5 ${isFullWidth ? 'sm:col-span-2' : ''}`}>
-                        <span className={`text-xs font-bold ${UI_THEME.TEXT_MUTED}`}>
+                        <span className={`${uiZoom.label} font-bold ${UI_THEME.TEXT_MUTED} transition-all`}>
                           {block.label}
                         </span>
                         {renderReadOnlyBlock(block, blockValue)}
@@ -188,10 +234,10 @@ export default function ParentView() {
                     );
                   })}
                 </div>
-				{/* 🌟 新增：圖片附件渲染區塊 (家長端專用) */}
+                {/* 🌟 新增：圖片附件渲染區塊 (家長端專用) */}
                 {log.attachments && log.attachments.length > 0 && (
                   <div className={`px-5 pb-5 pt-3 border-t border-slate-100 dark:border-slate-800/50`}>
-                    <span className={`text-xs font-bold ${UI_THEME.TEXT_MUTED} block mb-3`}>
+                    <span className={`${uiZoom.label} font-bold ${UI_THEME.TEXT_MUTED} block mb-3 transition-all`}>
                       照片紀錄
                     </span>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

@@ -1,7 +1,7 @@
 // src/components/common/ExamHistoryModal.jsx
 import React, { useState, useEffect } from 'react';
 import { X, Cloud, Trash2, QrCode, Loader2, RefreshCw, FileJson, AlertTriangle } from 'lucide-react';
-import { listSharedExams, deleteCloudFile } from '../../../utils/googleDriveService';
+import { listSharedExams, deleteCloudFile } from '../../../services/googleDriveService';
 import DialogModal from '../../../components/common/DialogModal';
 
 // 🌟 新增 login 參數

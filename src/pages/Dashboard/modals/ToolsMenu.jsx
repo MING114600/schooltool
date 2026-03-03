@@ -2,7 +2,7 @@ import React, { useCallback} from 'react';
 import { 
   Clock, Shuffle, Volume2, X, Box
 } from 'lucide-react';
-import { UI_THEME } from '../../../utils/constants';
+import { UI_THEME } from '../../../constants';
 
 const ToolCard = ({ icon: Icon, title, desc, colorClass, onClick }) => (
   <button 

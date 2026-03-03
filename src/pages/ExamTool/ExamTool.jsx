@@ -3,7 +3,7 @@ import { AlertCircle, PlayCircle } from 'lucide-react';
 import { useWakeLock } from './hooks/useWakeLock';
 import { useExamLogic } from './hooks/useExamLogic';
 import { useModalContext } from '../../context/ModalContext';
-import { useClassroomContext } from '../../context/ClassroomContext';
+import { useClassroomStore } from '../../store/useClassroomStore';
 
 
 import ExamSettingsModal from './components/ExamSettingsModal';
@@ -11,19 +11,18 @@ import ExamControlDock from './components/ExamControlDock';
 import ExamMainStage from './components/ExamMainStage';
 import QuickExamModal from './components/QuickExamModal';
 import ManualAttendanceModal from './components/ManualAttendanceModal';
-import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
-import { UI_THEME, MODAL_ID } from '../../utils/constants';
+import { Clock } from 'lucide-react';
+import { UI_THEME, MODAL_ID } from '../../constants';
+import StandardAppLayout from '../../components/common/layout/StandardAppLayout';
 
 const ExamTool = () => {
   useWakeLock();
 
-  // 1. 從 Context 取得資料來源
-  const {
-    classes = [],
-    currentClass,
-    setCurrentClassId, // <--- 改用這個原名
-    updateAttendance
-  } = useClassroomContext();
+  const classes = useClassroomStore(state => state.classes || []);
+  const currentClassId = useClassroomStore(state => state.currentClassId);
+  const currentClass = classes.find(c => c.id === currentClassId);
+  const setCurrentClassId = useClassroomStore(state => state.setCurrentClassId);
+  const updateAttendance = useClassroomStore(state => state.updateAttendance);
 
   // 2. 取得測驗邏輯與自動計算的狀態
   const {
@@ -146,97 +145,85 @@ const ExamTool = () => {
     });
   }, [schedule, currentStatus.status, currentStatus.slot?.id, currentStatus.nextSlot?.id]);
 
+  const renderSidebar = () => (
+    <div className={`p-6 w-full h-full overflow-y-auto`}>
+      <h2 className={`text-2xl font-bold mb-4 flex items-center gap-2 ${UI_THEME.TEXT_PRIMARY}`}>
+        <Clock className="text-blue-500" /> 今日考程
+      </h2>
 
-  return (
-    <div className={`w-full h-full flex overflow-hidden ${UI_THEME.BACKGROUND}`}>
-      {/* Sidebar */}
-      <div className={`relative transition-all duration-500 border-r ${UI_THEME.BORDER_DEFAULT} ${UI_THEME.SURFACE_MAIN} flex flex-col ${isSidebarOpen ? 'w-80' : 'w-0'} overflow-hidden`}>
-        <div className="p-6 overflow-hidden min-w-[20rem]">
-          <h2 className={`text-2xl font-bold mb-4 flex items-center gap-2 ${UI_THEME.TEXT_PRIMARY}`}>
-            <Clock className="text-blue-500" /> 今日考程
-          </h2>
+      <div className="mb-6">
+        <label htmlFor="exam-class-selector" className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">
+          班級選擇
+        </label>
+        <select id="exam-class-selector" name="examClass"
+          className={`w-full px-3 py-2 rounded-lg border ${UI_THEME.INPUT_BASE}`}
+          value={isManualMode ? 'manual-mode' : (currentClass?.id || '')}
+          onChange={(e) => {
+            if (e.target.value === 'manual-mode') {
+              setIsManualMode(true);
+            } else {
+              setIsManualMode(false);
+              if (setCurrentClassId) setCurrentClassId(e.target.value);
+            }
+          }}
+        >
+          <option value="manual-mode">📝 手動輸入模式 (自定義)</option>
+          <optgroup label="我的班級">
+            {classes.map(cls => (
+              <option key={cls.id} value={cls.id}>{cls.name}</option>
+            ))}
+          </optgroup>
+        </select>
 
-          <div className="mb-6">
-            <label htmlFor="exam-class-selector" className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">
-              班級選擇
-            </label>
-            <select id="exam-class-selector" name="examClass"
-              className={`w-full px-3 py-2 rounded-lg border ${UI_THEME.INPUT_BASE}`}
-              // 這裡做一個特殊的 value 處理
-              value={isManualMode ? 'manual-mode' : (currentClass?.id || '')}
-              onChange={(e) => {
-                if (e.target.value === 'manual-mode') {
-                  setIsManualMode(true);
-                } else {
-                  setIsManualMode(false);
-                  if (setCurrentClassId) setCurrentClassId(e.target.value);
-                }
-              }}
-            >
-              <option value="manual-mode">📝 手動輸入模式 (自定義)</option>
-              <optgroup label="我的班級">
-                {classes.map(cls => (
-                  <option key={cls.id} value={cls.id}>{cls.name}</option>
-                ))}
-              </optgroup>
-            </select>
-
-            <div className="mt-2 text-xs text-slate-400">
-              應到：{attendanceStats.expected}　實到：{attendanceStats.actual}
-            </div>
-          </div>
-
-          <div className="space-y-4 pb-20">
-            {sidebarCards}
-          </div>
+        <div className="mt-2 text-xs text-slate-400">
+          應到：{attendanceStats.expected}　實到：{attendanceStats.actual}
         </div>
       </div>
 
+      <div className="space-y-4 pb-20">
+        {sidebarCards}
+      </div>
+    </div>
+  );
 
-      <button
-        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        className="absolute bottom-15 left-0 z-100 -translate-y-1/2 bg-white dark:bg-slate-800 p-1 rounded-r-lg shadow-md border border-l-0 border-slate-200 dark:border-slate-700 text-slate-400 hover:text-blue-500 transition-all ease-in-out duration-500"
-        style={{ left: isSidebarOpen ? '20rem' : '0' }}
-      >
-        {isSidebarOpen ? <ChevronLeft /> : <ChevronRight />}
-      </button>
-
-
-      {/* Main Content */}
-      <main className="flex-1 relative">
-        <ExamMainStage
-          statusData={currentStatus}
-          isPlayingAudio={isPlayingAudio}
-          toggleAudio={toggleAudio}
-          attendanceStats={attendanceStats}
-          onOpenAttendance={() => {
-            if (isManualMode) setIsManualModalOpen(true);
-            else openModal(MODAL_ID.ATTENDANCE);
-          }}
-          announcements={announcements}
+  return (
+    <StandardAppLayout
+      isSidebarOpen={isSidebarOpen}
+      onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+      sidebar={renderSidebar()}
+      bottomDock={
+        <ExamControlDock
+          onOpenSettings={() => setIsSettingsOpen(true)}
+          onExtend={handleExtend}
+          onQuickExam={handleQuickExam}
+          onStopQuickExam={handleStopQuickExam}
+          isQuickExam={isQuickExam}
+          isTickerActive={announcements.active}
+          onToggleTicker={toggleAnnouncements}
+          isMuted={isMuted}
+          toggleMute={toggleMute}
         />
-      </main>
+      }
+    >
+      <ExamMainStage
+        statusData={currentStatus}
+        isPlayingAudio={isPlayingAudio}
+        toggleAudio={toggleAudio}
+        attendanceStats={attendanceStats}
+        onOpenAttendance={() => {
+          if (isManualMode) setIsManualModalOpen(true);
+          else openModal(MODAL_ID.ATTENDANCE);
+        }}
+        announcements={announcements}
+      />
 
+      {/* Modals */}
       <ManualAttendanceModal
         isOpen={isManualModalOpen}
         onClose={() => setIsManualModalOpen(false)}
         data={manualData}
         onSave={setManualData}
       />
-
-      <ExamControlDock
-        onOpenSettings={() => setIsSettingsOpen(true)}
-        onExtend={handleExtend}
-        onQuickExam={handleQuickExam}
-        onStopQuickExam={handleStopQuickExam}
-        isQuickExam={isQuickExam}
-        isTickerActive={announcements.active}
-        onToggleTicker={toggleAnnouncements}
-        isMuted={isMuted}
-        toggleMute={toggleMute}
-      />
-
-      {/* Modals */}
 
       <ExamSettingsModal
         isOpen={isSettingsOpen}
@@ -259,8 +246,7 @@ const ExamTool = () => {
           startQuickExam(mins, title); // 傳遞時間與標題給 Logic
         }}
       />
-
-    </div>
+    </StandardAppLayout>
   );
 };
 

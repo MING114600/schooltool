@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Lock, Unlock } from 'lucide-react'; 
-import { GROUP_THEME, STATUS_CONFIG, GENDER_THEME } from '../../utils/constants'; 
+import { GROUP_THEME, STATUS_CONFIG, GENDER_THEME } from '../../constants'; 
 
 const StudentCard = memo(({ 
   student, 

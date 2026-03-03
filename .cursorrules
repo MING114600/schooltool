@@ -1,0 +1,6 @@
+# ClassroomOS AI Agent Rules
+
+Always refer to the following guidelines before making any changes:
+
+1. **Architecture & Structure**: Read `ARCHITECTURE.md` to understand the system layout and design philosophy. Do not violate the "Local-First + BYOD" core principle.
+2. **Project Skills**: You MUST read and follow the instructions in `.agents/skills/ClassroomOS_Core_Rules/SKILL.md` for *every* development task.

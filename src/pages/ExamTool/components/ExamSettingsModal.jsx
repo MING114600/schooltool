@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Plus, Trash2, Mic, Calendar, Volume2, MessageSquare, Save, Upload, Edit3 } from 'lucide-react';
-import { STANDARD_TIME_SLOTS, UI_THEME } from  '../../../utils/constants';
+import { STANDARD_TIME_SLOTS, UI_THEME } from  '../../../constants';
 
 const TabButton = ({ active, onClick, children }) => (
   <button

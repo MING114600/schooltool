@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Edit3, X, Users, AlertCircle } from 'lucide-react';
-import { UI_THEME } from '../../../utils/constants';
+import { UI_THEME } from '../../../constants';
 
 const ManualAttendanceModal = ({ isOpen, onClose, data, onSave }) => {
   const [tempData, setTempData] = useState(data || { expected: 0, actual: 0, note: '' });

@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { X, Sliders } from 'lucide-react';
-import { UI_THEME } from '../../../utils/constants';
+import { UI_THEME } from '../../../constants';
 
 // --- Components ---
 import { useModalContext } from '../../../context/ModalContext';

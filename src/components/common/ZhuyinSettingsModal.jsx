@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   X, Type, Download, CheckCircle2, AlertCircle, Book, Power, Settings2
 } from 'lucide-react';
-import { UI_THEME } from '../../utils/constants';
+import { UI_THEME } from '../../constants';
 import { useOS } from '../../context/OSContext';
 import ZhuyinCustomizer from './ZhuyinCustomizer';
 

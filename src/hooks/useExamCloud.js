@@ -1,7 +1,7 @@
 // src/hooks/useExamCloud.js
 import { useState, useEffect, useRef } from 'react'; // 🌟 新增 useRef
-import { shareExamToCloud, downloadSharedExam } from '../utils/googleDriveService';
-import { saveExam } from '../utils/examDatabase';
+import { shareExamToCloud, downloadSharedExam } from '../services/googleDriveService';
+import { saveExam } from '../services/examDatabase';
 
 export const useExamCloud = ({ 
   user, 

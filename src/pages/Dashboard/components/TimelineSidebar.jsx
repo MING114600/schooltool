@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { Clock, Coffee, BookOpen } from 'lucide-react';
-import { UI_THEME } from '../../../utils/constants';
+import { UI_THEME } from '../../../constants';
 import ZhuyinRenderer from '../../../components/common/ZhuyinRenderer'; // 1. 引入
 
 // 輔助函式：計算進度條

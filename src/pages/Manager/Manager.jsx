@@ -5,38 +5,58 @@ import * as htmlToImage from 'html-to-image';
 // --- 引入 Hooks 與 Constants ---
 // 路徑修正：跳出兩層到 src 根目錄
 import { useStudentImport } from '../../hooks/useStudentImport';
-import { useManagerUI } from '../../hooks/useManagerUI';
-import { UI_THEME, MODAL_ID } from '../../utils/constants';
+import { useManagerUI } from '../../pages/Manager/hooks/useManagerUI';
+import { UI_THEME, MODAL_ID } from '../../constants';
 
 // --- 引入 Context ---
-import { ClassroomProvider, useClassroomContext } from '../../context/ClassroomContext';
+import { useClassroomStore } from '../../store/useClassroomStore';
 import { ModalProvider, useModalContext } from '../../context/ModalContext';
 
 // --- 引入 UI 組件 (Manager Local) ---
 // 路徑修正：同層級 (Manager) 下的 components
-import Toolbar from './components/Toolbar';
-import Sidebar from './components/Sidebar';
 import ScoreFeedback from './components/ScoreFeedback';
 import GroupScoreTicker from './components/GroupScoreTicker';
+import QuickScoreBar from './components/QuickScoreBar';
+import ArrangeToolboxWidget from './components/widgets/ArrangeToolboxWidget';
 import SeatGrid from './components/SeatGrid';
+import ClassroomMenuWidget from './components/widgets/ClassroomMenuWidget';
+import Sidebar from './components/Sidebar';
 
 // --- 引入 Widgets (Common) ---
 // 路徑修正：跳出兩層到 src/components/common/widgets
 import TimerWidget from '../../components/common/widgets/TimerWidget';
 import LotteryWidget from '../../components/common/widgets/LotteryWidget';
 import SoundBoard from '../../components/common/widgets/SoundBoard';
+import StandardAppLayout from '../../components/common/layout/StandardAppLayout';
 
 // --- 引入 Common Modals ---
 
 const Manager = () => {
-  const {
-    currentClass,
-    updateClass, saveTemplate, deleteTemplate, applyTemplate,
-    toggleLock, toggleVoid, seatDrop, sidebarDrop, updateStudent,
-    updateStudents, scoreStudent, resetScores, updateBehaviors, updateAttendance,
-    templates, feedbacks, undo, redo, canUndo, canRedo,
-    seatMode, setSeatMode
-  } = useClassroomContext();
+  const feedbacks = useClassroomStore(state => state.feedbacks);
+  const currentClassId = useClassroomStore(state => state.currentClassId);
+  const getStore = useClassroomStore.getState;
+  const classes = useClassroomStore(state => state.classes);
+
+  const currentClass = classes.find(c => c.id === currentClassId);
+  const students = currentClass?.students || [];
+  const groupScores = currentClass?.groupScores || {};
+
+  const updateClass = useClassroomStore(state => state.updateClass);
+  const toggleLock = useClassroomStore(state => state.toggleLock);
+  const sidebarDrop = useClassroomStore(state => state.sidebarDrop);
+  const scoreStudent = useClassroomStore(state => state.scoreStudent);
+  const seatMode = useClassroomStore(state => state.seatMode);
+  const setSeatMode = useClassroomStore(state => state.setSeatMode);
+  const actionToggleVoid = useClassroomStore(state => state.toggleVoid);
+  const actionToggleColumnVoid = useClassroomStore(state => state.toggleColumnVoid);
+  const actionToggleRowVoid = useClassroomStore(state => state.toggleRowVoid);
+  const actionSeatDrop = useClassroomStore(state => state.seatDrop);
+
+  const historyState = useClassroomStore(state => state.historyState);
+  const canUndo = historyState.index > 0;
+  const canRedo = historyState.index < historyState.history.length - 1;
+  const undo = useClassroomStore(state => state.undo);
+  const redo = useClassroomStore(state => state.redo);
 
   const { parseImportText } = useStudentImport();
 
@@ -48,13 +68,13 @@ const Manager = () => {
   const {
     state: {
       isTeacherView, isEditingList, showShuffleMenu, displayMode, appMode,
-      isSidebarOpen, sidebarTab, isToolbarOpen, isSoundBoardOpen, isTimerOpen,
-      isLotteryOpen, isScoreTickerOpen, isFocusMode, batchScoreMode, hoveredGroup, scale
+      isSidebarOpen, sidebarTab, isSoundBoardOpen, isTimerOpen,
+      isLotteryOpen, isScoreTickerOpen, batchScoreMode, hoveredGroup, scale
     },
     setters: {
       setIsTeacherView, setIsEditingList, setShowShuffleMenu, setDisplayMode, setAppMode,
-      setIsSidebarOpen, setSidebarTab, setIsToolbarOpen, setIsSoundBoardOpen, setIsTimerOpen,
-      setIsLotteryOpen, setIsScoreTickerOpen, setIsFocusMode, setBatchScoreMode, setHoveredGroup
+      setIsSidebarOpen, setSidebarTab, setIsSoundBoardOpen, setIsTimerOpen,
+      setIsLotteryOpen, setIsScoreTickerOpen, setBatchScoreMode, setHoveredGroup
     },
     actions: {
       handleSwitchMode, cycleDisplayMode, getDisplayModeLabel, toggleBatchMode
@@ -74,9 +94,6 @@ const Manager = () => {
     canUndo, undo, canRedo, redo, setSeatMode
   });
 
-  const today = new Date().toLocaleDateString('en-CA');
-  const currentAttendanceStatus = currentClass?.attendanceRecords?.[today] || {};
-
   // --- 業務處理邏輯 ---
   const handleImportList = (text) => {
     const newStudents = parseImportText(text);
@@ -86,12 +103,16 @@ const Manager = () => {
         title: '確認匯入名單',
         message: `成功解析 ${newStudents.length} 筆資料。\n這將重置座位表，確定嗎？`,
         onConfirm: () => {
-          updateClass({
-            ...currentClass,
-            students: newStudents,
-            layout: { ...currentClass.layout, seats: {}, voidSeats: [] },
-            scoreLogs: []
-          });
+          const state = getStore();
+          const cls = state.classes.find(c => c.id === state.currentClassId);
+          if (cls) {
+            updateClass({
+              ...cls,
+              students: newStudents,
+              layout: { ...cls.layout, seats: {}, voidSeats: [] },
+              scoreLogs: []
+            });
+          }
           setIsEditingList(false);
           closeDialog();
         }
@@ -135,9 +156,13 @@ const Manager = () => {
         }
       });
 
+      const state = getStore();
+      const cls = state.classes.find(c => c.id === state.currentClassId);
+      const className = cls ? cls.name : 'Class';
+
       const link = document.createElement('a');
       link.href = dataUrl;
-      link.download = `${currentClass.name}_座位表_HD.png`;
+      link.download = `${className}_座位表_HD.png`;
       link.click();
       closeModal();
     } catch (error) {
@@ -158,104 +183,111 @@ const Manager = () => {
     }
   };
 
-  return (
-    <div className={`flex h-full ${UI_THEME.BACKGROUND} transition-colors duration-500 overflow-hidden font-sans`}>
+  const renderClassroomMenu = () => (
+    <ClassroomMenuWidget
+      isTeacherView={isTeacherView}
+      setIsTeacherView={setIsTeacherView}
+      cycleDisplayMode={cycleDisplayMode}
+      getDisplayModeLabel={getDisplayModeLabel}
+      handleExportImage={handleExportImage}
+      toggleFullscreen={toggleFullscreen}
+      isSidebarOpen={isSidebarOpen}
+      sidebarWidth={340}
+    />
+  );
 
+  const renderSidebar = () => (
+    <Sidebar
+      isOpen={true} // 由 StandardAppLayout 控制顯示，Sidebar 元件內不再需要自帶開關邏輯
+      onClose={() => setIsSidebarOpen(false)}
+      activeTab={sidebarTab} setActiveTab={setSidebarTab} isEditingList={isEditingList} setIsEditingList={setIsEditingList}
+      displayMode={displayMode} appMode={appMode} onStudentClick={handleStudentClick}
+      onDragStart={(e, id) => e.dataTransfer.setData("studentId", id)} onDrop={sidebarDrop} onImportList={handleImportList}
+    />
+  );
+
+  return (
+    <StandardAppLayout
+      header={renderClassroomMenu()}
+      sidebar={renderSidebar()}
+      isSidebarOpen={isSidebarOpen}
+      onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+      sidebarWidth="w-[340px]" // Manager Sidebar 有點寬，稍微手動指定
+      sidebarOpenWidth="340px"
+    >
+      {/* 獨立模組：Feedback */}
       <ScoreFeedback feedbacks={feedbacks} mode="" />
 
-
-      {/* 詳細模式開關 */}
-      {(isFocusMode || (!isSidebarOpen && !isToolbarOpen)) && (
-        <div className="absolute top-3 right-4 z-[70] animate-in slide-in-from-right-4 fade-in duration-500 no-print print:hidden">
+      {/* 排座位獨立按鈕 (FAB) */}
+      {appMode === 'score' && (
+        <div className="absolute bottom-6 right-6 z-[70] animate-in slide-in-from-bottom-4 fade-in duration-500 no-print print:hidden">
           <button
-            onClick={() => { setIsFocusMode(false); setIsSidebarOpen(true); setIsToolbarOpen(true); }}
-            className="px-4 py-2 bg-white/90 dark:bg-blue-900/50 backdrop-blur text-blue-600 dark:text-blue-200 rounded-full shadow-xl font-bold flex items-center gap-2 hover:bg-blue-50 hover:dark:bg-blue-500/50 hover:scale-105 transition-all border border-blue-200 dark:border-blue-500"
+            onClick={() => handleSwitchMode('arrange')}
+            className="px-5 py-3 bg-white/95 dark:bg-indigo-900/90 backdrop-blur text-indigo-600 dark:text-indigo-200 rounded-2xl shadow-2xl font-black flex items-center gap-2 hover:bg-indigo-50 hover:dark:bg-indigo-800/80 hover:-translate-y-1 transition-all border border-indigo-200 dark:border-indigo-500/50"
           >
-            <Settings2 size={18} /> <span className="font-bold">詳細模式</span>
+            <span className="text-xl">🪑</span>排座位
           </button>
         </div>
       )}
 
-      {/* 評分工具開關 */}
-      {!isScoreTickerOpen && (isFocusMode || !isToolbarOpen) && (
-        <div className="absolute top-15 right-4 z-[70] animate-in slide-in-from-right-4 fade-in duration-500 no-print print:hidden">
-          <button
-            onClick={() => setIsScoreTickerOpen(true)}
-            className="px-4 py-2 bg-white/90 dark:bg-amber-900/50 backdrop-blur text-amber-600 dark:text-amber-200 rounded-full shadow-xl font-bold flex items-center gap-2 hover:bg-amber-50 hover:dark:bg-amber-500/50 hover:scale-105 transition-all border border-amber-200 dark:border-amber-500 shadow-amber-100/50 dark:shadow-amber-700/50"
-          >
-            <Trophy size={18} /> 評分工具
-          </button>
-        </div>
-      )}
-
-      <Sidebar
-        isOpen={isSidebarOpen && !isFocusMode} onClose={() => setIsSidebarOpen(false)}
-        activeTab={sidebarTab} setActiveTab={setSidebarTab} isEditingList={isEditingList} setIsEditingList={setIsEditingList}
-        displayMode={displayMode} appMode={appMode} onStudentClick={handleStudentClick}
-        onDragStart={(e, id) => e.dataTransfer.setData("studentId", id)} onDrop={sidebarDrop} onImportList={handleImportList}
+      {/* 排座位專屬控制列 */}
+      <ArrangeToolboxWidget
+        isVisible={appMode === 'arrange'}
+        onComplete={() => handleSwitchMode('score')}
       />
 
-      <div className={`flex-1 flex flex-col relative overflow-hidden ${UI_THEME.CONTENT_AREA} transition-all duration-500`}>
-        <Toolbar
-          isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen}
-          isToolbarOpen={isToolbarOpen && !isFocusMode} setIsToolbarOpen={setIsToolbarOpen}
-          appMode={appMode} handleSwitchMode={handleSwitchMode}
-          showShuffleMenu={showShuffleMenu} setShowShuffleMenu={setShowShuffleMenu}
-          cycleDisplayMode={cycleDisplayMode}
-          getDisplayModeLabel={getDisplayModeLabel}
-          handleExportImage={handleExportImage} toggleFullscreen={toggleFullscreen}
+      <QuickScoreBar
+        isVisible={appMode === 'score'}
+        batchScoreMode={batchScoreMode}
+        onToggleBatchMode={toggleBatchMode}
+        onClassScore={() => openModal(MODAL_ID.SCORING, { mode: 'class', name: '全班同學' })}
+        isScoreTickerOpen={isScoreTickerOpen}
+        onToggleScoreTicker={() => setIsScoreTickerOpen(!isScoreTickerOpen)}
+        isLotteryOpen={isLotteryOpen} setIsLotteryOpen={setIsLotteryOpen}
+        isTimerOpen={isTimerOpen} setIsTimerOpen={setIsTimerOpen}
+        isSoundBoardOpen={isSoundBoardOpen} setIsSoundBoardOpen={setIsSoundBoardOpen}
+      />
 
-          setIsLotteryOpen={setIsLotteryOpen} setIsTimerOpen={setIsTimerOpen}
-          isLotteryOpen={isLotteryOpen} isTimerOpen={isTimerOpen}
-          isTeacherView={isTeacherView} setIsTeacherView={setIsTeacherView}
-          isSoundBoardOpen={isSoundBoardOpen} setIsSoundBoardOpen={setIsSoundBoardOpen}
-          isScoreTickerOpen={isScoreTickerOpen} setIsScoreTickerOpen={setIsScoreTickerOpen}
-          isFocusMode={isFocusMode} setIsFocusMode={setIsFocusMode}
-        />
+      <GroupScoreTicker
+        isVisible={isScoreTickerOpen && appMode === 'score'} onClose={() => setIsScoreTickerOpen(false)}
+        onQuickScore={(groupId, value) => scoreStudent(groupId, { id: 'group_quick', value, score: value, type: value > 0 ? 'positive' : 'negative', isQuick: true }, 'group')}
+        onDetailScore={(groupId) => openModal(MODAL_ID.SCORING, { mode: 'group_members', group: groupId, name: `第 ${groupId} 組 (全員)` })}
+        groupScores={groupScores}
+        students={students}
+      />
 
-        <GroupScoreTicker
-          groupScores={currentClass?.groupScores} students={currentClass?.students}
-          isVisible={isScoreTickerOpen && appMode === 'score'} onClose={() => setIsScoreTickerOpen(false)}
-          batchScoreMode={batchScoreMode} onToggleBatchMode={toggleBatchMode}
-          onQuickScore={(groupId, value) => scoreStudent(groupId, { id: 'group_quick', value, score: value, type: value > 0 ? 'positive' : 'negative', isQuick: true }, 'group')}
-          onDetailScore={(groupId) => openModal(MODAL_ID.SCORING, { mode: 'group_members', group: groupId, name: `第 ${groupId} 組 (全員)` })}
-          onClassScore={() => openModal(MODAL_ID.SCORING, { mode: 'class', name: '全班同學' })}
+      <LotteryWidget isOpen={isLotteryOpen} onClose={() => setIsLotteryOpen(false)} />
+      <TimerWidget isOpen={isTimerOpen} onClose={() => setIsTimerOpen(false)} />
+      <SoundBoard isOpen={isSoundBoardOpen} onClose={() => setIsSoundBoardOpen(false)} />
 
-        />
+      <div ref={containerRef} className={`flex-1 px-4 pb-28 pt-4 md:px-8 md:pb-32 md:pt-4 flex flex-col items-center justify-start overflow-hidden ${batchScoreMode ? 'cursor-crosshair' : ''}`}>
+        <div className="flex flex-col items-center w-full max-w-6xl h-full min-h-0" ref={gridRef}>
+          <div className={`w-full max-w-4xl h-10 min-h-10 shrink-0 mb-2 rounded-[0.5rem] flex items-center justify-center text-white font-bold tracking-widest shadow-md transition-all duration-500 z-10 ${isTeacherView ? 'bg-slate-500 dark:bg-slate-700' : 'bg-slate-700 dark:bg-slate-800'}`}>
+            {isTeacherView ? '教室後方 / 布告欄' : '講台 / 黑板'}
+          </div>
 
-        <LotteryWidget isOpen={isLotteryOpen} onClose={() => setIsLotteryOpen(false)} classes={currentClass ? [currentClass] : []} defaultClassId={currentClass?.id} attendanceStatus={currentAttendanceStatus} />
-        <TimerWidget isOpen={isTimerOpen} onClose={() => setIsTimerOpen(false)} students={currentClass?.students} attendanceStatus={currentAttendanceStatus} />
-        <SoundBoard isOpen={isSoundBoardOpen} onClose={() => setIsSoundBoardOpen(false)} />
+          <div className={`relative ${UI_THEME.SURFACE_GLASS} rounded-3xl shadow-2xl p-8 md:p-12 border-4 ${UI_THEME.BORDER_LIGHT} max-w-5xl w-full mx-auto flex-1 flex flex-col overflow-hidden`}>
+            <SeatGrid
+              isTeacherView={isTeacherView}
+              onSeatDrop={actionSeatDrop}
+              onStudentClick={handleStudentClick}
+              displayMode={displayMode}
+              appMode={appMode}
+              seatMode={seatMode}
+              onToggleVoid={actionToggleVoid}
+              onToggleColumnVoid={actionToggleColumnVoid}
+              onToggleRowVoid={actionToggleRowVoid}
+              onToggleLock={toggleLock}
+              hoveredGroup={hoveredGroup}
+            />
+          </div>
 
-        <div ref={containerRef} className={`flex-1 p-4 md:p-8 flex flex-col items-center justify-center overflow-auto ${batchScoreMode ? 'cursor-crosshair' : ''}`}>
-          <div className="flex flex-col items-center w-full max-w-6xl" ref={gridRef}>
-            <div className={`w-full max-w-4xl h-10 mb-6 rounded-xl flex items-center justify-center text-white font-bold tracking-widest shadow-lg transition-all duration-500 ${isTeacherView ? 'bg-slate-500 dark:bg-slate-700' : 'bg-slate-700 dark:bg-slate-800 border border-slate-600'}`}>
-              {isTeacherView ? '教室後方 / 布告欄' : '講台 / 黑板'}
-            </div>
-
-            <div className={`relative ${UI_THEME.SURFACE_GLASS} rounded-3xl shadow-2xl p-8 md:p-12 border-4 ${UI_THEME.BORDER_LIGHT} max-w-5xl w-full mx-auto flex-1 flex flex-col overflow-hidden`}>
-              <SeatGrid
-                layout={currentClass?.layout}
-                students={currentClass?.students || []}
-                isTeacherView={isTeacherView}
-                onSeatDrop={seatDrop}
-                onStudentClick={handleStudentClick}
-                displayMode={displayMode}
-                appMode={appMode}
-                attendanceStatus={currentAttendanceStatus}
-                onToggleVoid={toggleVoid}
-                onToggleLock={toggleLock}
-                hoveredGroup={hoveredGroup}
-              />
-            </div>
-
-            <div className={`w-full max-w-4xl h-10 mt-6 rounded-xl flex items-center justify-center text-white font-bold tracking-widest shadow-lg transition-all duration-500 ${isTeacherView ? 'bg-slate-700 dark:bg-slate-800 border border-slate-600' : 'bg-slate-500 dark:bg-slate-700'}`}>
-              {isTeacherView ? '講台 / 黑板' : '教室後方 / 布告欄'}
-            </div>
+          <div className={`w-full max-w-4xl h-10 min-h-10 shrink-0 mt-2 rounded-[0.5rem] flex items-center justify-center text-white font-bold tracking-widest shadow-md transition-all duration-500 z-10 ${isTeacherView ? 'bg-slate-700 dark:bg-slate-800' : 'bg-slate-500 dark:bg-slate-700'}`}>
+            {isTeacherView ? '講台 / 黑板' : '教室後方 / 布告欄'}
           </div>
         </div>
       </div>
-    </div>
+    </StandardAppLayout>
   );
 };
 

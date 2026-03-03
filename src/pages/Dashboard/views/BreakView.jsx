@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArrowRight, BookOpen, Edit3, Moon, Home } from 'lucide-react';
-import { UI_THEME } from '../../../utils/constants';
+import { UI_THEME } from '../../../constants';
 import { CircularProgress, QuietModeView } from '../components/DashboardWidgets';
 import ZhuyinRenderer from '../../../components/common/ZhuyinRenderer'; // 1. 引入
 

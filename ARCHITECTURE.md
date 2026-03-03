@@ -135,8 +135,11 @@
     - **`Toolbar.jsx`**：頂部工具列 (評分/編輯切換)。
     - **`SeatGrid.jsx`** ：座位表網格容器，負責渲染所有 SeatCell。
     - **`SeatCell.jsx`**：單一座位單元 (處理 Drag & Drop)。
+    - **`QuickScoreBar.jsx`**：底部加分動態島，包含全班加分、批次評分與周邊工具開關。
     - **`GroupScoreTicker.jsx`**：小組分數戰況列。
     - **`ScoreFeedback.jsx`**：分數動畫回饋元件。
+    - **widgets/**
+        - **`ArrangeToolboxWidget.jsx`**：排座位與走道設定的漂浮工具箱。
     - **sidebar/**
         - **`ManagementTab.jsx`**：側邊欄-班級管理分頁 (學生清單)。
         - **`ScoresTab.jsx`**：側邊欄-成績排行分頁。
@@ -149,17 +152,25 @@
     - **`LayoutTemplateModal.jsx`**：座位佈局樣板。
     - **`ScoringModal.jsx`**：評分面板。
 
-### 5. CaseLog(個案日誌)
+### 5. CaseLog (學生日誌)
 
-- `CaseLog.jsx`：個案日誌主介面
+> **架構設計理念：Local-First + BYOD (Bring Your Own Drive)**
+> CaseLog 系統的核心理念是資料去中心化與最高隱私保護。所有學生的輔導記錄皆直接儲存於每位老師個人的 Google Drive (Google Sheets) 中，系統本身不提供任何中央伺服器或共用資料庫。
+> - **安全限制 (`drive.file` scope)**：為簡化註冊流程並避免 Google 嚴苛的安全審查，系統僅要求最小的 `drive.file` 權限。這意味著系統「只能存取由 ClassroomOS 自身建立的檔案」。
+> - **功能取捨**：基於上述限制，需要跨越老師權限邊界的功能（例如：共編日誌、自動讀取非系統建立的 Google Form 回覆）皆被刻意擱置或透過跳轉方式處理，以確保系統的輕量與安全性。
+
+- **`CaseLog.jsx`**：學生日誌主介面。
 - **components/**
-    - **`LogForm.jsx`**：日誌編輯表單，負責依據樣板渲染輸入框並處理新增、修改與編輯模式邏輯。
-    - **`TemplateEditor.jsx`**：日誌樣板編輯器，提供教師自訂日誌紀錄欄位與表單格式。
-- context/
-    - **`CaseLogContext.jsx`**：個案日誌專屬狀態管理，處理 CRUD 操作及與 IndexedDB、Google Sheets 的雙向資料同步。
-- views/
-    - **`ParentView.jsx`**：家長專屬唯讀畫面，透過 URL 時間戳記 (tms) 參數精準過濾並顯示教師指定的日誌內容。
-    - **`TeacherDashboard.jsx`**：教師端主控台，包含學生清單、依月份摺疊的歷史日誌、批次選取與 A4 列印匯出引擎。
+    - **`LogForm.jsx`**：日誌編輯表單，負責依據樣板渲染輸入框並處理新增、草稿 (Debounce)、自動調整大小與文字縮放邏輯。
+    - **`TemplateEditor.jsx`**：日誌樣板編輯器，提供教師自訂日誌紀錄欄位 (`text`, `rating`, `checkbox`, `select`) 與表單格式。
+    - **`Sidebar.jsx`**：側邊學生選單。（註：共編匯入功能暫時隱藏）
+    - **`Toolbar.jsx`**：頂部工具列。（註：共編分享按鈕暫時隱藏）
+- **context/**
+    - **`CaseLogContext.jsx`**：學生日誌專屬狀態管理，處理 CRUD 操作，結合 IndexedDB (Offline-first) 與 Google Sheets (Remote) 的雙向資料同步。
+- **views/**
+    - **`TeacherDashboard.jsx`**：教師端主控台，包含學生清單、歷史日誌、批次選取與圖片上傳/預覽邏輯。
+    - **`ParentView.jsx`**：家長專屬唯讀畫面 (公開無須登入)，透過 URL 參數過濾並顯示教師指定的日誌內容，支援全文響應式文字縮放。
+    - **`components/LogDetailPane.jsx`**：教師端日誌詳細閱讀區，包含唯讀展示、縮放以及刪除/編輯入口。
 
 ## 📂 src/utils (工具函式庫)
 

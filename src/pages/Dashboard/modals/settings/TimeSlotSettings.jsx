@@ -1,6 +1,6 @@
 import React from 'react';
 import { Clock, Trash2, Plus } from 'lucide-react';
-import { UI_THEME } from '../../../../utils/constants';
+import { UI_THEME } from '../../../../constants';
 import SettingsSection from './SettingsSection';
 
 const TimeSlotSettings = ({ 

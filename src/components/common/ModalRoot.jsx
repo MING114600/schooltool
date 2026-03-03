@@ -1,8 +1,8 @@
 import React from 'react';
 import { useModalContext } from '../../context/ModalContext';
-import { useClassroomContext } from '../../context/ClassroomContext';
+import { useClassroomStore } from '../../store/useClassroomStore';
 import { useAuth } from '../../context/AuthContext';
-import { MODAL_ID } from '../../utils/constants';
+import { MODAL_ID } from '../../constants';
 
 // --- Global Modals ---
 import DialogModal from './DialogModal';
@@ -23,19 +23,23 @@ const ModalRoot = () => {
         dialogConfig, closeDialog, openDialog
     } = useModalContext();
 
-    // 嘗試取得 classroomContext，若沒被包裹在 Provider 內就不會執行到這裡
-    // 但因為我們將 ModalRoot 放在 ClassroomOS 裡面，所以保證拿得到
-    const classroomData = useClassroomContext();
+    const classes = useClassroomStore(state => state.classes);
+    const currentClassId = useClassroomStore(state => state.currentClassId);
+    const currentClass = classes.find(c => c.id === currentClassId);
+    const templates = useClassroomStore(state => state.templates);
+    const setHoveredGroup = useClassroomStore(state => state.setHoveredGroup);
+
+    const saveTemplate = useClassroomStore(state => state.saveTemplate);
+    const deleteTemplate = useClassroomStore(state => state.deleteTemplate);
+    const applyTemplate = useClassroomStore(state => state.applyTemplate);
+    const updateStudent = useClassroomStore(state => state.updateStudent);
+    const updateStudents = useClassroomStore(state => state.updateStudents);
+    const scoreStudent = useClassroomStore(state => state.scoreStudent);
+    const resetScores = useClassroomStore(state => state.resetScores);
+    const updateBehaviors = useClassroomStore(state => state.updateBehaviors);
+    const updateAttendance = useClassroomStore(state => state.updateAttendance);
+
     const { user, login } = useAuth();
-
-    if (!classroomData) return null;
-
-    const {
-        currentClass,
-        saveTemplate, deleteTemplate, applyTemplate,
-        updateStudent, updateStudents, scoreStudent, resetScores, updateBehaviors, updateAttendance,
-        templates, setHoveredGroup
-    } = classroomData;
 
     // 封裝共用的 Dialog 觸發函式
     const handleShowDialog = (config) => {

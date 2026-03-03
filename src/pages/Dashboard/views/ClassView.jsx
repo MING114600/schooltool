@@ -1,6 +1,6 @@
 import React from 'react';
 import { Bell } from 'lucide-react';
-import { UI_THEME } from '../../../utils/constants';
+import { UI_THEME } from '../../../constants';
 import ZhuyinRenderer from '../../../components/common/ZhuyinRenderer'; // 1. 引入
 
 const ClassView = ({ schedule, now, currentSlot, isGlobalZhuyin }) => {
