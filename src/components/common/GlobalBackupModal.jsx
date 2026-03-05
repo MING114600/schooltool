@@ -1,7 +1,7 @@
 // src/components/common/GlobalBackupModal.jsx
 import React, { useState, useEffect } from 'react'; // 🌟 記得引入 useEffect
-import { 
-  X, Database, CloudUpload, CloudDownload, 
+import {
+  X, Database, CloudUpload, CloudDownload,
   HardDriveDownload, HardDriveUpload, Loader2, AlertCircle, CheckCircle2, Clock, Trash2, AlertTriangle
 } from 'lucide-react'; // 🌟 新增 Clock 圖示
 
@@ -9,8 +9,8 @@ import {
 import DialogModal from './DialogModal';
 
 // 引入我們寫好的兩支核心工具
-import { exportSystemData, importSystemData, generateSystemPayload, restoreFromPayload, resetSystem } from '../../utils/backupService';
-import { syncToCloud, fetchFromCloud, getCloudBackupTime } from '../../utils/googleDriveService';
+import { exportSystemData, importSystemData, generateSystemPayload, restoreFromPayload, resetSystem } from '../../services/backupService';
+import { syncToCloud, fetchFromCloud, getCloudBackupTime } from '../../services/googleDriveService';
 
 const CLOUD_FILE_NAME = 'ClassroomOS_CloudSync.json';
 
@@ -23,7 +23,7 @@ const GlobalBackupModal = ({ isOpen, onClose, user, login }) => {
   const [localConfirmOpen, setLocalConfirmOpen] = useState(false);
   const [pendingLocalFile, setPendingLocalFile] = useState(null); // 暫存老師選擇的實體檔案
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false); // 控制重置確認框
-  
+
   // 🌟 新增：備份時間狀態
   const [lastBackupTime, setLastBackupTime] = useState(null);
   const [isLoadingTime, setIsLoadingTime] = useState(false);
@@ -32,17 +32,17 @@ const GlobalBackupModal = ({ isOpen, onClose, user, login }) => {
   const [authExpiredOpen, setAuthExpiredOpen] = useState(false);
 
   // 🌟 新增：當 Modal 打開且有使用者登入時，自動抓取雲端備份時間
-useEffect(() => {
-    const fetchTime = async () => {           
+  useEffect(() => {
+    const fetchTime = async () => {
       if (!isOpen || !user || !user.accessToken) {
         setLastBackupTime(null);
         return;
       }
-      
+
       setIsLoadingTime(true);
-      try {        
-        const timeStr = await getCloudBackupTime(user.accessToken);
-                
+      try {
+        const timeStr = await getCloudBackupTime(user.accessToken, CLOUD_FILE_NAME);
+
         if (timeStr) {
           setLastBackupTime(new Date(timeStr).toLocaleString('zh-TW', {
             year: 'numeric', month: '2-digit', day: '2-digit',
@@ -51,7 +51,7 @@ useEffect(() => {
         } else {
           setLastBackupTime('尚無備份紀錄');
         }
-      } catch (err) {        
+      } catch (err) {
         if (err.message === 'TokenExpired') {
           setLastBackupTime('憑證已過期');
         } else {
@@ -61,7 +61,7 @@ useEffect(() => {
         setIsLoadingTime(false);
       }
     };
-    
+
     fetchTime();
   }, [isOpen, user]); // 確保依賴陣列有 isOpen 和 user
 
@@ -74,17 +74,17 @@ useEffect(() => {
   // ==========================================
   // ☁️ 雲端同步邏輯
   // ==========================================
-  
+
   const handleCloudBackup = async () => {
     if (!user) { login(); return; }
-    
+
     setIsProcessing(true);
     setStatusMessage({ type: '', text: '' });
     try {
       const payload = await generateSystemPayload();
       await syncToCloud(user.accessToken, CLOUD_FILE_NAME, payload);
       showMessage('success', '雲端備份成功！資料已安全同步至 Google Drive。');
-      
+
       // 🌟 備份成功後，更新畫面上顯示的時間
       setLastBackupTime(new Date().toLocaleString('zh-TW', {
         year: 'numeric', month: '2-digit', day: '2-digit',
@@ -102,7 +102,7 @@ useEffect(() => {
       setIsProcessing(false);
     }
   };
-  
+
   // 觸發雲端還原確認視窗
   const triggerCloudRestore = () => {
     if (!user) {
@@ -123,7 +123,7 @@ useEffect(() => {
         setCloudConfirmOpen(false);
         return;
       }
-      
+
       await restoreFromPayload(cloudData);
       showMessage('success', '資料還原成功！系統將在 3 秒後重新載入套用設定。');
       setCloudConfirmOpen(false);
@@ -132,7 +132,7 @@ useEffect(() => {
       console.error("🔥 雲端備份詳細錯誤:", err);
       if (err.message === 'TokenExpired') {
         // 🌟 改為觸發重新登入視窗
-        setAuthExpiredOpen(true); 
+        setAuthExpiredOpen(true);
       } else {
         showMessage('error', '雲端還原失敗，請確認網路連線或檔案完整性。');
       }
@@ -162,7 +162,7 @@ useEffect(() => {
   const handleLocalFileSelect = (event) => {
     const file = event.target.files[0];
     if (!file) return;
-    
+
     setPendingLocalFile(file);
     setLocalConfirmOpen(true);
     event.target.value = null; // 清空 input，允許重複選擇同一個檔案
@@ -192,7 +192,7 @@ useEffect(() => {
     setLocalConfirmOpen(false);
     setPendingLocalFile(null);
   };
-  
+
   // 執行重置
   const executeReset = async () => {
     setIsProcessing(true);
@@ -207,12 +207,12 @@ useEffect(() => {
       setIsResetConfirmOpen(false);
     }
   };
-  
+
   if (!isOpen) return null;
 
   return (
     <>
-	  {/* 🌟 1. 新增憑證過期對話框 */}
+      {/* 🌟 1. 新增憑證過期對話框 */}
       <DialogModal
         isOpen={authExpiredOpen}
         title="登入安全時效已過"
@@ -228,7 +228,7 @@ useEffect(() => {
         onCancel={() => setAuthExpiredOpen(false)}
         onClose={() => setAuthExpiredOpen(false)}
       />
-	
+
       {/* 🌟 加入雲端還原的 DialogModal */}
       <DialogModal
         isOpen={cloudConfirmOpen}
@@ -258,8 +258,8 @@ useEffect(() => {
         onCancel={cancelLocalRestore}
         onClose={cancelLocalRestore}
       />
-	  
-	  {/* 🌟 新增：重置確認對話框 */}
+
+      {/* 🌟 新增：重置確認對話框 */}
       <DialogModal
         isOpen={isResetConfirmOpen}
         title="警告：即將清除所有資料"
@@ -276,7 +276,7 @@ useEffect(() => {
 
       <div className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={onClose}>
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col" onClick={e => e.stopPropagation()}>
-          
+
           {/* Header */}
           <div className="p-4 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
             <h3 className="font-bold text-lg text-slate-800 dark:text-white flex items-center gap-2">
@@ -290,7 +290,7 @@ useEffect(() => {
 
           {/* Body */}
           <div className="p-6 flex flex-col gap-6 relative">
-            
+
             {/* 處理中遮罩 */}
             {isProcessing && (
               <div className="absolute inset-0 z-10 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-b-2xl">
@@ -349,7 +349,7 @@ useEffect(() => {
                   <HardDriveDownload size={18} />
                   下載 JSON 檔
                 </button>
-                
+
                 <label className="flex-1 flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 py-2.5 rounded-lg font-bold transition-all cursor-pointer">
                   <HardDriveUpload size={18} />
                   匯入 JSON 檔
@@ -359,24 +359,24 @@ useEffect(() => {
               </div>
             </div>
 
-          {/* 🌟 新增：危險區域 */}
-                <div className="border-2 border-rose-100 dark:border-rose-900/30 bg-rose-50/50 dark:bg-rose-900/10 rounded-xl p-5 mt-2">
-                  <h4 className="font-bold text-rose-700 dark:text-rose-400 mb-2 flex items-center gap-2">
-                    <AlertTriangle size={20} />
-                    危險區域
-                  </h4>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 font-medium">
-                    如果遇到系統異常，或希望在公用電腦上移除您的個人資料，可以執行此操作。
-                  </p>
-                  <button 
-                    onClick={() => setIsResetConfirmOpen(true)}
-                    className="w-full flex items-center justify-center gap-2 bg-white dark:bg-rose-950 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white dark:hover:bg-rose-900 transition-all py-2.5 rounded-lg font-bold shadow-sm"
-                  >
-                    <Trash2 size={18} />
-                    清除所有本地資料 (恢復原廠設定)
-                  </button>
-                </div>
+            {/* 🌟 新增：危險區域 */}
+            <div className="border-2 border-rose-100 dark:border-rose-900/30 bg-rose-50/50 dark:bg-rose-900/10 rounded-xl p-5 mt-2">
+              <h4 className="font-bold text-rose-700 dark:text-rose-400 mb-2 flex items-center gap-2">
+                <AlertTriangle size={20} />
+                危險區域
+              </h4>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 font-medium">
+                如果遇到系統異常，或希望在公用電腦上移除您的個人資料，可以執行此操作。
+              </p>
+              <button
+                onClick={() => setIsResetConfirmOpen(true)}
+                className="w-full flex items-center justify-center gap-2 bg-white dark:bg-rose-950 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white dark:hover:bg-rose-900 transition-all py-2.5 rounded-lg font-bold shadow-sm"
+              >
+                <Trash2 size={18} />
+                清除所有本地資料 (恢復原廠設定)
+              </button>
             </div>
+          </div>
         </div>
       </div>
     </>

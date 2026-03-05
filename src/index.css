@@ -123,7 +123,9 @@ html.dark {
   line-height: 1.5;
   /* 👇 新增這兩行 */
   font-weight: 500 !important; /* 強制使用標準粗細，不准瀏覽器自動加粗 */
-  -webkit-font-smoothing: antialiased; /* 讓字體邊緣更平滑銳利 */
+  -webkit-font-smoothing: antialiased; /* 讓字體缺乏邊緣更平滑銳利 */
+  /* 保證在直排時，即使字型內部帶有側面設定也能轉正 */
+  text-orientation: upright;
 }
 
 @media print {

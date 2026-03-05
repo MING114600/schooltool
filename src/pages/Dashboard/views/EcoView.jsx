@@ -90,12 +90,28 @@ const EcoView = ({
   }, []);
 
   const handleWakeClick = () => {
+    // 1. 如果目前是休眠(隱藏鼠標)，點擊只負責喚醒 UI (顯示 Dock/時間變亮)
     if (isCursorHidden) {
         setIsCursorHidden(false);
-        if(onWake) onWake(); 
-    } else {
-        if (onBackgroundClick) onBackgroundClick();
+        // 重置閒置計時器
+        if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
+        cursorTimerRef.current = setTimeout(() => setIsCursorHidden(true), 3000);
+        return;
     }
+
+    // 2. 如果 UI 已經醒著，再次點擊背景 -> 觸發「真正的喚醒/退出」
+    
+    // (A) 先播放視覺動畫 (星空加速)
+    setIsWaking(true); 
+
+    // (B) 延遲 700ms 讓動畫跑一下，再通知父層切換 View
+    setTimeout(() => {
+        if (onWake) onWake(); 
+        // 注意：如果是放學模式，onWake 不會切換 View，
+        // 所以我們要記得把 isWaking 設回 false，不然星空會一直模糊
+        // 但因為切換 View 會 Unmount，所以這行只有在「不切換」時才有效
+        setIsWaking(false); 
+    }, 700);
   };
 
   return (

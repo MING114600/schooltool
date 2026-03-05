@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Layers, X, Shuffle, Trash2, Users, GripVertical, TrendingUp, Scale } from 'lucide-react';
-import { GROUP_THEME } from '../../../utils/constants';
+import { GROUP_THEME } from '../../../constants';
 import { cn } from '../../../utils/cn'; // ★ 引入工具
 
 // 引入演算法 (假設您已建立)

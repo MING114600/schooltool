@@ -1,7 +1,7 @@
 // src/components/common/ExamPackageModal.jsx
 import React, { useState, useEffect } from 'react';
 import { X, Box, CheckCircle2, Circle, Loader2, Send, Edit3 } from 'lucide-react';
-import { getAllExamMetas, getExamById } from '../../../utils/examDatabase';
+import { getAllExamMetas, getExamById } from '../../../services/examDatabase';
 
 const ExamPackageModal = ({ isOpen, onClose, onConfirm, isSharing }) => {
   const [list, setList] = useState([]);
@@ -48,7 +48,7 @@ const ExamPackageModal = ({ isOpen, onClose, onConfirm, isSharing }) => {
     }
   };
 
-  const handleSend = async () => {
+const handleSend = async () => {
     if (selectedIds.length === 0) return;
     
     // 抓取完整考卷資料
@@ -62,22 +62,24 @@ const ExamPackageModal = ({ isOpen, onClose, onConfirm, isSharing }) => {
     let displayTitle = '';
     let cloudFileName = '';
 
+    // 🌟 關鍵修正：從畫面上已知的 list 提取標題作為最安全的備案
+    const firstSelectedMeta = list.find(exam => exam.id === selectedIds[0]);
+    const safeTitle = fullExams[0]?.title || (firstSelectedMeta ? firstSelectedMeta.title : '未命名考卷');
+
     if (count === 1) {
       // 單份：直接用考卷標題，不需老師輸入
-      displayTitle = fullExams[0].title;
-      cloudFileName = `[派送考卷]_${fullExams[0].title}`;
+      displayTitle = safeTitle;
+      cloudFileName = `[派送考卷]_${safeTitle}`;
     } else {
-      // 🌟 多份：使用老師輸入的名稱 (或是預設值)
-      // 如果老師把輸入框清空，我們就幫他填回預設值，避免空檔名
-      const finalName = customPackageName.trim() || `${fullExams[0].title}_等${count}份`;
-      
+      // 多份：使用老師輸入的名稱 (或是預設值)
+      const finalName = customPackageName.trim() || `${safeTitle}_等${count}份`;
       displayTitle = finalName;
       cloudFileName = `[派送考卷包]_${finalName}`; 
     }
 
     onConfirm(fullExams, displayTitle, cloudFileName);
   };
-
+  
   if (!isOpen) return null;
 
   return (

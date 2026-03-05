@@ -8,6 +8,11 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+	  workbox: {
+        cleanupOutdatedCaches: true, // 自動清除舊版快取
+        skipWaiting: true,           // 讓新的 Service Worker 立即接管
+        clientsClaim: true           // 立即控制所有開啟的網頁
+      },
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg', '**/*.mp3', '**/*.png'], // 確保音效與圖片被快取
       manifest: {
         name: '智慧教室儀表板',

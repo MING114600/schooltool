@@ -3,7 +3,7 @@ import {
   Megaphone, X, Edit3, Volume2, PanelTop, Monitor, Save, Play,
   Users, BookOpen, Eye, Bell, MessageSquare, Star, Heart, AlertTriangle, Info, Zap
 } from 'lucide-react';
-import { UI_THEME } from '../../../utils/constants';
+import { UI_THEME } from '../../../constants';
 
 // 可選圖示清單
 const ICON_OPTIONS = [

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Star, X } from 'lucide-react';
-import { UI_THEME } from '../../../utils/constants';
+import { UI_THEME } from '../../../constants';
 
 // 圓形進度條
 export const CircularProgress = ({ progress, size = 300, strokeWidth = 15, children, colorClass }) => {

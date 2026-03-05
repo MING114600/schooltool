@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Edit3, X, CheckCircle2, Info, Trash2 } from 'lucide-react';
+import { AlertTriangle, Edit3, X, CheckCircle2, Info, Trash2, Loader2 } from 'lucide-react';
 
 /**
  * 通用對話框組件
@@ -41,6 +41,7 @@ const DialogModal = ({
   closeOnEsc = true,
   isBusy = false,
   errorMessage = '',
+  children // 🌟 新增：允許放入自訂內容
 }) => {
   const [inputValue, setInputValue] = useState(defaultValue);
   const inputRef = useRef(null);
@@ -175,6 +176,8 @@ const DialogModal = ({
             </p>
           )}
 
+          {children /* 🌟 新增：自定義內容 */}
+
           {type === 'prompt' && (
             <input
               id="dialog-input"
@@ -195,9 +198,8 @@ const DialogModal = ({
           {type !== 'alert' && (
             <button
               onClick={() => requestClose('cancel')}
-              className={`px-4 py-2 rounded-xl font-bold transition-colors ${cancelBtnClass} ${
-                isBusy ? 'opacity-60 cursor-not-allowed' : ''
-              }`}
+              className={`px-4 py-2 rounded-xl font-bold transition-colors ${cancelBtnClass} ${isBusy ? 'opacity-60 cursor-not-allowed' : ''
+                }`}
               disabled={isBusy}
             >
               {cancelText}
@@ -206,12 +208,18 @@ const DialogModal = ({
 
           <button
             onClick={handleConfirm}
-            className={`px-6 py-2 text-sm font-bold text-white rounded-lg shadow-sm transition-all active:scale-95 ${confirmBtnClass} ${
-              isBusy ? 'opacity-60 cursor-not-allowed' : ''
-            }`}
+            className={`flex items-center justify-center gap-2 px-6 py-2 text-sm font-bold text-white rounded-lg shadow-sm transition-all active:scale-95 ${confirmBtnClass} ${isBusy ? 'opacity-60 cursor-not-allowed' : ''
+              }`}
             disabled={isBusy}
           >
-            {confirmText}
+            {isBusy ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                {confirmText}
+              </>
+            ) : (
+              confirmText
+            )}
           </button>
         </div>
       </div>

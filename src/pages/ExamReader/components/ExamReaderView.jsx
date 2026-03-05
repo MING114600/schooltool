@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { UI_THEME } from '../../../utils/constants';
+import { UI_THEME } from '../../../constants';
 import { useOS } from '../../../context/OSContext';
 import ZhuyinRenderer from '../../../components/common/ZhuyinRenderer';
 import { ArrowUp, ArrowDown, Edit3 } from 'lucide-react';

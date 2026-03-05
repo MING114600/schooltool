@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, RotateCcw, Volume2, Users, Coffee, AlertCircle , ArrowRight, Moon, Sun} from 'lucide-react';
-import { UI_THEME } from '../../../utils/constants';
+import { UI_THEME } from '../../../constants';
 import { useOS } from '../../../context/OSContext';
 import ZhuyinRenderer from '../../../components/common/ZhuyinRenderer';
 

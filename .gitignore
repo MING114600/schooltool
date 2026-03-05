@@ -15,6 +15,7 @@ dist-ssr
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
+.cursorrules
 .idea
 .DS_Store
 *.suo
@@ -22,3 +23,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Testing scripts and AI agents
+test_puppeteer.*
+.agents/
+
+# local env files
+.env
+.env.local
+.env.*.local

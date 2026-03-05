@@ -1,23 +1,23 @@
 import React, { useState, Suspense, useEffect } from 'react';
 import { Grid, Loader2 } from 'lucide-react';
 
-import { UI_THEME } from './utils/constants';
-import usePersistentState from './hooks/usePersistentState'; 
+import { UI_THEME } from './constants';
 import { ThemeProvider, useThemeContext } from './context/ThemeContext';
 import { OSProvider, useOS } from './context/OSContext';
-import { ClassroomProvider } from './context/ClassroomContext';
+import { useClassroomStore } from './store/useClassroomStore';
 import { ModalProvider } from './context/ModalContext';
-import { useGoogleLogin } from '@react-oauth/google';
+// 🌟 1. 引入剛剛做好的 AuthContext
+import { useAuth } from './context/AuthContext';
 
 // 🌟 Config
 import { APPS_CONFIG } from './config/apps';
-import { APP_VERSION } from './utils/patchNotesData';
+import { APP_VERSION } from './data/patchNotesData';
 
 // 🌟 Components
-import AppLauncher from './components/OS/AppLauncher'; // 乾淨引入
+import AppLauncher from './components/OS/AppLauncher';
 import PatchNotesModal from './components/common/PatchNotesModal';
+import ModalRoot from './components/common/ModalRoot';
 
-// Loading 也可以考慮拆分，但放這裡還行
 const LoadingScreen = () => (
   <div className={`w-full h-full flex flex-col items-center justify-center ${UI_THEME.BACKGROUND}`}>
     <div className="flex flex-col items-center gap-4 animate-pulse">
@@ -31,13 +31,28 @@ const LoadingScreen = () => (
   </div>
 );
 
+const DataLoader = ({ children }) => {
+  const isLoading = useClassroomStore(state => state.isLoading);
+  const initStore = useClassroomStore(state => state.initStore);
+
+  useEffect(() => {
+    initStore();
+  }, [initStore]);
+
+  if (isLoading) return <LoadingScreen />;
+
+  return children;
+};
+
 // --- ClassroomOS 核心邏輯 ---
 const ClassroomOS = () => {
   const { theme, cycleTheme } = useThemeContext();
   const [isLauncherOpen, setIsLauncherOpen] = useState(false);
-  const { currentAppId, setCurrentAppId, launcherPosition } = useOS(); 
+  const { currentAppId, setCurrentAppId, launcherPosition } = useOS();
 
-  const [user, setUser] = usePersistentState('classroom_os_user', null);
+  // 🌟 2. 一行程式碼，取代原本幾十行的登入狀態與邏輯！
+  const { user, login, logout } = useAuth();
+
   const [shareId, setShareId] = useState(null);
   const [showLatestNotes, setShowLatestNotes] = useState(false);
   const [showHistoryNotes, setShowHistoryNotes] = useState(false);
@@ -51,37 +66,24 @@ const ClassroomOS = () => {
     };
     checkVersion();
   }, []);
-  
-  const login = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      try {
-        const token = tokenResponse.access_token;
-        const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const userInfo = await res.json();
-        setUser({ 
-          accessToken: token,
-          name: userInfo.name,
-          email: userInfo.email,
-          picture: userInfo.picture
-        });
-      } catch (err) {
-        setUser({ accessToken: tokenResponse.access_token });
-      }
-    },
-    scope: 'https://www.googleapis.com/auth/drive.file profile email',
-    onError: () => alert('登入失敗，請稍後再試'),
-  });
 
-  const logout = () => setUser(null);
+  // 🌟 1. 判斷是否為家長模式
+  const isParentView = window.location.pathname.includes('/parent/view') ||
+    window.location.search.includes('token=');
+
+  // 🌟 2. 如果是家長模式，強制將當前 App 切換為 'caselog'
+  useEffect(() => {
+    if (isParentView) {
+      setCurrentAppId('caselog');
+    }
+  }, [isParentView, setCurrentAppId]);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('shareId');
     if (code) {
       setShareId(code);
-      setCurrentAppId('reader'); 
+      setCurrentAppId('reader');
     }
   }, [setCurrentAppId]);
 
@@ -91,11 +93,12 @@ const ClassroomOS = () => {
 
   return (
     <div className={`relative w-full h-full ${UI_THEME.BACKGROUND} overflow-hidden transition-colors duration-500`}>
-      
-      {/* 啟動器按鈕 */}
-      <button 
-        onClick={() => setIsLauncherOpen(true)}
-        className={`
+
+      {/* 🌟 3. 只有「不是」家長模式時，才顯示啟動器按鈕 */}
+      {!isParentView && (
+        <button
+          onClick={() => setIsLauncherOpen(true)}
+          className={`
             fixed bottom-4 ${buttonPosClass} z-[10000]
             flex items-center justify-center gap-2
             p-3 pr-4 rounded-[1.2rem]
@@ -107,67 +110,72 @@ const ClassroomOS = () => {
             group hover:scale-105 hover:shadow-xl
             focus-visible:ring-4 focus-visible:ring-indigo-500/50 focus-visible:outline-none
         `}
-        aria-label="開啟系統選單"
-        aria-haspopup="dialog"
-      >
-        <Grid size={24} className="transition-transform group-hover:rotate-90" />
-        <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 font-bold whitespace-nowrap opacity-0 group-hover:opacity-100">
+          aria-label="開啟系統選單"
+          aria-haspopup="dialog"
+        >
+          <Grid size={24} className="transition-transform group-hover:rotate-90" />
+          <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 font-bold whitespace-nowrap opacity-0 group-hover:opacity-100">
             系統選單
-        </span>
-      </button>
+          </span>
+        </button>
+      )}
 
       {/* 主畫面 */}
       <div className="w-full h-full" aria-hidden={isLauncherOpen}>
-         <Suspense fallback={<LoadingScreen />}>
-            <CurrentComponent 
-                theme={theme} 
-                cycleTheme={cycleTheme} 
-                user={user}
-                setUser={setUser}
-                login={login}
-                shareId={shareId}
-                setShareId={setShareId}
-            />
-         </Suspense>
+        <Suspense fallback={<LoadingScreen />}>
+          <CurrentComponent
+            theme={theme}
+            cycleTheme={cycleTheme}
+            user={user}
+            login={login}
+            shareId={shareId}
+            setShareId={setShareId}
+          />
+        </Suspense>
       </div>
 
-      {/* 🌟 乾淨的 AppLauncher */}
-      <AppLauncher 
-        isOpen={isLauncherOpen} 
-        onClose={() => setIsLauncherOpen(false)} 
-        user={user}
-        login={login}
-        logout={logout}
-        onOpenPatchNotes={() => setShowHistoryNotes(true)}
-      />
-
-      <PatchNotesModal 
-          isOpen={showLatestNotes} 
-          onClose={() => {
-            setShowLatestNotes(false);
-            localStorage.setItem('last_seen_version', APP_VERSION);
-          }} 
-          mode="latest" 
+      {/* 🌟 4. 只有「不是」家長模式時，才掛載 AppLauncher */}
+      {!isParentView && (
+        <AppLauncher
+          isOpen={isLauncherOpen}
+          onClose={() => setIsLauncherOpen(false)}
+          user={user}
+          login={login}
+          logout={logout}
+          onOpenPatchNotes={() => setShowHistoryNotes(true)}
         />
-      <PatchNotesModal 
-        isOpen={showHistoryNotes} 
-        onClose={() => setShowHistoryNotes(false)} 
-        mode="history" 
+      )}
+      <PatchNotesModal
+        isOpen={showHistoryNotes}
+        onClose={() => setShowHistoryNotes(false)}
+        mode="history"
+      />
+      {/* 🌟 新增：自動跳出的最新版本更新日誌 */}
+      <PatchNotesModal
+        isOpen={showLatestNotes}
+        mode="latest"
+        onClose={() => {
+          setShowLatestNotes(false);
+          // 🌟 關鍵：使用者關閉後，將當前版本號寫入 localStorage，下次就不會再跳出了
+          localStorage.setItem('last_seen_version', APP_VERSION);
+        }}
       />
 
+      <ModalRoot />
     </div>
   );
 };
 
 const App = () => (
+  // 注意：AuthProvider 已經在 main.jsx 裡包在最外層，所以這裡不需要再寫一次
   <OSProvider>
-    <ClassroomProvider>
+    <DataLoader>
       <ModalProvider>
         <ThemeProvider>
-           <ClassroomOS />
+          <ClassroomOS />
         </ThemeProvider>
       </ModalProvider>
-    </ClassroomProvider>
+    </DataLoader>
   </OSProvider>
 );
 

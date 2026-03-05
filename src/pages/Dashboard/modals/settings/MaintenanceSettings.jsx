@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AlertTriangle, RotateCcw, Download, Clock, FlaskConical } from 'lucide-react';
-import { UI_THEME } from '../../../../utils/constants';
+import { UI_THEME } from '../../../../constants';
 import SettingsSection from './SettingsSection';
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];

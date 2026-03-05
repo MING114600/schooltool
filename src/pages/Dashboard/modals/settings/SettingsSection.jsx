@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronDown } from 'lucide-react';
 // 引入全域主題與小組配色
-import { UI_THEME, GROUP_THEME } from '../../../../utils/constants';
+import { UI_THEME, GROUP_THEME } from '../../../../constants';
 
 // 建立映射表：將語意化的顏色名稱 對應到 GROUP_THEME 的 ID
 const THEME_MAP = {
