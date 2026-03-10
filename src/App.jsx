@@ -84,6 +84,16 @@ const ClassroomOS = () => {
     if (code) {
       setShareId(code);
       setCurrentAppId('reader');
+      return;
+    }
+
+    // 處理 ?app=xxx 指定啟動模組
+    const requestedApp = urlParams.get('app');
+    if (requestedApp) {
+      const isValidApp = APPS_CONFIG.some(a => a.id === requestedApp);
+      if (isValidApp) {
+        setCurrentAppId(requestedApp);
+      }
     }
   }, [setCurrentAppId]);
 
