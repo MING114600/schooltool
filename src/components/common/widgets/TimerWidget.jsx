@@ -125,13 +125,13 @@ const TimerWidget = ({ isOpen, onClose }) => {
   };
 
   const renderContent = (isFull = false) => (
-    <div className={`flex flex - col items - center justify - center ${isFull ? 'h-full w-full' : 'gap-4'} `}>
+    <div className={`flex flex-col items-center justify-center ${isFull ? 'h-full w-full' : 'gap-4'} `}>
       <div
         className={`
-                relative group cursor - pointer tabular - nums leading - none tracking - tight font - black font - mono select - none transition - all
+                relative group cursor-pointer tabular-nums leading-none tracking-tight font-black font-mono select-none transition-all
                 ${isFull ? 'text-[25vw] text-white drop-shadow-2xl' : 'text-6xl text-slate-800 dark:text-white'}
                 ${isRinging ? 'animate-bounce text-red-100' : ''}
-                ${timeLeft <= 10 && mode === 'timer' && isActive ? 'text-red-500 scale-110' : ''} // ★ 增加視覺提示：最後10秒變紅放大
+                ${timeLeft <= 10 && mode === 'timer' && isActive ? 'text-red-500 scale-110' : ''}
 `}
         onClick={() => {
           if (!isActive && !isRinging) {
@@ -148,11 +148,11 @@ const TimerWidget = ({ isOpen, onClose }) => {
         )}
       </div>
 
-      <div className={`flex items - center gap - 6 ${isFull ? 'scale-150 mt-12' : 'mt-2'} `}>
+      <div className={`flex items-center gap-6 ${isFull ? 'scale-150 mt-12' : 'mt-2'} `}>
         <button
           onClick={toggleTimer}
           className={`
-rounded - full flex items - center justify - center text - white shadow - lg transition - all active: scale - 95 
+rounded-full flex items-center justify-center text-white shadow-lg transition-all active:scale-95 
                 ${isFull ? 'w-24 h-24 shadow-2xl' : 'w-14 h-14 hover:scale-105'}
                 ${isRinging ? 'bg-red-500 animate-pulse' : (isActive ? 'bg-amber-500' : 'bg-emerald-500')}
 `}
@@ -162,7 +162,7 @@ rounded - full flex items - center justify - center text - white shadow - lg tra
         <button
           onClick={handleReset}
           className={`
-rounded - full flex items - center justify - center transition - all active: scale - 95
+rounded-full flex items-center justify-center transition-all active:scale-95
                 ${isFull ? 'w-24 h-24 bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm' : 'w-14 h-14 bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}
 `}
         >
@@ -175,7 +175,7 @@ rounded - full flex items - center justify - center transition - all active: sca
   // ... (render return 部分保持不變) ...
   if (isFullScreen) {
     return (
-      <div className={`fixed inset - 0 z - [200] flex flex - col items - center justify - center transition - colors duration - 500 ${isRinging ? 'bg-red-600' : 'bg-slate-900'} `}>
+      <div className={`fixed inset-0 z-[200] flex flex-col items-center justify-center transition-colors duration-500 ${isRinging ? 'bg-red-600' : 'bg-slate-900'} `}>
         <div className="absolute top-6 right-6 flex gap-4 z-50">
           <button onClick={() => setIsFullScreen(false)} className="p-3 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur-md transition-all"><Minimize2 size={32} /></button>
           <button onClick={onClose} className="p-3 bg-white/10 hover:bg-red-500/80 rounded-full text-white backdrop-blur-md transition-all"><Save size={32} className="rotate-45" /></button>

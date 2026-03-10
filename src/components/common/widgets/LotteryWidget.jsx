@@ -111,7 +111,7 @@ const LotteryWidget = ({ isOpen, onClose }) => {
       isOpen={isOpen}
       onClose={onClose}
       icon={Dices}
-      initialPosition={{ x: 320, y: 500 }}
+      initialPosition={{ x: 20, y: 150 }}
     >
       <div className="flex flex-col gap-4">
         {/* 班級選擇器 */}
@@ -136,18 +136,23 @@ const LotteryWidget = ({ isOpen, onClose }) => {
         )}
 
         {/* 模式切換 Pill */}
-        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+        <div className="relative flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+          {/* 滑動背景 */}
+          <div
+            className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white dark:bg-slate-700 rounded-md shadow transition-transform duration-300 ease-out"
+            style={{ transform: mode === 'student' ? 'translateX(0)' : 'translateX(100%)' }}
+          />
           <button
             onClick={() => setMode('student')}
             disabled={isAnimating}
-            className={`flex-1 py-1.5 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1 ${mode === 'student' ? 'bg-white dark:bg-slate-700 shadow text-blue-600 dark:text-blue-400' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`relative z-10 flex-1 py-1.5 rounded-md text-xs font-bold transition-colors duration-300 flex items-center justify-center gap-1 ${mode === 'student' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'}`}
           >
             <User size={14} /> 抽學生
           </button>
           <button
             onClick={() => setMode('group')}
             disabled={isAnimating}
-            className={`flex-1 py-1.5 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1 ${mode === 'group' ? 'bg-white dark:bg-slate-700 shadow text-purple-600 dark:text-purple-400' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`relative z-10 flex-1 py-1.5 rounded-md text-xs font-bold transition-colors duration-300 flex items-center justify-center gap-1 ${mode === 'group' ? 'text-purple-600 dark:text-purple-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'}`}
           >
             <Users size={14} /> 抽小組
           </button>
@@ -157,7 +162,7 @@ const LotteryWidget = ({ isOpen, onClose }) => {
         <div className={`
             relative flex flex-col items-center justify-center min-h-[120px] rounded-xl border-2 transition-all duration-300
             ${finalResult
-            ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700/50 scale-105 shadow-lg'
+            ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700/50 scale-110 shadow-xl z-20'
             : 'bg-slate-50 dark:bg-slate-800/50 border-dashed border-slate-200 dark:border-slate-700'
           }
         `}>

@@ -540,7 +540,7 @@ export default function LogForm({
             type="button"
             onClick={onCancel}
             disabled={isSubmitting}
-            className={`px-6 py-3.5 rounded-xl font-bold transition-all bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300`}
+            className={`px-6 py-3.5 rounded-xl font-bold transition-all bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 transform-gpu will-change-transform active:scale-95`}
           >
             取消編輯
           </button>
@@ -552,7 +552,7 @@ export default function LogForm({
             type="button"
             onClick={onDeleteDraft}
             disabled={isSubmitting}
-            className={`px-6 py-3.5 rounded-xl font-bold transition-all text-rose-600 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/30 dark:hover:bg-rose-900/50 dark:text-rose-400`}
+            className={`px-6 py-3.5 rounded-xl font-bold transition-all text-rose-600 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/30 dark:hover:bg-rose-900/50 dark:text-rose-400 transform-gpu will-change-transform active:scale-95`}
           >
             捨棄草稿
           </button>
@@ -563,7 +563,7 @@ export default function LogForm({
             type="button"
             onClick={handleSaveDraft}
             disabled={isSubmitting}
-            className={`flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold transition-all border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200`}
+            className={`flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold transition-all border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transform-gpu will-change-transform active:scale-95`}
           >
             {isSubmitting ? <Loader2 size={18} className="animate-spin text-slate-400" /> : <Save size={18} />}
             儲存為草稿
@@ -574,7 +574,7 @@ export default function LogForm({
         <button
           type="submit"
           disabled={isSubmitting}
-          className={`flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-bold shadow-sm transition-all ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'active:scale-95 hover:shadow-md'
+          className={`flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-bold shadow-sm transition-all transform-gpu will-change-transform ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'active:scale-95 hover:shadow-md'
             } ${UI_THEME.BTN_PRIMARY}`}
         >
           {isSubmitting ? (

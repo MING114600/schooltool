@@ -18,6 +18,7 @@ import { useTTS } from '../../hooks/useTTS';
 import { useDashboardEvents } from '../../pages/Dashboard/hooks/useDashboardEvents';
 import { useOS } from '../../context/OSContext';
 import { useClassroomStore } from '../../store/useClassroomStore';
+import { DashboardSettingsProvider, useDashboardSettings } from './context/DashboardSettingsContext';
 
 // --- Components (Common) ---
 import ErrorBoundary from '../../components/common/ErrorBoundary';
@@ -43,7 +44,7 @@ import TimerWidget from '../../components/common/widgets/TimerWidget';
 import LotteryWidget from '../../components/common/widgets/LotteryWidget';
 import SoundBoard from '../../components/common/widgets/SoundBoard';
 import WeatherWidget from './components/WeatherWidget';
-import DashboardContactBookWidget from './components/DashboardContactBookWidget';
+import DashboardWidgetsLayer from './components/DashboardWidgetsLayer';
 
 const ICON_MAP = {
   Megaphone, Users, BookOpen, Eye, Bell, MessageSquare,
@@ -58,23 +59,24 @@ const MemoizedSettingsModal = React.memo(SettingsModal);
 const MemoizedMarqueeView = React.memo(MarqueeView);
 
 // --- 主應用組件 ---
-const Dashboard = ({ theme, cycleTheme }) => {
+const DashboardInner = ({ theme, cycleTheme }) => {
+  // --- Context States ---
+  const {
+    timeSlots, setTimeSlots,
+    schedule, setSchedule,
+    subjectHints, setSubjectHints,
+    is24Hour, setIs24Hour,
+    dayTypes, setDayTypes,
+    customPresets, setCustomPresets,
+    visibleButtons, setVisibleButtons,
+    weatherConfig, setWeatherConfig
+  } = useDashboardSettings();
+
   // --- Persistence States ---
   const { isGlobalZhuyin } = useOS();
   const classes = useClassroomStore(state => state.classes);
   const currentClassId = useClassroomStore(state => state.currentClassId);
   const currentClass = classes.find(c => c.id === currentClassId);
-  const [timeSlots, setTimeSlots] = usePersistentState('timeSlots', STANDARD_TIME_SLOTS);
-  const [schedule, setSchedule] = usePersistentState('schedule', DEFAULT_SCHEDULE);
-  const [subjectHints, setSubjectHints] = usePersistentState('subjectHints', DEFAULT_SUBJECT_HINTS);
-  const [is24Hour, setIs24Hour] = usePersistentState('is24Hour', true);
-  const [dayTypes, setDayTypes] = usePersistentState('dayTypes', DEFAULT_DAY_TYPES);
-  const [customPresets, setCustomPresets] = usePersistentState('customPresets', DEFAULT_CUSTOM_BROADCASTS);
-  const [visibleButtons, setVisibleButtons] = usePersistentState('visibleButtons', () => [
-    ...SYSTEM_BUTTONS_CONFIG.singles.map(b => b.id),
-    ...SYSTEM_BUTTONS_CONFIG.groups.flatMap(g => g.items.map(b => b.id))
-  ]);
-  const [weatherConfig, setWeatherConfig] = usePersistentState('weatherConfig', DEFAULT_WEATHER_CONFIG);
 
   // --- UI States ---
   const [teacherMessage, setTeacherMessage] = usePersistentState('teacherMessage', '');
@@ -405,24 +407,9 @@ const Dashboard = ({ theme, cycleTheme }) => {
       {/* --- Modals & Overlays --- */}
       <MemoizedSettingsModal
         isOpen={showSettings} onClose={closeSettings}
-        timeSlots={timeSlots} setTimeSlots={setTimeSlots}
-        schedule={schedule} setSchedule={setSchedule}
-        subjectHints={subjectHints} setSubjectHints={setSubjectHints}
-        dayTypes={dayTypes} setDayTypes={setDayTypes}
         timeOffset={timeOffset} setTimeOffset={setTimeOffset}
         setIsManualEco={setIsManualEco} setIsAutoEcoOverride={setIsAutoEcoOverride}
-        is24Hour={is24Hour} setIs24Hour={setIs24Hour}
-        visibleButtons={visibleButtons} setVisibleButtons={setVisibleButtons}
-        systemButtonsConfig={SYSTEM_BUTTONS_CONFIG}
-        weatherConfig={weatherConfig} setWeatherConfig={setWeatherConfig}
-        setCustomPresets={setCustomPresets} customPresets={customPresets}
         now={showSettings ? now : null}
-        defaultValues={{
-          TIME_SLOTS: STANDARD_TIME_SLOTS,
-          SCHEDULE: DEFAULT_SCHEDULE,
-          SUBJECT_HINTS: DEFAULT_SUBJECT_HINTS,
-          DAY_TYPES: DEFAULT_DAY_TYPES
-        }}
       />
 
       <ToolsMenu
@@ -430,23 +417,18 @@ const Dashboard = ({ theme, cycleTheme }) => {
         onOpenTool={(tool) => toggleTool(tool, true)}
       />
 
-      <ErrorBoundary>
-        <TimerWidget isOpen={toolsState.timer} onClose={() => toggleTool('timer', false)} />
-      </ErrorBoundary>
-
-      <ErrorBoundary>
-        <SoundBoard isOpen={toolsState.sound} onClose={() => toggleTool('sound', false)} />
-      </ErrorBoundary>
-
-      <ErrorBoundary>
-        <LotteryWidget
-          isOpen={toolsState.lottery}
-          onClose={() => toggleTool('lottery', false)}
-          classes={classes}
-          defaultClassId={currentClassId}
-          attendanceStatus={todayAttendance}
-        />
-      </ErrorBoundary>
+      {/* 小工具與浮動視窗層 */}
+      <DashboardWidgetsLayer
+        toolsState={toolsState}
+        toggleTool={toggleTool}
+        classes={classes}
+        currentClassId={currentClassId}
+        todayAttendance={todayAttendance}
+        isContactBookOpen={isContactBookOpen}
+        setIsContactBookOpen={setIsContactBookOpen}
+        isGlobalZhuyin={isGlobalZhuyin}
+        statusMode={statusMode}
+      />
 
       <BroadcastInputModal
         isOpen={showBroadcastInput}
@@ -456,16 +438,14 @@ const Dashboard = ({ theme, cycleTheme }) => {
         setCustomPresets={setCustomPresets}
       />
       <MessageInput isOpen={isEditingMessage} onClose={closeMessageInput} message={teacherMessage} setMessage={setTeacherMessage} />
-
-      {/* 聯絡簿 Widget */}
-      <DashboardContactBookWidget
-        isOpen={isContactBookOpen}
-        onClose={() => setIsContactBookOpen(false)}
-        isGlobalZhuyin={isGlobalZhuyin}
-        statusMode={statusMode}
-      />
     </div>
   );
 };
+
+const Dashboard = (props) => (
+  <DashboardSettingsProvider>
+    <DashboardInner {...props} />
+  </DashboardSettingsProvider>
+);
 
 export default Dashboard;

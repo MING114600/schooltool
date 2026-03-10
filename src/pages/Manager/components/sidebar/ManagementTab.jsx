@@ -1,5 +1,5 @@
 import React, { useRef, memo } from 'react';
-import { Edit3, Trash2, Plus, CalendarCheck, Layers, Download, Box } from 'lucide-react';
+import { Edit3, Trash2, Plus, CalendarCheck, Layers, Download, Box, UserPlus } from 'lucide-react';
 import StudentCard from '../../../../components/business/StudentCard';
 import { useClassroomStore } from '../../../../store/useClassroomStore';
 import { useModalContext } from '../../../../context/ModalContext';
@@ -43,8 +43,8 @@ const ManagementTab = ({
   const { openModal, openDialog, closeDialog } = useModalContext();
 
   const importTextRef = useRef(null);
-  const todayDate = new Date().toLocaleDateString('en-CA');
-  const currentAttendanceStatus = currentClass?.attendanceRecords?.[todayDate] || {};
+  const todayDate = React.useMemo(() => new Date().toLocaleDateString('en-CA'), []);
+  const currentAttendanceStatus = React.useMemo(() => currentClass?.attendanceRecords?.[todayDate] || {}, [currentClass, todayDate]);
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -164,9 +164,15 @@ const ManagementTab = ({
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
-        <div className={`px-4 py-2 border-y ${UI_THEME.BORDER_LIGHT} flex justify-between items-center pointer-events-none bg-slate-50/50 dark:bg-slate-800/50`}>
+        <div className={`px-4 py-2 border-y ${UI_THEME.BORDER_LIGHT} flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50`}>
           <span className={`text-xs font-bold ${UI_THEME.TEXT_MUTED}`}>未排座位 ({unseatedStudents.length})</span>
-          <button onClick={() => setIsEditingList(true)} className={`p-1.5 rounded-lg ${UI_THEME.TEXT_MUTED} hover:text-blue-600 dark:hover:text-blue-400 pointer-events-auto transition-colors`} title="匯入名單"><Edit3 size={16} /></button>
+          <button
+            onClick={() => setIsEditingList(true)}
+            className={`p-1.5 px-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 font-bold text-xs flex items-center gap-1 transition-colors`}
+            title="匯入名單"
+          >
+            <UserPlus size={14} /> 匯入學生
+          </button>
         </div>
         <div className="flex-1 overflow-y-auto p-4 relative custom-scrollbar">
           {isEditingList ? (

@@ -97,7 +97,7 @@ const ContactBookRow = ({
             {/* 控制項按鈕 (非 Focus 模式、非匯出時顯示) */}
             {!isFocusMode && !isExporting && (
                 <div
-                    className="no-export opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 rounded-lg p-1 flex items-center gap-1"
+                    className="no-export opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 rounded-lg p-1 flex items-center gap-1 transform-gpu will-change-opacity"
                     style={isVertical ? { writingMode: 'horizontal-tb' } : undefined}
                 >
                     <button
@@ -116,4 +116,4 @@ const ContactBookRow = ({
     );
 };
 
-export default ContactBookRow;
+export default React.memo(ContactBookRow);

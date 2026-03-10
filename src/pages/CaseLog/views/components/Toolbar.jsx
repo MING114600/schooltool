@@ -1,5 +1,5 @@
-import React from 'react';
-import { ChevronLeft, Loader2, FileText, Settings, Link as LinkIcon, Trash2, UserPlus, RefreshCw } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { ChevronLeft, Loader2, FileText, Settings, Link as LinkIcon, Trash2, UserPlus, RefreshCw, Share2, ChevronDown, ListChecks, Printer } from 'lucide-react';
 import { UI_THEME } from '../../../../constants';
 
 const Toolbar = ({
@@ -8,12 +8,32 @@ const Toolbar = ({
     isSyncing,
     activeTab,
     setActiveTab,
-    handleGenerateLink,
-    handleShareCoedit, // 🌟 新增：分享共編連結處理函數
-    handleRefresh,     // 🌟 新增：手動重整功能
+    handleGenerateShareLink,
+    logs,
+    selectedLogId,
+    selectedLogIds,
+    setSelectedLogIds, // 🌟 新增：用於支援「列印全部」功能
+    isSelectionMode,
+    setIsSelectionMode,
+    handleShareCoedit,
+    handleRefresh,
     setAlertDialog,
     deleteStudentProfile
 }) => {
+    const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+    const exportMenuRef = useRef(null);
+
+    // Click outside to close map
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (exportMenuRef.current && !exportMenuRef.current.contains(event.target)) {
+                setIsExportMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     if (!activeStudent) return null;
 
     return (
@@ -69,13 +89,83 @@ const Toolbar = ({
                     <UserPlus size={16} /> 共編管理
                 </button>
 
-                <button
-                    onClick={handleGenerateLink}
-                    disabled={isSyncing}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold shrink-0 ${UI_THEME.BTN_PRIMARY}`}
-                >
-                    <LinkIcon size={16} /> 家長預覽
-                </button>
+                <div className="relative" ref={exportMenuRef}>
+                    <button
+                        onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
+                        disabled={isSyncing}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold shrink-0 ${UI_THEME.BTN_PRIMARY} transition-all`}
+                    >
+                        <Share2 size={16} /> 匯出與分享 <ChevronDown size={14} className={`transition-transform duration-200 ${isExportMenuOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {isExportMenuOpen && (
+                        <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                            {isSelectionMode && selectedLogIds && selectedLogIds.length > 0 ? (
+                                <div className="py-1">
+                                    <div className="px-3 py-2 text-xs font-bold text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-700/50 block">批次操作 (已選 {selectedLogIds.length} 篇)</div>
+                                    <button
+                                        onClick={() => { handleGenerateShareLink(selectedLogIds); setIsExportMenuOpen(false); }}
+                                        className="w-full text-left px-4 py-2.5 text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-2 transition-colors"
+                                    >
+                                        <Share2 size={16} /> 分享已選項目
+                                    </button>
+                                    <button
+                                        onClick={() => { window.print(); setIsExportMenuOpen(false); }}
+                                        className="w-full text-left px-4 py-2.5 text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/50 flex items-center gap-2 transition-colors"
+                                    >
+                                        <Printer size={16} /> 列印已選項目
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="py-1">
+                                    <div className="px-3 py-2 text-xs font-bold text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-700/50 block">單篇操作</div>
+                                    <button
+                                        onClick={() => { handleGenerateShareLink([selectedLogId]); setIsExportMenuOpen(false); }}
+                                        disabled={selectedLogId === 'new'}
+                                        className={`w-full text-left px-4 py-2.5 text-sm font-bold flex items-center gap-2 transition-colors ${selectedLogId === 'new' ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed' : 'text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400'}`}
+                                    >
+                                        <Share2 size={16} /> 分享此篇紀錄
+                                    </button>
+                                    <button
+                                        onClick={() => { window.print(); setIsExportMenuOpen(false); }}
+                                        disabled={selectedLogId === 'new'}
+                                        className={`w-full text-left px-4 py-2.5 text-sm font-bold flex items-center gap-2 transition-colors border-b border-slate-100 dark:border-slate-700/50 ${selectedLogId === 'new' ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/50'}`}
+                                    >
+                                        <Printer size={16} /> 列印此篇紀錄
+                                    </button>
+
+                                    <div className="px-3 py-2 text-xs font-bold text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-700/50 block">全域操作</div>
+                                    <button
+                                        onClick={() => { handleGenerateShareLink(logs ? logs.map(l => l.id) : []); setIsExportMenuOpen(false); }}
+                                        disabled={!logs || logs.length === 0}
+                                        className={`w-full text-left px-4 py-2.5 text-sm font-bold flex items-center gap-2 transition-colors ${!logs || logs.length === 0 ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/50'}`}
+                                    >
+                                        <LinkIcon size={16} /> 分享全部歷史紀錄
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setIsSelectionMode(true);
+                                            setSelectedLogIds(logs ? logs.map(l => l.id) : []);
+                                            setIsExportMenuOpen(false);
+                                            setTimeout(() => window.print(), 100);
+                                        }}
+                                        disabled={!logs || logs.length === 0}
+                                        className={`w-full text-left px-4 py-2.5 text-sm font-bold flex items-center gap-2 transition-colors ${!logs || logs.length === 0 ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/50'}`}
+                                    >
+                                        <Printer size={16} /> 列印全部歷史紀錄
+                                    </button>
+                                    <button
+                                        onClick={() => { setIsSelectionMode(true); setIsExportMenuOpen(false); }}
+                                        disabled={!logs || logs.length === 0}
+                                        className={`w-full text-left px-4 py-2.5 text-sm font-bold flex items-center gap-2 transition-colors border-t border-slate-100 dark:border-slate-700/50 ${!logs || logs.length === 0 ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/50'}`}
+                                    >
+                                        <ListChecks size={16} /> 手動勾選特定篇數...
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
 
                 <button
                     onClick={() => {

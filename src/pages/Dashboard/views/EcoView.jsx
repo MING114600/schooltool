@@ -37,26 +37,27 @@ export const getMoonPhase = (date = new Date()) => {
 
 // --- 日期格式化 ---
 const formatROCDate = (date) => {
-    const rocYear = date.getFullYear() - 1911;
-    const week = ['日', '一', '二', '三', '四', '五', '六'][date.getDay()];
-    return {
-        // 這裡稍微簡化格式，讓垂直佈局更緊湊
-        fullDate: `民國${rocYear}年${(date.getMonth() + 1).toString().padStart(2,'0')}月${date.getDate().toString().padStart(2,'0')}日`,
-        week: `(${week})` 
-    };
+  const rocYear = date.getFullYear() - 1911;
+  const week = ['日', '一', '二', '三', '四', '五', '六'][date.getDay()];
+  return {
+    // 這裡稍微簡化格式，讓垂直佈局更緊湊
+    fullDate: `民國${rocYear}年${(date.getMonth() + 1).toString().padStart(2, '0')}月${date.getDate().toString().padStart(2, '0')}日`,
+    week: `(${week})`
+  };
 };
 
-const EcoView = ({ 
-    now, 
-    is24Hour, 
-    onWake, 
-    onBackgroundClick,
-    weatherConfig, 
-    controlDock
+const EcoView = ({
+  now,
+  is24Hour,
+  onWake,
+  onBackgroundClick,
+  weatherConfig,
+  controlDock
 }) => {
   const [isWaking, setIsWaking] = useState(false);
   const [isCursorHidden, setIsCursorHidden] = useState(false);
-  const [screenSaverPos, setScreenSaverPos] = useState({ x: 0, y: 0 });
+  const containerRef = useRef(null);
+  const animationRef = useRef(null);
   const cursorTimerRef = useRef(null);
 
   const currentMoonPhase = useMemo(() => getMoonPhase(now), [now.getFullYear(), now.getMonth(), now.getDate()]);
@@ -70,7 +71,7 @@ const EcoView = ({
     };
     window.addEventListener('mousemove', handleActivity);
     window.addEventListener('touchstart', handleActivity);
-    handleActivity(); 
+    handleActivity();
     return () => {
       window.removeEventListener('mousemove', handleActivity);
       window.removeEventListener('touchstart', handleActivity);
@@ -80,37 +81,43 @@ const EcoView = ({
 
   useEffect(() => {
     const updatePosition = () => {
-      const time = Date.now() / 8000; 
-      const radius = 12; 
-      setScreenSaverPos({ x: Math.cos(time) * radius, y: Math.sin(time) * radius });
+      const time = Date.now() / 8000;
+      const radius = 12;
+      const x = Math.cos(time) * radius;
+      const y = Math.sin(time) * radius;
+
+      if (containerRef.current) {
+        containerRef.current.style.transform = `translate(${x}px, ${y}px)`;
+      }
+      animationRef.current = requestAnimationFrame(updatePosition);
     };
-    const interval = setInterval(updatePosition, 5000);
-    updatePosition();
-    return () => clearInterval(interval);
+
+    animationRef.current = requestAnimationFrame(updatePosition);
+    return () => cancelAnimationFrame(animationRef.current);
   }, []);
 
   const handleWakeClick = () => {
     // 1. 如果目前是休眠(隱藏鼠標)，點擊只負責喚醒 UI (顯示 Dock/時間變亮)
     if (isCursorHidden) {
-        setIsCursorHidden(false);
-        // 重置閒置計時器
-        if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
-        cursorTimerRef.current = setTimeout(() => setIsCursorHidden(true), 3000);
-        return;
+      setIsCursorHidden(false);
+      // 重置閒置計時器
+      if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
+      cursorTimerRef.current = setTimeout(() => setIsCursorHidden(true), 3000);
+      return;
     }
 
     // 2. 如果 UI 已經醒著，再次點擊背景 -> 觸發「真正的喚醒/退出」
-    
+
     // (A) 先播放視覺動畫 (星空加速)
-    setIsWaking(true); 
+    setIsWaking(true);
 
     // (B) 延遲 700ms 讓動畫跑一下，再通知父層切換 View
     setTimeout(() => {
-        if (onWake) onWake(); 
-        // 注意：如果是放學模式，onWake 不會切換 View，
-        // 所以我們要記得把 isWaking 設回 false，不然星空會一直模糊
-        // 但因為切換 View 會 Unmount，所以這行只有在「不切換」時才有效
-        setIsWaking(false); 
+      if (onWake) onWake();
+      // 注意：如果是放學模式，onWake 不會切換 View，
+      // 所以我們要記得把 isWaking 設回 false，不然星空會一直模糊
+      // 但因為切換 View 會 Unmount，所以這行只有在「不切換」時才有效
+      setIsWaking(false);
     }, 700);
   };
 
@@ -128,49 +135,49 @@ const EcoView = ({
       </div>
 
       {/* --- HUD 內容層 (垂直中軸堆疊) --- */}
-      <div 
-        className="absolute inset-0 flex flex-col items-center justify-center z-10 transition-transform duration-[5000ms] ease-linear"
-        style={{ transform: `translate(${screenSaverPos.x}px, ${screenSaverPos.y}px)` }}
+      <div
+        ref={containerRef}
+        className="absolute inset-0 flex flex-col items-center justify-center z-10 transition-transform duration-[5000ms] ease-linear will-change-transform"
       >
-        
+
         {/* 1. 上方：月相 (Idle 時淡出) */}
         <div className={`mb-8 transition-all duration-[1500ms] ease-in-out flex flex-col items-center
             ${isCursorHidden ? 'opacity-0 -translate-y-10 scale-90' : 'opacity-100 translate-y-0 scale-100'}
         `}>
-           <MoonPhaseTech 
-             size={150} 
-             isIdle={isCursorHidden}
-             illumination={currentMoonPhase.illumination}
-             waxing={currentMoonPhase.waxing}
-           />
-           <div className="mt-3 text-slate-400 text-xs tracking-[0.3em] font-light uppercase">
-               {currentMoonPhase.name}
-           </div>
+          <MoonPhaseTech
+            size={150}
+            isIdle={isCursorHidden}
+            illumination={currentMoonPhase.illumination}
+            waxing={currentMoonPhase.waxing}
+          />
+          <div className="mt-3 text-slate-400 text-xs tracking-[0.3em] font-light uppercase">
+            {currentMoonPhase.name}
+          </div>
         </div>
 
         {/* 2. 中央：時間 (雙層疊加，視覺重心) */}
         <div className="relative z-20 grid place-items-center mb-10">
-            {/* Idle Layer (消光灰) */}
-            <h1 className={`
+          {/* Idle Layer (消光灰) */}
+          <h1 className={`
                 col-start-1 row-start-1 p-4
                 text-[13rem] leading-none font-sans tabular-nums tracking-tighter
                 font-bold text-slate-500/40 
                 transition-all duration-[2000ms] ease-out select-none
                 ${isCursorHidden ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}
             `}>
-              {now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: !is24Hour })}
-            </h1>
+            {now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: !is24Hour })}
+          </h1>
 
-            {/* Active Layer (金屬光) */}
-            <h1 className={`
+          {/* Active Layer (金屬光) */}
+          <h1 className={`
                 col-start-1 row-start-1 p-4
                 text-[13rem] leading-none font-sans tabular-nums tracking-tighter
                 font-bold text-transparent bg-clip-text bg-gradient-to-b from-slate-100 via-slate-200 to-slate-400 drop-shadow-2xl
                 transition-all duration-[800ms] ease-out select-none
                 ${isCursorHidden ? 'opacity-0 scale-105' : 'opacity-100 scale-100'}
             `}>
-              {now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: !is24Hour })}
-            </h1>
+            {now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: !is24Hour })}
+          </h1>
         </div>
 
         {/* 3. 下方：資訊整合區 (日期 | 天氣) */}
@@ -181,33 +188,33 @@ const EcoView = ({
             transition-all duration-[1000ms] ease-in-out pointer-events-none mb-24
             ${isCursorHidden ? 'opacity-0 translate-y-10 blur-sm' : 'opacity-100 translate-y-0 blur-0'}
         `}>
-            
-            {/* 日期區塊 */}
-            <div className="flex items-center gap-3 pointer-events-auto">
-                <div className="text-slate-200 text-2xl font-light tracking-wide whitespace-nowrap drop-shadow-lg">
-                    {rocDate.fullDate}
-                </div>
-                <div className="text-slate-400 text-xl font-light tracking-widest">
-                        {rocDate.week}
-                </div>
-            </div>
 
-            {/* 分隔線 */}
-            <div className="w-px h-8 bg-gradient-to-b from-transparent via-slate-600/50 to-transparent"></div>
-
-            {/* 天氣區塊 */}
-            <div className="pointer-events-auto scale-110 grayscale-[0.2] hover:grayscale-0 transition-all">
-                <WeatherWidget weatherConfig={weatherConfig} minimal={true} />
+          {/* 日期區塊 */}
+          <div className="flex items-center gap-3 pointer-events-auto">
+            <div className="text-slate-200 text-2xl font-light tracking-wide whitespace-nowrap drop-shadow-lg">
+              {rocDate.fullDate}
             </div>
+            <div className="text-slate-400 text-xl font-light tracking-widest">
+              {rocDate.week}
+            </div>
+          </div>
+
+          {/* 分隔線 */}
+          <div className="w-px h-8 bg-gradient-to-b from-transparent via-slate-600/50 to-transparent"></div>
+
+          {/* 天氣區塊 */}
+          <div className="pointer-events-auto scale-110 grayscale-[0.2] hover:grayscale-0 transition-all">
+            <WeatherWidget weatherConfig={weatherConfig} minimal={true} />
+          </div>
         </div>
 
         {/* 4. Control Dock (底部獨立層) */}
         {controlDock && (
-            <div className={`absolute inset-x-0 bottom-0 z-50 transition-all duration-[1000ms] ease-in-out flex justify-center
+          <div className={`absolute inset-x-0 bottom-0 z-50 transition-all duration-[1000ms] ease-in-out flex justify-center
                 ${isCursorHidden ? 'opacity-0 translate-y-8 pointer-events-none' : 'opacity-100 translate-y-0 pointer-events-auto'}
             `}>
-                {controlDock}
-            </div>
+            {controlDock}
+          </div>
         )}
 
       </div>

@@ -58,7 +58,7 @@ const ControlDock = ({
   // --- 樣式定義區 ---
   // 根據 ghostMode 切換容器樣式
   const containerClass = ghostMode
-    ? `bg-black/20 border-white/10 text-slate-200 backdrop-blur-md shadow-none hover:bg-black/30` // 幽靈模式：深色半透明
+    ? `bg-black/40 border-white/20 text-slate-200 backdrop-blur-lg shadow-[0_0_30px_rgba(0,0,0,0.6)] hover:bg-black/50` // 幽靈模式：深色半透明
     : `${UI_THEME.SURFACE_GLASS} ${UI_THEME.BORDER_DEFAULT} shadow-2xl hover:scale-105`; // 一般模式：亮色/深色毛玻璃
 
   // 通用按鈕樣式 (Icon Button)
@@ -94,7 +94,7 @@ const ControlDock = ({
       {/* 語音開關 */}
       <button
         onClick={toggleSystemSound}
-        className={`p-2 rounded-xl transition-all hover:-translate-y-1 shrink-0 font-bold flex items-center gap-2 border ${soundButtonClass}`}
+        className={`relative z-10 p-2 rounded-xl transition-all hover:-translate-y-1 shrink-0 font-bold flex items-center gap-2 border ${soundButtonClass}`}
         title={isSystemSoundEnabled ? "廣播語音：開啟" : "廣播語音：靜音"}
       >
         {isSystemSoundEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}

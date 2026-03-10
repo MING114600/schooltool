@@ -30,7 +30,7 @@ const StandardAppLayout = ({
 
             {/* --- 頂部 Header --- */}
             {header && !isFocusMode && (
-                <header className={`flex-shrink-0 z-40 relative shadow-sm border-b ${UI_THEME.BORDER_DEFAULT} ${UI_THEME.SURFACE_GLASS}`}>
+                <header className={`flex-shrink-0 z-40 relative shadow-sm border-b ${UI_THEME.BORDER_DEFAULT} ${UI_THEME.SURFACE_GLASS} print:hidden`}>
                     {header}
                 </header>
             )}
@@ -44,6 +44,7 @@ const StandardAppLayout = ({
                         className={`
               relative flex flex-col flex-shrink-0 z-30 overflow-hidden
               transition-all duration-500 ease-in-out
+              print:hidden
               border-r ${UI_THEME.BORDER_DEFAULT} ${UI_THEME.SURFACE_MAIN}
               ${isFocusMode ? 'w-0 border-r-0' : (isSidebarOpen ? sidebarWidth : 'w-0 border-r-0')}
             `}
@@ -64,7 +65,7 @@ const StandardAppLayout = ({
                         onClick={onToggleSidebar}
                         className={`
               absolute z-50 top-1/2 -translate-y-1/2 p-1.5 
-              bg-white dark:bg-slate-800 rounded-r-lg shadow-md 
+              bg-white dark:bg-slate-800 rounded-r-lg shadow-md print:hidden
               border border-l-0 ${UI_THEME.BORDER_DEFAULT} 
               text-slate-400 hover:text-blue-500 hover:bg-slate-50 dark:hover:bg-slate-700
               transition-all ease-in-out duration-500

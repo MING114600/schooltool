@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Minus, Maximize2, GripHorizontal } from 'lucide-react';
 
-const DraggableWidget = ({ 
-  title, 
-  isOpen, 
-  onClose, 
-  children, 
-  icon: Icon, 
+const DraggableWidget = ({
+  title,
+  isOpen,
+  onClose,
+  children,
+  icon: Icon,
   initialPosition = { x: 20, y: 80 },
-  width = "w-72" 
+  width = "w-72"
 }) => {
   const [position, setPosition] = useState(initialPosition);
+  const tempPosition = useRef(initialPosition);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isMinimized, setIsMinimized] = useState(false);
@@ -32,25 +33,54 @@ const DraggableWidget = ({
         e.preventDefault(); // 防止選取文字
         const newX = e.clientX - dragOffset.x;
         const newY = e.clientY - dragOffset.y;
-        
-        // 簡單邊界檢查 (可選)
-        // const boundedY = Math.max(0, newY); 
-        setPosition({ x: newX, y: newY });
+
+        tempPosition.current = { x: newX, y: newY };
+        if (widgetRef.current) {
+          widgetRef.current.style.left = `${newX}px`;
+          widgetRef.current.style.top = `${newY}px`;
+        }
       }
     };
 
     const handleMouseUp = () => {
       setIsDragging(false);
+      setPosition(tempPosition.current);
+    };
+
+    const handleTouchMove = (e) => {
+      if (isDragging && e.touches.length > 0) {
+        // 防止捲動頁面
+        if (e.cancelable) e.preventDefault();
+
+        const touch = e.touches[0];
+        const newX = touch.clientX - dragOffset.x;
+        const newY = touch.clientY - dragOffset.y;
+
+        tempPosition.current = { x: newX, y: newY };
+        if (widgetRef.current) {
+          widgetRef.current.style.left = `${newX}px`;
+          widgetRef.current.style.top = `${newY}px`;
+        }
+      }
+    };
+
+    const handleTouchEnd = () => {
+      setIsDragging(false);
+      setPosition(tempPosition.current);
     };
 
     if (isDragging) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('touchmove', handleTouchMove, { passive: false });
+      window.addEventListener('touchend', handleTouchEnd);
     }
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
     };
   }, [isDragging, dragOffset]);
 
@@ -63,10 +93,21 @@ const DraggableWidget = ({
     });
   };
 
+  const handleTouchStart = (e) => {
+    if (e.touches.length > 0) {
+      const touch = e.touches[0];
+      setIsDragging(true);
+      setDragOffset({
+        x: touch.clientX - position.x,
+        y: touch.clientY - position.y
+      });
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       ref={widgetRef}
       className={`
         fixed z-[100] flex flex-col
@@ -76,16 +117,17 @@ const DraggableWidget = ({
         ${isDragging ? 'cursor-grabbing scale-[1.02] shadow-xl ring-2 ring-blue-400/30' : ''}
         ${isMinimized ? 'h-12 w-auto min-w-[200px]' : width}
       `}
-      style={{ 
-        left: position.x, 
+      style={{
+        left: position.x,
         top: position.y,
         // 防止拖曳造成文字模糊
-        willChange: 'transform, left, top' 
+        willChange: 'transform, left, top'
       }}
     >
       {/* 標題列 (拖曳區) */}
-      <div 
+      <div
         onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
         className={`
           h-12 flex items-center justify-between px-3 cursor-grab select-none
           bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700/50
@@ -96,38 +138,38 @@ const DraggableWidget = ({
           {Icon && <Icon size={18} className={isDragging ? 'text-blue-500' : 'text-slate-400 dark:text-slate-500'} />}
           <span className="truncate">{title}</span>
         </div>
-        
+
         {/* 控制按鈕區 (防止觸發拖曳) */}
         <div className="flex items-center gap-1" onMouseDown={(e) => e.stopPropagation()}>
-          <button 
-            onClick={() => setIsMinimized(!isMinimized)} 
+          <button
+            onClick={() => setIsMinimized(!isMinimized)}
             className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
             title={isMinimized ? "展開" : "縮小"}
           >
-            {isMinimized ? <Maximize2 size={14}/> : <Minus size={14}/>}
+            {isMinimized ? <Maximize2 size={14} /> : <Minus size={14} />}
           </button>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="p-1.5 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/30 text-slate-400 hover:text-rose-500 transition-colors"
             title="關閉"
           >
-            <X size={14}/>
+            <X size={14} />
           </button>
         </div>
       </div>
 
       {/* 內容區域 */}
       {!isMinimized && (
-        <div className="p-4 max-h-[80vh] overflow-y-auto custom-scrollbar animate-in fade-in duration-300">
+        <div className={`p-4 max-h-[80vh] overflow-y-auto overflow-x-hidden custom-scrollbar animate-in fade-in duration-300 ${isDragging ? 'pointer-events-none' : ''}`}>
           {children}
         </div>
       )}
 
       {/* 縮小時顯示簡易把手提示 */}
       {isMinimized && (
-         <div className="absolute bottom-1 w-full flex justify-center opacity-20 pointer-events-none">
-             <GripHorizontal size={12}/>
-         </div>
+        <div className="absolute bottom-1 w-full flex justify-center opacity-20 pointer-events-none">
+          <GripHorizontal size={12} />
+        </div>
       )}
     </div>
   );

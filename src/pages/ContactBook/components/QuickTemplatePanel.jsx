@@ -36,7 +36,7 @@ const DraggableTemplateItem = ({ tpl, onAdd, onRemove, onToggleVisibility, isCus
 
             <button
                 onClick={() => onAdd(tpl.content, tpl.isImportant)}
-                className={`flex-1 text-left px-3 py-2 border rounded-xl text-[14px] font-semibold transition-all hover:border-indigo-400 active:scale-95 shadow-sm
+                className={`flex-1 text-left px-3 py-2 border rounded-xl text-[14px] font-semibold transition-all hover:border-indigo-400 active:scale-95 shadow-sm transform-gpu will-change-transform
                     ${tpl.isImportant
                         ? 'border-rose-200 bg-rose-50 text-rose-800 dark:bg-rose-900/40 dark:border-rose-700 dark:text-rose-200'
                         : 'border-slate-200 bg-white text-slate-900 dark:bg-slate-800 dark:border-slate-700 dark:text-white'}`}
@@ -55,7 +55,7 @@ const DraggableTemplateItem = ({ tpl, onAdd, onRemove, onToggleVisibility, isCus
                         onToggleVisibility(tpl.id);
                     }
                 }}
-                className={`ml-1 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg`}
+                className={`ml-1 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transform-gpu will-change-opacity`}
                 title={isCustom ? "刪除自訂模板" : "隱藏預設模板"}
             >
                 <X size={14} />

@@ -16,43 +16,32 @@ import ButtonSettings from './settings/ButtonSettings';
 import BroadcastSettings from './settings/BroadcastSettings';
 import MaintenanceSettings from './settings/MaintenanceSettings';
 
+import { useDashboardSettings } from '../context/DashboardSettingsContext';
+import { SYSTEM_BUTTONS_CONFIG } from '../utils/dashboardConstants';
+import { Settings, CloudRain, Clock, Calendar, MessageSquare, LayoutGrid, Radio, Wrench } from 'lucide-react';
+
+const TABS = [
+  { id: 'general', label: '系統一般', icon: Settings },
+  { id: 'timeslots', label: '時段與節次', icon: Clock },
+  { id: 'schedule', label: '課表排定', icon: Calendar },
+  { id: 'hints', label: '科目提示語', icon: MessageSquare },
+  { id: 'buttons', label: '底部快捷列', icon: LayoutGrid },
+  { id: 'broadcast', label: '自訂廣播', icon: Radio },
+  { id: 'weather', label: '天氣模組', icon: CloudRain },
+  { id: 'maintenance', label: '系統維護', icon: Wrench },
+];
+
 const SettingsModal = ({
   isOpen, onClose,
-  // State Setters
-  timeSlots, setTimeSlots,
-  schedule, setSchedule,
-  subjectHints, setSubjectHints,
-  dayTypes, setDayTypes,
   timeOffset, setTimeOffset,
   setIsManualEco, setIsAutoEcoOverride,
-  is24Hour, setIs24Hour,
-  now,
-  visibleButtons, setVisibleButtons,
-  systemButtonsConfig,
-  weatherConfig, setWeatherConfig,
-  customPresets, setCustomPresets,
-  defaultValues
+  now
 }) => {
   const { openModal, openDialog: globalOpenDialog } = useModalContext();
+  const settings = useDashboardSettings();
+  const [activeTab, setActiveTab] = useState('general');
 
-  // 控制各個區塊的展開/收合
-  const [expandedSections, setExpandedSections] = useState({
-    general: true,
-    weather: false,
-    timeslots: false,
-    schedule: false,
-    hints: false,
-    buttons: false,
-    broadcast: false,
-    maintenance: false
-  });
-
-  const toggleSection = (section) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
+  const [isBackupOpen, setIsBackupOpen] = useState(false);
 
   // 開啟 Dialog 的通用函式
   const openDialog = ({ type, title, message, onConfirm }) => {
@@ -113,62 +102,96 @@ const SettingsModal = ({
           </button>
         </div>
 
-        {/* Content (Scrollable) */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-slate-50/50 dark:bg-black/20">
+        {/* Content (Split-Pane) */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Left Sidebar Menu */}
+          <div className={`w-64 flex-shrink-0 border-r ${UI_THEME.BORDER_LIGHT} bg-slate-50/50 dark:bg-black/20 overflow-y-auto p-4 space-y-2 custom-scrollbar`}>
+            {TABS.map(tab => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 font-bold' : `text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 ${UI_THEME.TEXT_MUTED}`}`}
+                >
+                  <Icon size={20} />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
 
-          <GeneralSettings
-            is24Hour={is24Hour} setIs24Hour={setIs24Hour}
-            dayTypes={dayTypes} setDayTypes={setDayTypes}
-            timeOffset={timeOffset} setTimeOffset={setTimeOffset}
-            isOpen={expandedSections.general} onToggle={() => toggleSection('general')}
-          />
+          {/* Right Content */}
+          <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 custom-scrollbar bg-slate-50/50 dark:bg-black/20">
+            {activeTab === 'general' && (
+              <GeneralSettings
+                is24Hour={settings.is24Hour} setIs24Hour={settings.setIs24Hour}
+                dayTypes={settings.dayTypes} setDayTypes={settings.setDayTypes}
+                timeOffset={timeOffset} setTimeOffset={setTimeOffset}
+                isOpen={true} onToggle={() => { }}
+              />
+            )}
 
-          <TimeSlotSettings
-            timeSlots={timeSlots} setTimeSlots={setTimeSlots}
-            schedule={schedule} setSchedule={setSchedule}
-            isOpen={expandedSections.timeslots} onToggle={() => toggleSection('timeslots')}
-          />
+            {activeTab === 'timeslots' && (
+              <TimeSlotSettings
+                timeSlots={settings.timeSlots} setTimeSlots={settings.setTimeSlots}
+                schedule={settings.schedule} setSchedule={settings.setSchedule}
+                isOpen={true} onToggle={() => { }}
+              />
+            )}
 
-          <ScheduleEditor
-            schedule={schedule} setSchedule={setSchedule}
-            timeSlots={timeSlots} subjectHints={subjectHints}
-            isOpen={expandedSections.schedule} onToggle={() => toggleSection('schedule')}
-          />
+            {activeTab === 'schedule' && (
+              <ScheduleEditor
+                schedule={settings.schedule} setSchedule={settings.setSchedule}
+                timeSlots={settings.timeSlots} subjectHints={settings.subjectHints}
+                isOpen={true} onToggle={() => { }}
+              />
+            )}
 
-          <SubjectHintSettings
-            subjectHints={subjectHints} setSubjectHints={setSubjectHints}
-            schedule={schedule} setSchedule={setSchedule}
-            isOpen={expandedSections.hints} onToggle={() => toggleSection('hints')}
-          />
+            {activeTab === 'hints' && (
+              <SubjectHintSettings
+                subjectHints={settings.subjectHints} setSubjectHints={settings.setSubjectHints}
+                schedule={settings.schedule} setSchedule={settings.setSchedule}
+                isOpen={true} onToggle={() => { }}
+              />
+            )}
 
-          <ButtonSettings
-            visibleButtons={visibleButtons} setVisibleButtons={setVisibleButtons}
-            systemButtonsConfig={systemButtonsConfig}
-            isOpen={expandedSections.buttons} onToggle={() => toggleSection('buttons')}
-          />
+            {activeTab === 'buttons' && (
+              <ButtonSettings
+                visibleButtons={settings.visibleButtons} setVisibleButtons={settings.setVisibleButtons}
+                systemButtonsConfig={SYSTEM_BUTTONS_CONFIG}
+                isOpen={true} onToggle={() => { }}
+              />
+            )}
 
-          <BroadcastSettings
-            customPresets={customPresets} setCustomPresets={setCustomPresets}
-            isOpen={expandedSections.broadcast} onToggle={() => toggleSection('broadcast')}
-          />
+            {activeTab === 'broadcast' && (
+              <BroadcastSettings
+                customPresets={settings.customPresets} setCustomPresets={settings.setCustomPresets}
+                isOpen={true} onToggle={() => { }}
+              />
+            )}
 
-          <WeatherSettings
-            weatherConfig={weatherConfig} setWeatherConfig={setWeatherConfig}
-            isOpen={expandedSections.weather} onToggle={() => toggleSection('weather')}
-          />
+            {activeTab === 'weather' && (
+              <WeatherSettings
+                weatherConfig={settings.weatherConfig} setWeatherConfig={settings.setWeatherConfig}
+                isOpen={true} onToggle={() => { }}
+              />
+            )}
 
-          <MaintenanceSettings
-            // 傳遞時光機需要的參數
-            setTimeOffset={setTimeOffset}
-            setIsManualEco={setIsManualEco}
-            setIsAutoEcoOverride={setIsAutoEcoOverride}
-            onOpenBackup={() => setIsBackupOpen(true)}
-            openDialog={openDialog}
-            isOpen={expandedSections.maintenance}
-            onToggle={() => toggleSection('maintenance')}
-            onCloseSettings={onClose}
-          />
-
+            {activeTab === 'maintenance' && (
+              <MaintenanceSettings
+                setTimeOffset={setTimeOffset}
+                setIsManualEco={setIsManualEco}
+                setIsAutoEcoOverride={setIsAutoEcoOverride}
+                onOpenBackup={() => setIsBackupOpen(true)}
+                openDialog={openDialog}
+                isOpen={true}
+                onToggle={() => { }}
+                onCloseSettings={onClose}
+              />
+            )}
+          </div>
         </div>
 
         {/* Footer */}

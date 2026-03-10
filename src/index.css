@@ -130,8 +130,8 @@ html.dark {
 
 @media print {
   @page {
-    size: A4 landscape;
-    margin: 1cm;
+    size: A4 portrait; /* 教師日誌直向列印更合適 */
+    margin: 1.5cm;
   }
 
   /* 隱藏所有不需要列印的 UI */
@@ -145,12 +145,23 @@ html.dark {
   }
 
   /* 確保背景色與字體顏色適合列印 */
-  body {
+  body, html {
     background: white !important;
     color: black !important;
+    height: auto !important;
+    overflow: visible !important;
   }
 
-  /* 讓座位表容器撐滿寬度 */
+  /* 讓最外圍容器撐滿寬度並解除限制 */
+  #root {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  /* 讓座位表或其他列印版面容器撐滿寬度 */
   .print-container {
     width: 100% !important;
     max-width: none !important;

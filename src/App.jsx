@@ -84,6 +84,16 @@ const ClassroomOS = () => {
     if (code) {
       setShareId(code);
       setCurrentAppId('reader');
+      return;
+    }
+
+    // 處理 ?app=xxx 指定啟動模組
+    const requestedApp = urlParams.get('app');
+    if (requestedApp) {
+      const isValidApp = APPS_CONFIG.some(a => a.id === requestedApp);
+      if (isValidApp) {
+        setCurrentAppId(requestedApp);
+      }
     }
   }, [setCurrentAppId]);
 
@@ -108,7 +118,8 @@ const ClassroomOS = () => {
             border border-transparent hover:border-white/20
             transition-all duration-300 ease-out
             group hover:scale-105 hover:shadow-xl
-            focus-visible:ring-4 focus-visible:ring-indigo-500/50 focus-visible:outline-none
+            focus-visible:ring-4 focus-visible:ring-indigo-500/50 focus-visible:outline-none 
+            print:hidden
         `}
           aria-label="開啟系統選單"
           aria-haspopup="dialog"

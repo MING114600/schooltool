@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   Plus, Users, Settings, FileText, Link as LinkIcon,
   Copy, CheckCircle2, AlertCircle, Loader2, Calendar, Lock, Trash2, Edit3,
-  ChevronDown, ChevronRight, CheckSquare, Square, Printer, Search, X, ChevronLeft
+  ChevronDown, ChevronRight, CheckSquare, Square, Printer, Search, X, ChevronLeft,
+  Share2
 } from 'lucide-react';
 import { UI_THEME } from '../../../constants';
 import { useCaseLog } from '../context/CaseLogContext';
@@ -17,6 +18,56 @@ import { openSpreadsheetPicker } from '../../../services/googlePickerService'; /
 import Sidebar from './components/Sidebar';
 import Toolbar from './components/Toolbar';
 import StandardAppLayout from '../../../components/common/layout/StandardAppLayout';
+
+// 🌟 新增：將獨立的日誌清單項目提取為 React.memo 防護元件，避免無關項目重繪
+const MemoizedLogItem = React.memo(({
+  log,
+  isSelected,
+  isActiveGroup,
+  isSelectionMode,
+  onLogClick,
+  onCheckClick
+}) => {
+  return (
+    <button
+      onClick={(e) => onLogClick(log, e)}
+      className={`relative p-3 rounded-xl text-left border transition-all ml-1.5 ${isSelectionMode && isSelected
+        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/40 shadow-sm'
+        : isActiveGroup && !isSelectionMode
+          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
+          : `border-transparent hover:bg-white dark:hover:bg-slate-800 ${UI_THEME.TEXT_PRIMARY}`
+        } will-change-transform transform-gpu`}
+    >
+      <div className="flex justify-between items-start mb-1 gap-2">
+        <div className="flex items-center gap-2">
+          {/* 🌟 隱性多選 Checkbox */}
+          <div
+            onClick={(e) => onCheckClick(log, e)}
+            className={`shrink-0 cursor-pointer p-0.5 rounded-md transition-all ${isSelectionMode
+              ? 'opacity-100 ' + (isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-slate-300 dark:text-slate-600 hover:text-blue-500')
+              : 'opacity-0 group-hover:opacity-100 text-slate-300 dark:text-slate-600 hover:text-blue-500'
+              }`}
+          >
+            {isSelected ? <CheckSquare size={16} /> : <Square size={16} />}
+          </div>
+          <span className="font-bold text-sm">{log.date}</span>
+          {/* 🌟 顯示草稿標籤 */}
+          {log.isDraft && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400 font-bold shrink-0">
+              草稿
+            </span>
+          )}
+        </div>
+        <span className={`text-xs shrink-0 mt-0.5 ${UI_THEME.TEXT_MUTED}`}>
+          {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        </span>
+      </div>
+      <div className={`text-xs ${UI_THEME.TEXT_SECONDARY} truncate flex items-center gap-1.5 ${isSelectionMode ? 'pl-6' : ''}`}>
+        <Users size={12} /> {log.author}
+      </div>
+    </button>
+  );
+});
 
 export default function TeacherDashboard() {
   const { setAlertDialog } = useModalContext();
@@ -259,17 +310,20 @@ export default function TeacherDashboard() {
   };
 
   // 處理產生家長連結與複製
-  const handleGenerateLink = async () => {
+  const handleGenerateShareLink = async (targetLogIds = []) => {
     try {
       const baseLink = await generateParentLink();
 
-      // 🌟 修正：抓取已勾選日誌的「時間戳記 (timestamp)」，並做 URL 編碼確保安全
+      let idsToShare = targetLogIds;
+      if (!idsToShare || idsToShare.length === 0) {
+        idsToShare = isSelectionMode ? selectedLogIds : [];
+      }
+
       const selectedTimestamps = logs
-        .filter(log => selectedLogIds.includes(log.id))
+        .filter(log => idsToShare.includes(log.id))
         .map(log => encodeURIComponent(log.timestamp));
 
-      // 🌟 改用 tms (timestamps的縮寫) 當作參數名稱
-      const finalLink = (isSelectionMode && selectedLogIds.length > 0)
+      const finalLink = (idsToShare.length > 0 && selectedTimestamps.length > 0)
         ? `${baseLink}&tms=${selectedTimestamps.join(',')}`
         : baseLink;
 
@@ -297,19 +351,19 @@ export default function TeacherDashboard() {
     const cleanAuthor = log.author.replace(' (已編輯)', '');
 
     return (
-      <div className="max-w-4xl mx-auto flex flex-col gap-6 animate-in fade-in zoom-in-95 duration-200">
+      <div className="max-w-4xl mx-auto flex flex-col gap-6 animate-in fade-in zoom-in-95 duration-200 print:max-w-none print:w-full print:gap-4 print:break-inside-avoid">
 
-        <div className={`p-6 rounded-2xl border ${UI_THEME.BORDER_DEFAULT} ${UI_THEME.SURFACE_MAIN} shadow-sm`}>
-          <div className="flex justify-between items-start mb-4">
+        <div className={`p-6 rounded-2xl border ${UI_THEME.BORDER_DEFAULT} ${UI_THEME.SURFACE_MAIN} shadow-sm print:shadow-none print:border-slate-400 print:p-8 print:bg-white print:rounded-none`}>
+          <div className="flex justify-between items-start mb-4 print:mb-6">
             <div>
               <div className="flex items-center gap-3">
-                <h2 className={`${uiZoom.title} font-bold ${UI_THEME.TEXT_PRIMARY} mb-2 flex items-center gap-2 transition-all`}>
-                  <Calendar className={UI_THEME.TEXT_SECONDARY} />
+                <h2 className={`${uiZoom.title} font-bold ${UI_THEME.TEXT_PRIMARY} mb-2 flex items-center gap-2 transition-all print:text-black print:text-4xl`}>
+                  <Calendar className={`${UI_THEME.TEXT_SECONDARY} print:hidden`} />
                   {log.date}
                 </h2>
               </div>
 
-              <div className={`flex items-center gap-3 ${uiZoom.info} ${UI_THEME.TEXT_MUTED} transition-all`}>
+              <div className={`flex items-center gap-3 ${uiZoom.info} ${UI_THEME.TEXT_MUTED} transition-all print:text-slate-700 print:text-lg`}>
                 <span className="flex items-center gap-1">
                   <Users size={14} /> {cleanAuthor}
                 </span>
@@ -325,7 +379,7 @@ export default function TeacherDashboard() {
               </div>
             </div>
 
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-2 items-center print:hidden">
               {/* 🌟 文字放大縮小控制項 (移到此處以防位置跑掉) */}
               <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 border border-slate-200 dark:border-slate-700 shadow-inner">
                 <button
@@ -348,6 +402,24 @@ export default function TeacherDashboard() {
                   Aa+
                 </button>
               </div>
+
+              {/* 🌟 專屬操作此篇紀錄的快捷按鈕 */}
+              <button
+                onClick={() => handleGenerateShareLink([log.id])}
+                disabled={isSyncing}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 transition-colors"
+                title="產生此單篇日誌的家長預覽連結"
+              >
+                <Share2 size={16} /> 分享此篇
+              </button>
+              <button
+                onClick={() => window.print()}
+                disabled={isSyncing}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 transition-colors"
+                title="單獨列印此篇日誌"
+              >
+                <Printer size={16} /> 列印此篇
+              </button>
 
               <button
                 onClick={() => setIsEditingMode(true)}
@@ -383,18 +455,18 @@ export default function TeacherDashboard() {
             </div>
           </div>
 
-          <hr className={`border-t ${UI_THEME.BORDER_DEFAULT} my-4`} />
+          <hr className={`border-t ${UI_THEME.BORDER_DEFAULT} my-4 print:border-slate-800 print:my-6`} />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8 print:grid-cols-2 print:gap-y-8">
             {log.template?.map(block => {
               const val = log.content[block.id];
               if (val === undefined || val === '') return null;
               const isFullWidth = block.type === 'text' || block.type === 'image';
 
               return (
-                <div key={block.id} className={`flex flex-col gap-1.5 ${isFullWidth ? 'md:col-span-2' : ''}`}>
-                  <span className={`${uiZoom.label} font-bold ${UI_THEME.TEXT_MUTED} transition-all`}>{block.label}</span>
-                  <div className={`${uiZoom.content} font-medium ${UI_THEME.TEXT_PRIMARY} whitespace-pre-wrap transition-all`}>
+                <div key={block.id} className={`flex flex-col gap-1.5 ${isFullWidth ? 'md:col-span-2 print:col-span-2' : ''}`}>
+                  <span className={`${uiZoom.label} font-bold ${UI_THEME.TEXT_MUTED} transition-all print:text-slate-600 print:text-lg`}>{block.label}</span>
+                  <div className={`${uiZoom.content} font-medium ${UI_THEME.TEXT_PRIMARY} whitespace-pre-wrap transition-all print:text-black print:text-xl`}>
                     {Array.isArray(val) ? val.join(', ') : (block.type === 'rating' ? `${val} 星` : val)}
                   </div>
                 </div>
@@ -438,7 +510,7 @@ export default function TeacherDashboard() {
         </div>
 
         {log.privateNote && (
-          <div className="p-6 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 shadow-sm">
+          <div className="p-6 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 shadow-sm print:hidden mt-2">
             <div className="flex items-center gap-2 mb-3 text-amber-700 dark:text-amber-500">
               <Lock size={18} />
               <span className="font-bold">內部備註 (家長不可見)</span>
@@ -477,7 +549,13 @@ export default function TeacherDashboard() {
         isSyncing={isSyncing}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        handleGenerateLink={handleGenerateLink}
+        handleGenerateShareLink={handleGenerateShareLink}
+        logs={logs}
+        selectedLogId={selectedLogId}
+        selectedLogIds={selectedLogIds}
+        setSelectedLogIds={setSelectedLogIds} // 🌟 傳遞給 Toolbar 支援全域列印
+        isSelectionMode={isSelectionMode}
+        setIsSelectionMode={setIsSelectionMode}
         handleShareCoedit={() => setIsShareManagerOpen(true)}
         handleRefresh={() => refreshStudentLogs(activeStudentId)}
         setAlertDialog={setAlertDialog}
@@ -496,10 +574,10 @@ export default function TeacherDashboard() {
         sidebarWidth="w-64" // CaseLog 側欄通常比較標準寬度
         sidebarOpenWidth="16rem"
       >
-        <div className={`flex w-full h-full relative min-w-0 ${UI_THEME.CONTENT_AREA}`}>
+        <div className={`flex w-full h-full relative min-w-0 ${UI_THEME.CONTENT_AREA} print:block print:h-auto print:overflow-visible`}>
 
           {error && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-lg bg-rose-500 text-white shadow-lg font-bold text-sm animate-in slide-in-from-top-4">
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-lg bg-rose-500 text-white shadow-lg font-bold text-sm animate-in slide-in-from-top-4 print:hidden">
               <AlertCircle size={16} />
               {error}
               <button onClick={clearError} className="ml-2 hover:text-rose-200">✕</button>
@@ -507,7 +585,7 @@ export default function TeacherDashboard() {
           )}
 
           {!activeStudent && (
-            <div className="flex-1 flex flex-col items-center justify-center opacity-50">
+            <div className="flex-1 flex flex-col items-center justify-center opacity-50 print:hidden">
               <Users size={64} className="mb-4 text-slate-400" />
               <h2 className={`text-xl font-bold ${UI_THEME.TEXT_PRIMARY}`}>請從左側選擇或新增學生</h2>
             </div>
@@ -515,9 +593,9 @@ export default function TeacherDashboard() {
 
           {/* ================= 內容渲染區塊 ================= */}
           {activeStudent && (
-            <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex overflow-hidden print:overflow-visible print:block">
               {activeTab === 'template' ? (
-                <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="flex-1 flex flex-col overflow-hidden print:hidden">
                   {/* 🌟 新增：公版管理器 */}
                   <TemplateManager
                     globalTemplates={globalTemplates}
@@ -557,7 +635,7 @@ export default function TeacherDashboard() {
               ) : (
                 <>
                   {/* 🌟 中欄：日誌選單 (包含正確的範圍與相對定位) */}
-                  <div className={`${mobileActivePane === 'detail' ? 'hidden md:flex' : 'flex w-full'} md:w-80 shrink-0 flex-col border-r ${UI_THEME.BORDER_DEFAULT} bg-slate-50/30 dark:bg-slate-900/30 relative`}>
+                  <div className={`${mobileActivePane === 'detail' ? 'hidden md:flex' : 'flex w-full'} md:w-80 shrink-0 flex-col border-r ${UI_THEME.BORDER_DEFAULT} bg-slate-50/30 dark:bg-slate-900/30 relative print:hidden`}>
 
                     {/* 中欄頂部：控制列 */}
                     <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-3">
@@ -593,28 +671,24 @@ export default function TeacherDashboard() {
                         <Plus size={18} /> 撰寫新日誌
                       </button>
 
-                      {logs.length > 0 && (
+                      {logs.length > 0 && isSelectionMode && (
                         <div className="flex items-center justify-between px-1">
                           <button
                             onClick={() => {
-                              setIsSelectionMode(!isSelectionMode);
-                              if (isSelectionMode) setSelectedLogIds([]);
+                              setIsSelectionMode(false);
+                              setSelectedLogIds([]);
                             }}
-                            className={`text-sm font-bold flex items-center gap-1.5 transition-colors ${isSelectionMode ? 'text-blue-600 dark:text-blue-400' : UI_THEME.TEXT_SECONDARY + ' hover:text-blue-500'
-                              }`}
+                            className={`text-sm font-bold flex items-center gap-1.5 transition-colors text-blue-600 dark:text-blue-400 hover:text-blue-500`}
                           >
-                            {isSelectionMode ? <CheckSquare size={16} /> : <Square size={16} />}
-                            {isSelectionMode ? '取消選取模式' : '批次選取'}
+                            <CheckSquare size={16} /> 取消批次選取
                           </button>
 
-                          {isSelectionMode && (
-                            <button
-                              onClick={handleSelectAll}
-                              className={`text-xs font-bold ${UI_THEME.TEXT_MUTED} hover:text-blue-500 underline`}
-                            >
-                              {selectedLogIds.length === logs.length ? '取消全選' : '全選'}
-                            </button>
-                          )}
+                          <button
+                            onClick={handleSelectAll}
+                            className={`text-xs font-bold ${UI_THEME.TEXT_MUTED} hover:text-blue-500 underline`}
+                          >
+                            {selectedLogIds.length === logs.length ? '取消全選' : '全選'}
+                          </button>
                         </div>
                       )}
                     </div>
@@ -643,49 +717,34 @@ export default function TeacherDashboard() {
                               <div className="flex flex-col gap-1.5 animate-in slide-in-from-top-2 duration-200 pl-1 border-l-2 border-slate-200/50 dark:border-slate-800/50 ml-2.5">
                                 {group.logs.map(log => {
                                   const isSelected = selectedLogIds.includes(log.id);
+                                  const isActiveGroup = selectedLogId === log.id;
+
                                   return (
-                                    <button
+                                    <MemoizedLogItem
                                       key={log.id}
-                                      onClick={(e) => {
+                                      log={log}
+                                      isSelected={isSelected}
+                                      isActiveGroup={isActiveGroup}
+                                      isSelectionMode={isSelectionMode}
+                                      onLogClick={(clickedLog, e) => {
                                         if (isSelectionMode) {
-                                          toggleSelectLog(log.id, e);
+                                          toggleSelectLog(clickedLog.id, e);
                                         } else {
-                                          setSelectedLogId(log.id);
+                                          setSelectedLogId(clickedLog.id);
                                           setMobileActivePane('detail'); // 🌟 新增：切換到詳細畫面
-                                          if (log.isDraft) setIsEditingMode(true);
-                                          else setIsEditingMode(false);
+                                          setIsEditingMode(!!clickedLog.isDraft);
                                         }
                                       }}
-                                      className={`relative p-3 rounded-xl text-left border transition-all ml-1.5 ${isSelectionMode && isSelected
-                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/40 shadow-sm'
-                                        : selectedLogId === log.id && !isSelectionMode
-                                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
-                                          : `border-transparent hover:bg-white dark:hover:bg-slate-800 ${UI_THEME.TEXT_PRIMARY}`
-                                        }`}
-                                    >
-                                      <div className="flex justify-between items-start mb-1 gap-2">
-                                        <div className="flex items-center gap-2">
-                                          {isSelectionMode && (
-                                            <div className={`shrink-0 ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-slate-300 dark:text-slate-600'}`}>
-                                              {isSelected ? <CheckSquare size={16} /> : <Square size={16} />}
-                                            </div>
-                                          )}
-                                          <span className="font-bold text-sm">{log.date}</span>
-                                          {/* 🌟 顯示草稿標籤 */}
-                                          {log.isDraft && (
-                                            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400 font-bold shrink-0">
-                                              草稿
-                                            </span>
-                                          )}
-                                        </div>
-                                        <span className={`text-xs shrink-0 mt-0.5 ${UI_THEME.TEXT_MUTED}`}>
-                                          {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </span>
-                                      </div>
-                                      <div className={`text-xs ${UI_THEME.TEXT_SECONDARY} truncate flex items-center gap-1.5 ${isSelectionMode ? 'pl-6' : ''}`}>
-                                        <Users size={12} /> {log.author}
-                                      </div>
-                                    </button>
+                                      onCheckClick={(clickedLog, e) => {
+                                        e.stopPropagation();
+                                        if (!isSelectionMode) {
+                                          setIsSelectionMode(true);
+                                          setSelectedLogIds([clickedLog.id]);
+                                        } else {
+                                          toggleSelectLog(clickedLog.id, e);
+                                        }
+                                      }}
+                                    />
                                   );
                                 })}
                               </div>
@@ -702,21 +761,29 @@ export default function TeacherDashboard() {
                           <span className="text-white dark:text-slate-900 text-sm font-bold pl-2">
                             已選 {selectedLogIds.length} 篇
                           </span>
-                          <button
-                            onClick={() => window.print()}
-                            className="flex items-center gap-1.5 bg-blue-500 hover:bg-blue-400 text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors"
-                          >
-                            <Printer size={16} /> 列印/匯出
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleGenerateShareLink(selectedLogIds)}
+                              className="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors"
+                            >
+                              <Share2 size={16} /> 分享
+                            </button>
+                            <button
+                              onClick={() => window.print()}
+                              className="flex items-center gap-1.5 bg-blue-500 hover:bg-blue-400 text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors"
+                            >
+                              <Printer size={16} /> 列印
+                            </button>
+                          </div>
                         </div>
                       </div>
                     )}
                   </div>
 
                   {/* 右欄：主畫面 */}
-                  <div className={`${mobileActivePane === 'list' ? 'hidden md:flex' : 'flex w-full'} flex-1 flex-col overflow-hidden bg-slate-50/50 dark:bg-slate-900/50`}>
+                  <div className={`${mobileActivePane === 'list' ? 'hidden md:flex' : 'flex w-full'} flex-1 flex-col overflow-hidden bg-slate-50/50 dark:bg-slate-900/50 print:block print:overflow-visible print:bg-white`}>
                     {/* 🌟 新增：手機版「返回日誌清單」按鈕 */}
-                    <div className="md:hidden flex items-center p-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                    <div className="md:hidden flex items-center p-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 print:hidden">
                       <button
                         onClick={() => setMobileActivePane('list')}
                         className="flex items-center gap-1 text-sm font-bold text-slate-500 hover:text-blue-600 dark:hover:text-blue-400"
@@ -724,9 +791,10 @@ export default function TeacherDashboard() {
                         <ChevronLeft size={20} /> 返回日誌清單
                       </button>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+                    {/* 🌟 核心修正：當 batch 列印模式時，隱藏單篇的檢視畫面 */}
+                    <div className={`flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 print:p-0 print:overflow-visible ${isSelectionMode && selectedLogIds.length > 0 ? 'print:hidden' : ''}`}>
                       {(selectedLogId === 'new' || isEditingMode) ? (
-                        <div className="animate-in fade-in zoom-in-95 duration-200">
+                        <div className="animate-in fade-in zoom-in-95 duration-200 print:hidden">
                           {activeTemplate && activeTemplate.length > 0 ? (
                             <LogForm
                               // 🌟 核心修正 2：編輯模式下，優先使用該篇日誌儲存的專屬 template，不再強制套用 activeTemplate
@@ -878,7 +946,8 @@ export default function TeacherDashboard() {
         `}
       </style>
 
-      <div className="hidden print:block w-full bg-white text-black font-sans">
+      {/* 🌟 核心修正：只有在批次選取模式下且確實有選取項目時，才在列印中顯示這個版面 */}
+      <div className={`hidden ${isSelectionMode && selectedLogIds.length > 0 ? 'print:block' : ''} w-full bg-white text-black font-sans`}>
         <h1 className="text-2xl font-bold text-center mb-6 pb-3 border-b-2 border-black">
           {activeStudent?.name} - 學生紀錄日誌
         </h1>
