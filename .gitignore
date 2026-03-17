@@ -27,6 +27,7 @@ dist-ssr
 # Testing scripts and AI agents
 test_puppeteer.*
 .agents/
+.agent/
 
 # local env files
 .env

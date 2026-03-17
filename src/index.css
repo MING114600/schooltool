@@ -3,31 +3,39 @@
 
 /* --- 1. 設計權杖 (Design Tokens) --- */
 :root {
-  /* 基礎背景與文字 - 淺色模式：清新、乾淨 */
-  --bg-body: #f1f5f9;         /* slate-100 */
+  /* 基礎背景與文字 - 淺色模式：溫潤紙張感 */
+  --bg-body: #fafaf9;
+  /* stone-50 */
   --bg-card: #ffffff;
-  --text-main: #1e293b;       /* slate-800 */
-  --border-default: #e2e8f0;
+  --text-main: #27272a;
+  /* zinc-800 */
+  --border-default: #e4e4e7;
+  /* zinc-200 */
 
-  /* 玻璃擬態基礎色 */
-  --glass-bg: rgba(255, 255, 255, 0.85);
-  --glass-border: rgba(255, 255, 255, 0.5);
+  /* 玻璃擬態基礎色 (減輕不透明度，增強通透感) */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.3);
 }
 
-/* 深色模式變數 - 強化對比與色彩飽和度 */
+/* 深色模式變數 - 降低對比，深炭灰防眩光 */
 .dark {
-  --bg-body: #020617;         /* slate-950 (深邃黑藍，非死灰) */
-  --bg-card: #0f172a;         /* slate-900 */
-  --text-main: #f8fafc;       /* slate-50 */
-  --border-default: #1e293b;  /* slate-800 */
+  --bg-body: #18181b;
+  /* zinc-900 (深炭灰) */
+  --bg-card: #27272a;
+  /* zinc-800 */
+  --text-main: #f4f4f5;
+  /* zinc-50 */
+  --border-default: #3f3f46;
+  /* zinc-700 */
 
-  /* 深色玻璃擬態 - 增加透明質感 */
-  --glass-bg: rgba(15, 23, 42, 0.8);
-  --glass-border: rgba(255, 255, 255, 0.08);
+  /* 深色玻璃擬態 */
+  --glass-bg: rgba(24, 24, 27, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.05);
 }
 
 /* --- 2. 基礎 HTML 樣式 --- */
-html, body {
+html,
+body {
   height: 100%;
 }
 
@@ -37,17 +45,19 @@ body {
   margin: 0;
 
   /* ❌ 不要 fixed */
-  overflow: hidden;           /* 仍然鎖最外層捲動 */
+  overflow: hidden;
+  /* 仍然鎖最外層捲動 */
   overscroll-behavior-y: none;
 
   transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-              color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 #root {
   width: 100vw;
   height: 100%;
-  min-height: 100dvh;         /* ✅ 真正的一勞永逸：root 自己用 dvh */
+  min-height: 100dvh;
+  /* ✅ 真正的一勞永逸：root 自己用 dvh */
   overflow: hidden;
 
   display: flex;
@@ -60,18 +70,31 @@ html.dark {
 }
 
 /* --- 3. 工具類 (Utility Classes) --- */
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
 
 /* 自訂捲軸樣式 - 提高深色模式識別度 */
-.custom-scrollbar::-webkit-scrollbar { width: 6px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { 
-  background: #cbd5e1; 
-  border-radius: 10px; 
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
+
 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #475569;
 }
@@ -79,30 +102,50 @@ html.dark {
 /* 進階玻璃擬態 */
 .glass {
   background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--glass-border);
-  box-shadow: 0 4px 15px -1px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.06);
 }
+
 .dark .glass {
-  box-shadow: 0 8px 30px -5px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.4);
 }
 
 /* --- 4. 動畫定義 --- */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
+
 .animate-fade-in {
   animation: fadeIn 0.3s ease-out forwards;
 }
 
 /* 震動效果 (用於扣分反饋) */
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-4px); }
-  75% { transform: translateX(4px); }
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-4px);
+  }
+
+  75% {
+    transform: translateX(4px);
+  }
 }
+
 .animate-shake {
   animation: shake 0.4s ease-in-out;
 }
@@ -111,10 +154,10 @@ html.dark {
   font-family: 'ZhuyinAnnotated';
   /* 優先尋找本機安裝的名稱 */
   src: local('ㄅ源泉注音圓體'),
-       /*local('BpmfGenSenRounded-L'),local('BpmfGenSenRounded'),local('BpmfGenSekiGothic-L'),local('ㄅ源石注音黑體'),local('ㄅ源泉注音圓體'),*/
-       local('BpmfGenSenRounded-R'),
-       /* 網路備用檔案 */
-       url('/fonts/BpmfGenSenRounded-R.ttf') format('truetype');
+    /*local('BpmfGenSenRounded-L'),local('BpmfGenSenRounded'),local('BpmfGenSekiGothic-L'),local('ㄅ源石注音黑體'),local('ㄅ源泉注音圓體'),*/
+    local('BpmfGenSenRounded-R'),
+    /* 網路備用檔案 */
+    url('/fonts/BpmfGenSenRounded-R.ttf') format('truetype');
   font-display: swap;
 }
 
@@ -122,30 +165,35 @@ html.dark {
   font-family: 'ZhuyinAnnotated', "Microsoft JhengHei", sans-serif;
   line-height: 1.5;
   /* 👇 新增這兩行 */
-  font-weight: 500 !important; /* 強制使用標準粗細，不准瀏覽器自動加粗 */
-  -webkit-font-smoothing: antialiased; /* 讓字體缺乏邊緣更平滑銳利 */
+  font-weight: 500 !important;
+  /* 強制使用標準粗細，不准瀏覽器自動加粗 */
+  -webkit-font-smoothing: antialiased;
+  /* 讓字體缺乏邊緣更平滑銳利 */
   /* 保證在直排時，即使字型內部帶有側面設定也能轉正 */
   text-orientation: upright;
 }
 
 @media print {
   @page {
-    size: A4 portrait; /* 教師日誌直向列印更合適 */
+    size: A4 portrait;
+    /* 教師日誌直向列印更合適 */
     margin: 1.5cm;
   }
 
   /* 隱藏所有不需要列印的 UI */
-  .no-print, 
-  .scoring-tools, 
-  .sidebar, 
+  .no-print,
+  .scoring-tools,
+  .sidebar,
   .toolbar,
-  .scoring-ticker, .modal-overlay,
+  .scoring-ticker,
+  .modal-overlay,
   button {
     display: none !important;
   }
 
   /* 確保背景色與字體顏色適合列印 */
-  body, html {
+  body,
+  html {
     background: white !important;
     color: black !important;
     height: auto !important;
@@ -176,7 +224,8 @@ html.dark {
 /* 拖曳中的元素樣式 (由 polyfill 自動加入的 class) */
 .dnd-poly-drag-image {
   opacity: 0.9 !important;
-  transform: scale(1.05); /* 讓拖起來的卡片稍微放大，更有「抓起來」的感覺 */
+  transform: scale(1.05);
+  /* 讓拖起來的卡片稍微放大，更有「抓起來」的感覺 */
   border-radius: 12px;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
   z-index: 9999;
@@ -184,22 +233,30 @@ html.dark {
 
 /* 確保所有可拖曳元素在手機上不會觸發「選取文字」或「長按選單」 */
 [draggable="true"] {
-  -webkit-touch-callout: none; /* iOS Safari */
-  -webkit-user-select: none;   /* Safari */
-  user-select: none;           /* Standard */
+  -webkit-touch-callout: none;
+  /* iOS Safari */
+  -webkit-user-select: none;
+  /* Safari */
+  user-select: none;
+  /* Standard */
   /* 關鍵：告訴瀏覽器這區域由我們程式控制，不要自行捲動，除非是在可捲動區域內 */
-  touch-action: none;          
+  touch-action: none;
 }
 
 /* 但在列表或網格容器上，我們要允許捲動 */
-.overflow-auto, .overflow-y-auto {
-  touch-action: pan-y; /* 允許垂直捲動 */
+.overflow-auto,
+.overflow-y-auto {
+  touch-action: pan-y;
+  /* 允許垂直捲動 */
 }
 
 @keyframes moonGlow {
-  0%, 100% {
+
+  0%,
+  100% {
     filter: brightness(1);
   }
+
   50% {
     filter: brightness(1.05);
   }

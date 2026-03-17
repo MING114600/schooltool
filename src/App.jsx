@@ -67,16 +67,18 @@ const ClassroomOS = () => {
     checkVersion();
   }, []);
 
-  // 🌟 1. 判斷是否為家長模式
-  const isParentView = window.location.pathname.includes('/parent/view') ||
-    window.location.search.includes('token=');
+  const isGuestView = 
+    window.location.pathname.includes('/parent/view') ||
+    window.location.search.includes('token=') ||
+    (window.location.search.includes('app=photos') && window.location.search.includes('album=')) || 
+    (window.location.search.includes('app=photos') && window.location.search.includes('albums=')); // 相簿家長分享模式
 
-  // 🌟 2. 如果是家長模式，強制將當前 App 切換為 'caselog'
+  // 🌟 2. 如果是舊版家長模式網址，強制將當前 App 切換為 'caselog'
   useEffect(() => {
-    if (isParentView) {
+    if (window.location.pathname.includes('/parent/view') || window.location.search.includes('token=')) {
       setCurrentAppId('caselog');
     }
-  }, [isParentView, setCurrentAppId]);
+  }, [setCurrentAppId]);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -105,7 +107,7 @@ const ClassroomOS = () => {
     <div className={`relative w-full h-full ${UI_THEME.BACKGROUND} overflow-hidden transition-colors duration-500`}>
 
       {/* 🌟 3. 只有「不是」家長模式時，才顯示啟動器按鈕 */}
-      {!isParentView && (
+      {!isGuestView && (
         <button
           onClick={() => setIsLauncherOpen(true)}
           className={`
@@ -146,7 +148,7 @@ const ClassroomOS = () => {
       </div>
 
       {/* 🌟 4. 只有「不是」家長模式時，才掛載 AppLauncher */}
-      {!isParentView && (
+      {!isGuestView && (
         <AppLauncher
           isOpen={isLauncherOpen}
           onClose={() => setIsLauncherOpen(false)}
@@ -162,15 +164,17 @@ const ClassroomOS = () => {
         mode="history"
       />
       {/* 🌟 新增：自動跳出的最新版本更新日誌 */}
-      <PatchNotesModal
-        isOpen={showLatestNotes}
-        mode="latest"
-        onClose={() => {
-          setShowLatestNotes(false);
-          // 🌟 關鍵：使用者關閉後，將當前版本號寫入 localStorage，下次就不會再跳出了
-          localStorage.setItem('last_seen_version', APP_VERSION);
-        }}
-      />
+      {!isGuestView && (
+        <PatchNotesModal
+          isOpen={showLatestNotes}
+          mode="latest"
+          onClose={() => {
+            setShowLatestNotes(false);
+            // 🌟 關鍵：使用者關閉後，將當前版本號寫入 localStorage，下次就不會再跳出了
+            localStorage.setItem('last_seen_version', APP_VERSION);
+          }}
+        />
+      )}
 
       <ModalRoot />
     </div>
