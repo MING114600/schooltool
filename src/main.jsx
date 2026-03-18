@@ -14,13 +14,11 @@ import { registerSW } from 'virtual:pwa-register';
 initDragPolyfill(); // ★ 執行初始化
 const GOOGLE_CLIENT_ID = "831574445055-vf0rftv6fnb4aumg6a85fielpm3at1e1.apps.googleusercontent.com";
 
-// 🌟 4. 註冊 Service Worker 並監聽更新
+// 🌟 4. 註冊 Service Worker 並讓它在獲取更新後「自動」重整
 const updateSW = registerSW({
   onNeedRefresh() {
-    // 當有新版本 (新的 sw.js) 釋出時觸發
-    if (confirm('🚀 ClassroomOS 系統更新通知\n\n我們已經為您發佈了最新的效能與功能提升版本！\n請點擊「確定」立即更新頁面 (只需不到 1 秒)，以確保所有功能皆正常運行。')) {
-      updateSW(true); // 觸發跳過等待並重整
-    }
+    // 🌟 不再跳出 confirm，直接在背景悄悄更新並重整 (只需 0.5 秒)
+    updateSW(true); 
   },
   onOfflineReady() {
     console.log('ClassroomOS PWA 已為離線使用準備就緒');
