@@ -155,12 +155,18 @@ export default function AlbumDetail({ folderId, onBack, isSharedView = false, us
 
   // 🌟 [新增] 封面自動學習邏輯：從 URL 參數記憶封面
   useEffect(() => {
-    if (!isLoading && cachedData && folderId && !isSharedView) {
+    // 修正：不論是否為分享視圖 (isSharedView)，都應嘗試學習封面索引
+    if (!isLoading && cachedData && folderId) {
       const searchParams = new URLSearchParams(window.location.search);
       const coverIdxParam = searchParams.get('c');
       
-      // 如果 URL 有指定索引且目前本地紀錄中「沒有封面」或「ID為空」
-      if (coverIdxParam !== null && !isNaN(parseInt(coverIdxParam)) && !albumInfo.coverId) {
+      // 如果 URL 有指定索引，且滿足以下任一條件則更新本地 Store：
+      // 1. 本地尚無該相簿紀錄
+      // 2. 目前是訪客模式 (isSharedView)，則優先遵循連結中的索引
+      const shouldUpdate = coverIdxParam !== null && !isNaN(parseInt(coverIdxParam)) && 
+                          (!albumInfo.coverId || isSharedView);
+
+      if (shouldUpdate) {
         const idx = parseInt(coverIdxParam);
         const photos = cachedData.files || [];
         // 依照統一的「名稱遞增」排序
