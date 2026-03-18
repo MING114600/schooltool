@@ -33,7 +33,16 @@ export default function AlbumManager({ onGenerateShareLink }) {
       if (!apiKey) throw new Error('系統未設定 API Key，無法讀取雲端硬碟。');
       const validation = await validatePublicFolder(folderId, apiKey);
       if (!validation.isValid) throw new Error(validation.error || '驗證失敗，請確認資料夾是否設為「知道這個連結的任何人都能查看」。');
-      addManagedAlbum({ folderId, title: validation.folderName || '未命名相簿', coverImage: null, status: 'active', createdAt: Date.now() });
+      
+      let coverImage = null;
+      if (validation.description) {
+        const match = validation.description.match(/cover:([a-zA-Z0-9_-]+)/);
+        if (match && match[1]) {
+          coverImage = `https://drive.google.com/thumbnail?id=${match[1]}&sz=w800`;
+        }
+      }
+
+      addManagedAlbum({ folderId, title: validation.folderName || '未命名相簿', coverImage, status: 'active', createdAt: Date.now() });
       setUrl('');
       // Auto expand panel to show newly added album
       setIsPanelOpen(true);

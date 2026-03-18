@@ -50,8 +50,8 @@ const ClassroomOS = () => {
   const [isLauncherOpen, setIsLauncherOpen] = useState(false);
   const { currentAppId, setCurrentAppId, launcherPosition } = useOS();
 
-  // 🌟 2. 一行程式碼，取代原本幾十行的登入狀態與邏輯！
-  const { user, login, logout } = useAuth();
+  // 🌟 2. 引入登入狀態、登入/登出方法，以及載入狀態
+  const { user, login, logout, isAuthLoading } = useAuth();
 
   // 🌟 初始化 shareId (URL 優先)
   const [shareId, setShareId] = useState(() => new URLSearchParams(window.location.search).get('shareId'));
@@ -117,6 +117,7 @@ const ClassroomOS = () => {
             cycleTheme={cycleTheme}
             user={user}
             login={login}
+            isAuthLoading={isAuthLoading}
             shareId={shareId}
             setShareId={setShareId}
           />

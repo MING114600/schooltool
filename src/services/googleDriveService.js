@@ -582,7 +582,7 @@ export const getSpreadsheetInfo = async (token, sheetId) => {
 
 export const validatePublicFolder = async (folderId, apiKey) => {
   try {
-    const res = await fetch(`${DRIVE_API}/${folderId}?fields=id,name,mimeType&key=${apiKey}`);
+    const res = await fetch(`${DRIVE_API}/${folderId}?fields=id,name,mimeType,description&key=${apiKey}`);
     if (!res.ok) throw new Error('資料夾無效或這不是一個公開資料夾');
     const data = await res.json();
     if (data.mimeType !== 'application/vnd.google-apps.folder') {
@@ -590,11 +590,30 @@ export const validatePublicFolder = async (folderId, apiKey) => {
     }
     return {
       isValid: true,
-      folderName: data.name
+      folderName: data.name,
+      description: data.description || ''
     };
   } catch (error) {
     console.error('[Photos] 驗證資料夾失敗:', error);
     return { isValid: false, error: error.message };
+  }
+};
+
+export const updateFolderDescription = async (token, folderId, description) => {
+  try {
+    const res = await fetch(`${DRIVE_API}/${folderId}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ description })
+    });
+    await checkResponse(res);
+    return true;
+  } catch (error) {
+    console.error('[Photos] 更新資料夾敘述失敗:', error);
+    throw error;
   }
 };
 

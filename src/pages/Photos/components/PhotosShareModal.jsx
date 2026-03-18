@@ -2,14 +2,21 @@ import React, { useState } from 'react';
 import { X, QrCode, Link as LinkIcon, Check, ExternalLink } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
-const PhotosShareModal = ({ isOpen, onClose, shareId, albumTitle, isMultiShare = false }) => {
+const PhotosShareModal = ({ isOpen, onClose, shareId, albumTitle, coverId, isMultiShare = false }) => {
   const [copied, setCopied] = useState(false);
 
   if (!isOpen || !shareId) return null;
 
   // --- 連結生成邏輯 (支援 GAS 橋接) ---
   const proxyUrl = import.meta.env.VITE_SHARE_PROXY_URL; // e.g. https://script.google.com/.../exec
-  const queryParam = isMultiShare ? `albums=${shareId}` : `album=${shareId}`;
+  
+  // 建立基礎參數 (極簡化：a=albumId, c=coverIndex)
+  let queryParam = isMultiShare ? `albums=${shareId}` : `a=${shareId}`;
+  
+  // 🌟 若有指定封面且非多相簿分享，則附加 c (索引) 參數
+  if (coverId !== undefined && coverId !== null && !isMultiShare) {
+    queryParam += `&c=${coverId}`;
+  }
 
   // 如果有設定代理 URL，則優先使用代理連結（為了動態 OG Meta）
   // 否則使用目前的 window.location.origin

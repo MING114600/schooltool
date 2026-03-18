@@ -29,7 +29,7 @@ const usePhotoStore = create(
         return { managedAlbums: [...state.managedAlbums, albumData] };
       }),
 
-      // 更新管理的相簿 (可更新標題或封面)
+      // 更新管理的相簿 (可更新標題或封面 coverId, coverImage)
       updateManagedAlbum: (folderId, updates) => set((state) => ({
         managedAlbums: state.managedAlbums.map(a => 
           a.folderId === folderId ? { ...a, ...updates } : a

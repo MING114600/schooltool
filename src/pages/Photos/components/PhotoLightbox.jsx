@@ -1,16 +1,18 @@
 import React from 'react';
 import { Gallery, Item } from 'react-photoswipe-gallery';
+import { Images } from 'lucide-react';
 import 'photoswipe/dist/photoswipe.css';
 
 /**
- * PhotoLightbox — 使用永不過期的 Google Drive thumbnail URL
+ * PhotoLightbox — 控制相片網劇與 PhotoSwipe 燈箱
  * 
- * URL 格式: https://drive.google.com/thumbnail?id=FILE_ID&sz=wSIZE
- * 此格式為官方穩定轉址，不需 cookie，不需 token，24小時後仍然有效。
+ * 支援「正常瀏覽」與「封面選擇模式」。
  * 
- * @param {Array} photos - 包含 { id, name } 的陣列
+ * @param {Array} photos - 包含 { id, name, imageMediaMetadata } 的陣列
+ * @param {Function} onSetCover - 設定封面回調 (id, url)
+ * @param {Boolean} isSelectMode - 是否正處於封面選擇模式
  */
-export default function PhotoLightbox({ photos = [] }) {
+export default function PhotoLightbox({ photos = [], onSetCover = null, isSelectMode = false }) {
 
   // 自訂下載按鈕與切換動畫優化
   const handleBeforeOpen = (pswpInstance) => {
@@ -21,12 +23,9 @@ export default function PhotoLightbox({ photos = [] }) {
     // 解決鍵盤與按鈕點擊「瞬間跳轉」的問題：手動觸發帶有滑動動畫的位移
     const forceAnimateSlide = (delta) => {
       if (pswpInstance.mainScroll) {
-        // PS5 內部的 moveIndexBy 是支援動畫的
-        // 我們先檢查方法是否存在，避免再次報錯
         if (typeof pswpInstance.mainScroll.moveIndexBy === 'function') {
           pswpInstance.mainScroll.moveIndexBy(delta, true);
         } else {
-          // 退而求其次：使用原本的 next/prev，但這就是目前使用者覺得沒動畫的地方
           delta > 0 ? pswpInstance.next() : pswpInstance.prev();
         }
       }
@@ -46,6 +45,26 @@ export default function PhotoLightbox({ photos = [] }) {
     pswpInstance.prev = () => forceAnimateSlide(-1);
 
     pswpInstance.on('uiRegister', () => {
+      // 🌟 Lightbox 內部的設為封面按鈕 (作為第二種路徑)
+      if (onSetCover) {
+        pswpInstance.ui.registerElement({
+          name: 'set-cover-button',
+          order: 8,
+          isButton: true,
+          html: '<svg aria-hidden="true" class="pswp__icn" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
+          onInit: (el, pswp) => {
+            el.setAttribute('title', '將此張照片設為相簿封面');
+            el.onclick = () => {
+              const currentPhoto = photos[pswp.currIndex];
+              if (currentPhoto) {
+                const thumbUrl = `https://drive.google.com/thumbnail?id=${currentPhoto.id}&sz=w800`;
+                onSetCover(currentPhoto.id, thumbUrl);
+              }
+            };
+          }
+        });
+      }
+
       pswpInstance.ui.registerElement({
         name: 'custom-download-button',
         order: 9,
@@ -59,7 +78,6 @@ export default function PhotoLightbox({ photos = [] }) {
           pswp.on('change', () => {
             const currentPhoto = photos[pswp.currIndex];
             if (currentPhoto) {
-              // 使用穩定的 export=download 連結，不依賴 webContentLink
               el.href = `https://drive.google.com/uc?export=download&id=${currentPhoto.id}`;
             }
           });
@@ -74,27 +92,20 @@ export default function PhotoLightbox({ photos = [] }) {
       options={{ 
         zoom: true, 
         bgOpacity: 0.9,
-        // 增強切換時的滑動感：拉長時間與減少摩擦
         activeTransitionDuration: 600,
         mainScrollEndFriction: 0.1,
         showHideAnimationType: 'zoom',
         allowPanToNext: true,
-        // 確保點擊或按鍵切換觸發平滑位移
         clickToCloseNonZoomable: false,
       }}
     >
-      {/* 修改為「橫向流動式排列 (Justified Layout)」，符合一般相簿從左到右的閱讀邏輯，同時不破壞原始比例 */}
       <div className="flex flex-wrap gap-2 md:gap-4 after:content-[''] after:flex-[10_1_0%]">
         {photos.map((photo) => {
-          // 使用官方穩定的縮圖 URL — 不過期、不需 cookie、速度快
           const thumbUrl = `https://drive.google.com/thumbnail?id=${photo.id}&sz=w400`;
           const highResUrl = `https://drive.google.com/thumbnail?id=${photo.id}&sz=w1600`;
-
-          // 取得原始高寬比，避免燈箱出現展開/拉伸造成的變形
           const width = photo.imageMediaMetadata?.width || 1200;
           const height = photo.imageMediaMetadata?.height || 1600;
           const ratio = width / height;
-          // 基準高度 240px，讓畫面一排可以呈現 3~5 張照片
           const baseHeight = 240;
 
           return (
@@ -106,7 +117,6 @@ export default function PhotoLightbox({ photos = [] }) {
                 flexBasis: `${ratio * baseHeight}px`,
               }}
             >
-              {/* 利用 padding-bottom 撐開高度，維持完美比例 */}
               <i style={{ display: 'block', paddingBottom: `${(height / width) * 100}%` }}></i>
               
               <Item
@@ -118,17 +128,44 @@ export default function PhotoLightbox({ photos = [] }) {
               >
                 {({ ref, open }) => (
                   <div
-                    className="absolute inset-0 cursor-pointer overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800 shadow-sm hover:shadow-md transition-all"
-                    onClick={open}
+                    className={`absolute inset-0 cursor-pointer overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800 shadow-sm transition-all duration-300 ${
+                      isSelectMode 
+                        ? 'ring-4 ring-blue-500 ring-offset-2 dark:ring-offset-zinc-900 scale-95 hover:scale-100 rotate-1' 
+                        : 'hover:shadow-md'
+                    }`}
+                    onClick={(e) => {
+                      if (isSelectMode) {
+                        e.stopPropagation();
+                        onSetCover(photo.id, `https://drive.google.com/thumbnail?id=${photo.id}&sz=w800`);
+                      } else {
+                        open(e);
+                      }
+                    }}
                   >
                     <img
                       ref={ref}
                       src={thumbUrl}
                       alt={photo.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className={`w-full h-full object-cover transition-transform duration-500 ${
+                        isSelectMode ? 'opacity-70 group-hover:scale-110' : 'group-hover:scale-105'
+                      }`}
                       loading="lazy"
                     />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+
+                    {/* 選擇模式下的 Overlay */}
+                    {isSelectMode && (
+                      <div className="absolute inset-0 bg-blue-500/10 flex items-center justify-center">
+                        <div className="bg-blue-600 text-white p-2 rounded-full shadow-lg transform scale-110 animate-bounce">
+                          <Images size={20} />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3 pointer-events-none">
+                      <span className="text-white text-[10px] font-medium truncate w-full drop-shadow-sm">
+                        {photo.name}
+                      </span>
+                    </div>
                   </div>
                 )}
               </Item>

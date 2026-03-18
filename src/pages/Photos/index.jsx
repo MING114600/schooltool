@@ -7,7 +7,7 @@ import AlbumDetail from './AlbumDetail';
 import SharedAlbums from './SharedAlbums';
 import StandardAppLayout from '../../components/common/layout/StandardAppLayout';
 
-export default function Photos({ theme, cycleTheme, user, login }) {
+export default function Photos({ theme, cycleTheme, user, login, isAuthLoading }) {
   const [view, setView] = useState('list'); // 'list' | 'detail' | 'shared'
   const [activeFolderId, setActiveFolderId] = useState(null);
   const [sharedIds, setSharedIds] = useState(null);
@@ -43,6 +43,9 @@ export default function Photos({ theme, cycleTheme, user, login }) {
             folderId={activeFolderId} 
             isSharedView={isExternalShare}
             onBack={isExternalShare ? null : (() => setView('list'))} 
+            user={user}
+            login={login}
+            isAuthLoading={isAuthLoading}
           />
         );
       case 'shared':
