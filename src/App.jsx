@@ -71,8 +71,9 @@ const ClassroomOS = () => {
   const isGuestView = 
     window.location.pathname.includes('/parent/view') ||
     window.location.search.includes('token=') ||
-    (window.location.search.includes('app=photos') && window.location.search.includes('album=')) || 
-    (window.location.search.includes('app=photos') && window.location.search.includes('albums=')); // 相簿家長分享模式
+    window.location.search.includes('album=') || 
+    window.location.search.includes('albums=') ||
+    window.location.search.includes('shareId='); // 統一：所有分享模式皆隱藏系統導覽
 
   // 🌟 從 Config 取得對應的元件
   const CurrentComponent = APPS_CONFIG.find(a => a.id === currentAppId)?.component || APPS_CONFIG[0].component;
@@ -133,11 +134,13 @@ const ClassroomOS = () => {
           onOpenPatchNotes={() => setShowHistoryNotes(true)}
         />
       )}
-      <PatchNotesModal
-        isOpen={showHistoryNotes}
-        onClose={() => setShowHistoryNotes(false)}
-        mode="history"
-      />
+      {!isGuestView && (
+        <PatchNotesModal
+          isOpen={showHistoryNotes}
+          onClose={() => setShowHistoryNotes(false)}
+          mode="history"
+        />
+      )}
       {/* 🌟 新增：自動跳出的最新版本更新日誌 */}
       {!isGuestView && (
         <PatchNotesModal
