@@ -8,6 +8,9 @@ import PhotoLightbox from './components/PhotoLightbox';
 import PhotosShareModal from './components/PhotosShareModal';
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const FETCH_DELAY_MS = 300; // 🌟 緩衝延遲：避免過快抓取觸發 Google 429 錯誤
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 export default function AlbumDetail({ folderId, onBack, isSharedView = false }) {
   const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
@@ -93,6 +96,9 @@ export default function AlbumDetail({ folderId, onBack, isSharedView = false }) 
         let pageToken = page1.nextPageToken;
 
         while (pageToken && allFiles.length < 500) {
+          // 🌟 核心修正：加上緩衝延遲 (Throttle)，防止大相簿因並發請求過多被 Google 暫時封鎖
+          await sleep(FETCH_DELAY_MS);
+          
           const nextPage = await fetchPublicFolderPhotos(folderId, apiKey, pageToken);
           allFiles = [...allFiles, ...nextPage.files];
           // Update display progressively after each page
