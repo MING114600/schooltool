@@ -153,6 +153,32 @@ export default function AlbumDetail({ folderId, onBack, isSharedView = false, us
     return () => el.removeEventListener('scroll', onScroll);
   }, []);
 
+  // 🌟 [新增] 封面自動學習邏輯：從 URL 參數記憶封面
+  useEffect(() => {
+    if (!isLoading && cachedData && folderId && !isSharedView) {
+      const searchParams = new URLSearchParams(window.location.search);
+      const coverIdxParam = searchParams.get('c');
+      
+      // 如果 URL 有指定索引且目前本地紀錄中「沒有封面」或「ID為空」
+      if (coverIdxParam !== null && !isNaN(parseInt(coverIdxParam)) && !albumInfo.coverId) {
+        const idx = parseInt(coverIdxParam);
+        const photos = cachedData.files || [];
+        // 依照統一的「名稱遞增」排序
+        const sortedPhotos = [...photos].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        
+        if (sortedPhotos[idx]) {
+          const targetPhoto = sortedPhotos[idx];
+          console.log(`[Photos] 偵測到 URL 封面索引 c=${idx}，自動學習至本地:`, targetPhoto.name);
+          
+          updateManagedAlbum(folderId, {
+            coverId: targetPhoto.id,
+            coverImage: `https://drive.google.com/thumbnail?id=${targetPhoto.id}&sz=w800`
+          });
+        }
+      }
+    }
+  }, [isLoading, cachedData, folderId, albumInfo.coverId, isSharedView, updateManagedAlbum]);
+
   const handleForceRefresh = () => {
     clearAlbumCache(folderId);
     loadPhotos(true);
