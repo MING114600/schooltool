@@ -32,7 +32,12 @@ export const OSProvider = ({ children }) => {
       return requestedApp;
     }
 
-    // 4. 無特殊參數，回歸 localStorage 記憶或預設值
+    // 🌟 4. 防呆機制：如果 Proxy 轉址遺漏了 app=photos，只要有相簿參數就強制導向相簿
+    if (urlParams.has('album') || urlParams.has('albums')) {
+      return 'photos';
+    }
+
+    // 5. 無特殊參數，回歸 localStorage 記憶或預設值
     return 'dashboard';
   });
   
