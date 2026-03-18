@@ -104,7 +104,12 @@ export default function AlbumDetail({ folderId, onBack, isSharedView = false, us
       } catch (err) { console.error('Failed to fetch meta', err); }
 
       // Set the default album cover if missing
-      if (page1.files.length > 0 && (!albumInfo.coverImage || !albumInfo.coverId)) {
+      // 🌟 [優化] 如果 URL 已經帶有 c 索引，則不要在這個階段跑自動回退 (Fallback)
+      // 避免第一張照片搶先被存起來，造成後續學習邏輯判斷混淆
+      const searchParams = new URLSearchParams(window.location.search);
+      const hasUrlCoverIdx = searchParams.get('c') !== null;
+
+      if (page1.files.length > 0 && !hasUrlCoverIdx && (!albumInfo.coverImage || !albumInfo.coverId)) {
         // Fallback to first photo
         const firstPhoto = page1.files[0];
         updateManagedAlbum(folderId, { 
@@ -225,7 +230,17 @@ export default function AlbumDetail({ folderId, onBack, isSharedView = false, us
     
     // 找出目前封面 ID 在排序清單中的位置
     const currentCoverId = albumInfo.coverId;
-    const coverIndex = sortedPhotos.findIndex(p => p.id === currentCoverId);
+    let coverIndex = sortedPhotos.findIndex(p => p.id === currentCoverId);
+
+    // 🌟 [深度優化] 解決冷啟動歸零問題：
+    // 如果找不到索引（可能還在背景載入後面分頁），但 URL 參數有給 c，則優先使用 URL 的 c
+    if (coverIndex < 0) {
+      const searchParams = new URLSearchParams(window.location.search);
+      const urlCoverIdx = searchParams.get('c');
+      if (urlCoverIdx !== null && !isNaN(parseInt(urlCoverIdx))) {
+        coverIndex = parseInt(urlCoverIdx);
+      }
+    }
 
     setShareData({
       isOpen: true,
