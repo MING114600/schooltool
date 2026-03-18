@@ -53,7 +53,8 @@ const ClassroomOS = () => {
   // 🌟 2. 一行程式碼，取代原本幾十行的登入狀態與邏輯！
   const { user, login, logout } = useAuth();
 
-  const [shareId, setShareId] = useState(null);
+  // 🌟 初始化 shareId (URL 優先)
+  const [shareId, setShareId] = useState(() => new URLSearchParams(window.location.search).get('shareId'));
   const [showLatestNotes, setShowLatestNotes] = useState(false);
   const [showHistoryNotes, setShowHistoryNotes] = useState(false);
 
@@ -72,32 +73,6 @@ const ClassroomOS = () => {
     window.location.search.includes('token=') ||
     (window.location.search.includes('app=photos') && window.location.search.includes('album=')) || 
     (window.location.search.includes('app=photos') && window.location.search.includes('albums=')); // 相簿家長分享模式
-
-  // 🌟 2. 如果是舊版家長模式網址，強制將當前 App 切換為 'caselog'
-  useEffect(() => {
-    if (window.location.pathname.includes('/parent/view') || window.location.search.includes('token=')) {
-      setCurrentAppId('caselog');
-    }
-  }, [setCurrentAppId]);
-
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('shareId');
-    if (code) {
-      setShareId(code);
-      setCurrentAppId('reader');
-      return;
-    }
-
-    // 處理 ?app=xxx 指定啟動模組
-    const requestedApp = urlParams.get('app');
-    if (requestedApp) {
-      const isValidApp = APPS_CONFIG.some(a => a.id === requestedApp);
-      if (isValidApp) {
-        setCurrentAppId(requestedApp);
-      }
-    }
-  }, [setCurrentAppId]);
 
   // 🌟 從 Config 取得對應的元件
   const CurrentComponent = APPS_CONFIG.find(a => a.id === currentAppId)?.component || APPS_CONFIG[0].component;

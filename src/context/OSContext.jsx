@@ -9,8 +9,32 @@ const OSContext = createContext();
 // 2. 建立 Provider (大腦本體)
 export const OSProvider = ({ children }) => {
   // --- 核心狀態：目前開啟的 App ---
-  // 🌟 修改：改用 usePersistentState 來記憶上次使用的 App
-  const [currentAppId, setCurrentAppId] = usePersistentState('classroom_os_current_app', 'dashboard');
+  // 🌟 修改：初始化時優先判斷 URL 參數，實現 Deep Linking 零延遲跳轉
+  const [currentAppId, setCurrentAppId] = usePersistentState('classroom_os_current_app', () => {
+    const { pathname, search } = window.location;
+    const urlParams = new URLSearchParams(search);
+
+    // 1. CaseLog 家長模式優先 (/parent/view 或帶有 token=)
+    if (pathname.includes('/parent/view') || urlParams.has('token')) {
+      return 'caselog';
+    }
+
+    // 2. ExamReader 分享模式 (shareId=)
+    if (urlParams.has('shareId')) {
+      return 'reader';
+    }
+
+    // 3. 指定 App 模式 (app=)
+    const requestedApp = urlParams.get('app');
+    if (requestedApp) {
+      // 這裡無法直接存取 APPS_CONFIG (循環依賴風險)，但在 App.jsx 會再次驗證
+      // 即使傳入無效 ID，App.jsx 的 CurrentComponent 邏輯也會 fallback 回首頁
+      return requestedApp;
+    }
+
+    // 4. 無特殊參數，回歸 localStorage 記憶或預設值
+    return 'dashboard';
+  });
   
   // --- 核心狀態：Launcher 位置 ---
   const [launcherPosition, setLauncherPosition] = usePersistentState('os_launcher_pos', 'left');
