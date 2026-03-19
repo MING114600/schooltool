@@ -49,6 +49,19 @@ const ContactBookEditor = ({ isFocusMode, isGlobalZhuyin }) => {
 
     const isVertical = writingMode === 'vertical-rl';
 
+    // 自適應佈局計算（只在橫排模式下作用）
+    const itemCount = currentLog.items.length;
+    const isTwoCol = !isVertical && itemCount >= 6;
+    const dynamicFontSize = (() => {
+        // 雙欄模式：6–12 項雙欄本身已降低密度，字型不限制，讓縮放工具正常運作
+        // 只有極多項目時才溫和收斂，避免真正爆版
+        if (isTwoCol && itemCount >= 17) return Math.min(editorZoom, 70);
+        if (isTwoCol && itemCount >= 13) return Math.min(editorZoom, 85);
+        return editorZoom;
+    })();
+    const outerGap = itemCount > 5 ? 'gap-2' : 'gap-4';
+    const innerGap = itemCount >= 13 ? 'gap-1' : (itemCount >= 6 ? 'gap-1.5' : 'gap-2');
+
     const dateString = formatMinguoDate(currentLog.date);
 
     return (
@@ -59,7 +72,7 @@ const ContactBookEditor = ({ isFocusMode, isGlobalZhuyin }) => {
                 <div className="w-[90%] h-[92%] flex flex-col items-center">
                     <div
                         id="contact-book-blackboard"
-                        className={`w-full flex-1 rounded-2xl bg-[#274C43] text-white shadow-2xl relative flex flex-col ${writingMode === 'vertical-rl' ? 'overflow-x-auto overflow-y-hidden' : 'overflow-y-auto overflow-x-hidden'}`}
+                        className={`w-full flex-1 rounded-2xl bg-[#274C43] text-white shadow-2xl relative flex flex-col ${writingMode === 'vertical-rl' ? 'overflow-x-auto overflow-y-hidden' : 'overflow-hidden'}`}
                         style={{
                             fontFamily: '"DFKai-SB", "BiauKai", "標楷體", serif',
                             letterSpacing: '0.1em',
@@ -70,16 +83,16 @@ const ContactBookEditor = ({ isFocusMode, isGlobalZhuyin }) => {
 
                         {/* 文字內容區 — fontSize 只影響這裡 */}
                         <div
-                            className="flex-1 p-6 md:p-10 flex flex-col gap-6"
+                            className={`flex-1 p-6 md:p-10 flex flex-col ${outerGap}`}
                             style={{
                                 writingMode: writingMode,
                                 textOrientation: 'mixed',
-                                fontSize: `${editorZoom}%`
+                                fontSize: `${dynamicFontSize}%`
                             }}
                         >
 
                             {/* 第一行：日期 */}
-                            <div className={`group flex items-center gap-3 relative z-10 ${writingMode === 'vertical-rl' ? 'h-full shrink-0' : 'w-full'}`}>
+                            <div className={`group flex items-center gap-3 relative z-10 shrink-0 ${writingMode === 'vertical-rl' ? 'h-full' : 'w-full'}`}>
                                 <div className="text-[2.25em]" style={{ color: '#ffeb3b', letterSpacing: '0.1em' }}>
                                     <ZhuyinRenderer text={dateString} isActive={isGlobalZhuyin} writingMode={writingMode} />
                                 </div>
@@ -87,7 +100,7 @@ const ContactBookEditor = ({ isFocusMode, isGlobalZhuyin }) => {
 
 
                             <SortableContext items={currentLog.items.map(i => i.id)} strategy={isVertical ? horizontalListSortingStrategy : verticalListSortingStrategy}>
-                                <div ref={parent} className={isVertical ? 'flex flex-col gap-4 h-full' : 'flex flex-col gap-2 w-full'}>
+                                <div ref={parent} className={isVertical ? 'flex flex-col gap-4 h-full' : isTwoCol ? `grid grid-cols-2 ${innerGap} w-full` : `flex flex-col ${innerGap} w-full`}>
                                     {currentLog.items.map((item, index) => (
                                         <ContactBookRow
                                             key={item.id}
@@ -95,6 +108,7 @@ const ContactBookEditor = ({ isFocusMode, isGlobalZhuyin }) => {
                                             index={index}
                                             isFocusMode={isFocusMode}
                                             isVertical={isVertical}
+                                            isTwoCol={isTwoCol}
                                             writingMode={writingMode}
                                             isGlobalZhuyin={isGlobalZhuyin}
                                             editingId={editingId}

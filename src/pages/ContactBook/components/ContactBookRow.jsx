@@ -9,6 +9,7 @@ const ContactBookRow = ({
     index,
     isFocusMode,
     isVertical,
+    isTwoCol,
     writingMode,
     isGlobalZhuyin,
     editingId,
@@ -40,7 +41,7 @@ const ContactBookRow = ({
         <div
             ref={setNodeRef}
             style={style}
-            className={`group relative flex items-center gap-2 md:gap-3 rounded-xl p-1 md:p-2 transition-all hover:bg-white/5 ${isDragging ? 'bg-white/10 shadow-lg' : ''} ${isVertical ? 'h-full shrink-0' : 'w-full'}`}
+            className={`group relative flex items-center gap-2 md:gap-3 rounded-xl ${isTwoCol ? 'p-0.5 md:p-1' : 'p-1 md:p-2'} transition-all hover:bg-white/5 ${isDragging ? 'bg-white/10 shadow-lg' : ''} ${isVertical ? 'h-full shrink-0' : 'w-full'}`}
         >
             {/* 拖曳把手 (非 Focus 模式、非匯出時顯示) */}
             {!isFocusMode && !isExporting && (
@@ -87,7 +88,7 @@ const ContactBookRow = ({
                             style={{ writingMode: writingMode }}
                         />
                     ) : (
-                        <div className={`flex-1 text-[1.875em] px-2 py-1 leading-relaxed border-b border-transparent hover:border-white/30 transition-colors ${item.isImportant ? 'text-[color:#ffa0a0] border-rose-400/50' : 'text-white border-white/30'}`} style={{ writingMode: writingMode }}>
+                        <div className={`flex-1 text-[1.875em] px-2 py-1 ${isTwoCol ? 'leading-snug' : 'leading-relaxed'} border-b border-transparent hover:border-white/30 transition-colors ${item.isImportant ? 'text-[color:#ffa0a0] border-rose-400/50' : 'text-white border-white/30'}`} style={{ writingMode: writingMode }}>
                             <ZhuyinRenderer text={item.content} isActive={isGlobalZhuyin} writingMode={writingMode} />
                         </div>
                     )}
