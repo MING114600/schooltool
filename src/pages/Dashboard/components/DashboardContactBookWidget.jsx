@@ -69,7 +69,7 @@ const DashboardContactBookWidget = ({ isOpen, onClose, isGlobalZhuyin, statusMod
 
                 {/* Header */}
                 <div className="flex justify-between items-center p-4 border-b border-white/20 bg-black/20">
-                    <h2 className="flex items-center gap-3 text-2xl text-white tracking-widest" style={{ fontFamily: '"DFKai-SB", "BiauKai", "標楷體", serif' }}>
+                    <h2 className="flex items-center gap-3 text-2xl text-white tracking-widest">
                         <BookOpen className="text-emerald-400" size={28} />
                         <ZhuyinRenderer text="今日聯絡簿" isActive={isGlobalZhuyin} />
                         <span className="text-xl opacity-70 ml-2">{currentLog?.date}</span>
@@ -117,15 +117,13 @@ const DashboardContactBookWidget = ({ isOpen, onClose, isGlobalZhuyin, statusMod
                     ) : (
                         <div className="flex flex-col gap-6 w-full max-w-4xl mx-auto">
                             {currentLog.items.map((item, index) => (
-                                <div key={item.id} className="flex items-start gap-4 w-full">
-                                    <button
-                                        onClick={() => updateItemInCurrentLog(item.id, { isChecked: !item.isChecked })}
-                                        className="text-white opacity-80 hover:opacity-100 transition-opacity mt-2 flex-shrink-0"
-                                    >
-                                        {item.isChecked ? <CheckSquare size={40} className="text-green-400" /> : <Square size={40} />}
-                                    </button>
-                                    <span className="text-4xl opacity-60 select-none whitespace-nowrap pt-1 text-white">{index + 1}.</span>
-                                    <div className={`flex-1 text-5xl leading-relaxed cursor-pointer select-none transition-all ${item.isImportant ? 'text-[color:#ffa0a0]' : 'text-white'} ${item.isChecked ? 'line-through opacity-40 grayscale' : ''}`} style={{ fontFamily: '"DFKai-SB", "BiauKai", "標楷體", serif' }}>
+                                <div 
+                                    key={item.id} 
+                                    className="flex items-start gap-4 w-full cursor-pointer group/item"
+                                    onClick={() => updateItemInCurrentLog(item.id, { isChecked: !item.isChecked })}
+                                >
+                                    <span className={`text-4xl opacity-60 select-none whitespace-nowrap pt-1 text-white transition-all ${item.isChecked ? 'opacity-20 line-through' : ''}`}>{index + 1}.</span>
+                                    <div className={`flex-1 text-5xl leading-relaxed cursor-pointer select-none transition-all duration-300 ${item.isImportant ? 'text-[color:#ffa0a0]' : 'text-white'} ${item.isChecked ? 'line-through opacity-30 grayscale' : ''}`}>
                                         <ZhuyinRenderer text={item.content} isActive={isGlobalZhuyin} />
                                     </div>
                                 </div>

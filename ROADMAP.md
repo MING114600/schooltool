@@ -7,19 +7,19 @@
 ## 📸 班級相簿 (Photos) - 優化藍圖
 
 ### 1. 程式碼架構優化 (Architecture)
-- [ ] **抽離資料獲取邏輯 (Custom Hooks)**：將 `googleDriveService` 的呼叫封裝成 `useDriveAlbums` 或 `useDrivePhotos`，讓 UI 元件更純粹地專注於渲染。
-- [ ] **相片網格元件化**：將 `AlbumDetail.jsx` 中的相片瀑布流區塊獨立為 `<PhotoGrid />` 元件，提升維護性。
+- [x] **抽離資料獲取邏輯 (Custom Hooks)**：將 `googleDriveService` 的呼叫封裝成 `useDrivePhotos`，讓 UI 元件更純粹地專注於渲染。 ✅ v8.4.0
+- [x] **相片網格元件化**：將 `AlbumDetail.jsx` 中的相片瀑布流區塊獨立為 `<PhotoGrid />` 元件，提升維護性。 ✅ v8.4.0
 
 ### 2. 效能與體驗極限優化 (Performance UX)
-- [ ] **虛擬滾動 (Virtual Scrolling)**：針對照片數量極大的相簿（如 200 張以上），僅渲染畫面上可見的 DOM 節點，降低手機瀏覽器的負擔。
-- [ ] **漸進式影像顯示 (Progressive Image Loading)**：在呈現真實縮圖前，先顯示極低解析度的模糊色塊或主色調占位圖，提升感官載入速度。
-- [ ] **Masonry 排版優化**：改善 Masonry 佈局在動態載入時的跳動感 (Layout Shift)。
+- [x] **虛擬滾動 (Virtual Scrolling)**：針對照片數量極大的相簿（100 張以上），使用 Intersection Observer 懶掛載，降低手機瀏覽器的負擔。 ✅ v8.4.0
+- [x] **漸進式影像顯示 (Progressive Image Loading)**：在呈現真實縮圖前，先顯示極低解析度的模糊色塊占位圖，提升感官載入速度。 ✅ v8.4.0
+- [x] **Masonry 排版優化**：改善 Masonry 佈局在動態載入時的跳動感 (Layout Shift)。 ✅ v8.4.0
 
 ### 3. 未來管理與分享功能 (Extended Features)
-- [ ] **批次下載 (Batch Download)**：實作勾選照片並一鍵打包為 ZIP 檔的功能。
-- [ ] **老師端上傳通道 (Manager Upload)**：在管理分頁支援直接拖放照片上傳至對應的 Google Drive 資料夾，打造完整管理閉環。
-- [ ] **年份與分類篩選**：隨著相簿累積，支援依「學期/學年度」或「活動類型標籤」進行快速篩選。
-- [ ] **多語系支援**：為相簿模組提供完整的多語系鍵值對。
+- [~] **批次下載 (Batch Download)**：Google Drive 下載端點存在 CORS 限制，瀏覽器端 `fetch()` 無法抓取，多視窗下載也被瀏覽器攔截。需後端代理（如 Cloudflare Worker 轉送）才能實作，目前暫緩。
+- [x] **老師端上傳通道 (Manager Upload)**：評估後刻意略過——`drive.file` scope 限制無法寫入非 App 建立的資料夾，維持使用 Google Drive 介面上傳。
+- [x] **年份與分類篩選**：隨著相簿累積，支援依「學年度」進行快速篩選，並在相片卡片顯示學年標籤。 ✅ v8.4.0
+- [x] **多語系支援**：實際評估後最終略過——目前專案無多語系規劃。
 
 ---
 

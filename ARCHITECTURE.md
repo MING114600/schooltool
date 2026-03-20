@@ -83,7 +83,9 @@
 - **`useStudentImport.js`**：學生名單匯入解析邏輯。
 - **`useTheme.js`**：系統主題切換邏輯。
 - **`useTTS.js`**：Web Speech API 封裝，管理語音播放與 iOS 防回收機制。
+- **`useDrivePhotos.js`** (位於 `src/pages/Photos/hooks/`)：相簿照片資料獲取 Hook。封裝三層快取策略（Zustand 記憶體 → IndexedDB → Google Drive API）、背景分頁載入節流（300ms/page）、封面自動學習（URL `c=` 參數）與強制重整邏輯。
 - **`useZhuyin.js`** ：處理注音字型的載入狀態檢測與模式切換邏輯。
+
 
 ## 📂 src/data (靜態資產與更新日誌)
 
@@ -172,12 +174,21 @@
 
 ### 5. Photos (班級相簿)
 
-- **`index.jsx`**：相簿應用程式主進入點。
-- **`AlbumList.jsx`** / **`AlbumDetail.jsx`** / **`SharedAlbums.jsx`**：相簿導覽與相片一覽視圖。
+> **架構設計理念：Serverless + BYOD + Local-First**
+> 老師貼上 Google Drive 公開資料夾連結，App 透過 `drive.readonly` 公開 API 讀取相片，無需任何後端。
+
+- **`index.jsx`**：相簿應用程式主進入點，解析 URL 參數（`?album=`、`?albums=`）決定初始視圖。
+- **`AlbumList.jsx`**：相簿列表視圖。包含學年度篩選 Chips（以 8 月為新學年分界，自動換算民國學年）與相片卡片學年標籤。
+- **`AlbumDetail.jsx`**：相簿詳情頁（精簡版，~230 行）。僅負責 UI 骨架、Sticky Header、封面選擇模式、分享與設定封面回調，資料層完全委託 `useDrivePhotos`。
+- **`SharedAlbums.jsx`**：訪客/多相簿分享視圖。
+- **hooks/**
+    - **`useDrivePhotos.js`**：相簿核心資料 Hook。三層快取（Zustand → IndexedDB → Google Drive API）、背景分頁載入（帶 300ms 節流防止 429）、封面自動學習、進度標籤計算。
 - **components/**
-    - **`AlbumManager.jsx`**：相簿管理與建立模組。
-    - **`PhotoLightbox.jsx`**：全螢幕高解析照片預覽。
-    - **`PhotosShareModal.jsx`**：分享設定視窗。
+    - **`AlbumManager.jsx`**：後台管理手風琴面板，負責新增（驗證 Drive 資料夾公開性）、刪除、勾選相簿及一鍵生成分享連結。
+    - **`PhotoGrid.jsx`**：相片網格排版核心（取代舊 `PhotoLightbox.jsx`）。職責：Justified Masonry 排版、漸進式影像顯示（佔位底色 → blur preview → 真實縮圖）、虛擬滾動控制（超過 100 張切換 `LazyPhoto` 懶掛載）、Layout Shift 防護（`isFetchingMore` Skeleton）、PhotoSwipe 燈箱整合（鍵盤、下載、封面按鈕）。
+    - **`LazyPhoto.jsx`**：Intersection Observer 懶掛載容器。`photos.length > 100` 時由 `PhotoGrid` 自動啟用，進入可視區域前渲染骨架佔位，進入後才 mount 真實 `PhotoCard`（±400px 緩衝預載）。
+    - **`PhotosShareModal.jsx`**：相簿分享視窗（QR Code、複製連結）。
+    - **`BatchDownloadModal.jsx`**：批次下載模組（**目前停用**，因 Google Drive 下載端點 CORS 限制，無法從純前端 fetch；需後端代理才可實作，列入未來選項）。
 
 ### 6. ExamReader (報讀助理)
 

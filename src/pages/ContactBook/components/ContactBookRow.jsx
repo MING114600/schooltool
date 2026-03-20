@@ -41,7 +41,8 @@ const ContactBookRow = ({
         <div
             ref={setNodeRef}
             style={style}
-            className={`group relative flex items-center gap-2 md:gap-3 rounded-xl ${isTwoCol ? 'p-0.5 md:p-1' : 'p-1 md:p-2'} transition-all hover:bg-white/5 ${isDragging ? 'bg-white/10 shadow-lg' : ''} ${isVertical ? 'h-full shrink-0' : 'w-full'}`}
+            className={`group relative flex ${isFocusMode ? 'items-start pt-2 cursor-pointer' : 'items-baseline'} gap-2 md:gap-3 rounded-xl ${isTwoCol ? 'p-0.5 md:p-1' : 'p-1 md:p-2'} transition-all hover:bg-white/5 ${isDragging ? 'bg-white/10 shadow-lg' : ''} ${isVertical ? 'h-full shrink-0' : 'w-full'}`}
+            onClick={isFocusMode ? () => updateItemInCurrentLog(item.id, { isChecked: !item.isChecked }) : undefined}
         >
             {/* 拖曳把手 (非 Focus 模式、非匯出時顯示) */}
             {!isFocusMode && !isExporting && (
@@ -54,24 +55,14 @@ const ContactBookRow = ({
                 </div>
             )}
 
-            {/* Dashboard / 大屏互動打勾功能 */}
-            {isFocusMode && (
-                <button
-                    onClick={() => updateItemInCurrentLog(item.id, { isChecked: !item.isChecked })}
-                    className="text-white opacity-80 hover:opacity-100 transition-opacity flex-shrink-0"
-                >
-                    {item.isChecked ? <CheckSquare size={36} className="text-green-400" /> : <Square size={36} />}
-                </button>
-            )}
-
             {/* 順序編號 */}
-            <span className="text-[1.875em] opacity-60 select-none whitespace-nowrap" style={{ textCombineUpright: 'all' }}>
+            <span className={`${isFocusMode ? 'text-[2.5em] mt-3' : 'text-[1.875em]'} opacity-60 select-none whitespace-nowrap ${item.isChecked ? 'opacity-20 line-through' : ''}`} style={{ textCombineUpright: 'all' }}>
                 {index + 1}.
             </span>
 
             {/* 內文 */}
             {isFocusMode ? (
-                <div className={`flex-1 text-[3em] leading-relaxed cursor-pointer select-none ${item.isImportant ? 'text-[color:#ffa0a0]' : 'text-white'} ${item.isChecked ? 'line-through opacity-50' : ''}`}>
+                <div className={`flex-1 text-[3em] leading-tight md:leading-relaxed select-none transition-all duration-300 ${item.isImportant ? 'text-[color:#ffa0a0]' : 'text-white'} ${item.isChecked ? 'line-through opacity-30 grayscale' : ''}`}>
                     <ZhuyinRenderer text={item.content} isActive={isGlobalZhuyin} writingMode={writingMode} />
                 </div>
             ) : (

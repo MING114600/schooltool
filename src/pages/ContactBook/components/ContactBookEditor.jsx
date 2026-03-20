@@ -74,7 +74,6 @@ const ContactBookEditor = ({ isFocusMode, isGlobalZhuyin }) => {
                         id="contact-book-blackboard"
                         className={`w-full flex-1 rounded-2xl bg-[#274C43] text-white shadow-2xl relative flex flex-col ${writingMode === 'vertical-rl' ? 'overflow-x-auto overflow-y-hidden' : 'overflow-hidden'}`}
                         style={{
-                            fontFamily: '"DFKai-SB", "BiauKai", "標楷體", serif',
                             letterSpacing: '0.1em',
                         }}
                     >

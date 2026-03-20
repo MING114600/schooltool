@@ -14,9 +14,63 @@
 // type: 請填入 major (大更新), minor (小更新), 或 patch (修補)
 // changes: "new":"新增的功能說明"；"improve":"優化的介面或體驗說明"；"fix":"修復的錯誤說明"
 
-export const APP_VERSION = '8.3.8';
+export const APP_VERSION = '8.4.1';
 
 export const PATCH_NOTES = [
+  {
+    "version": "8.4.1",
+    "date": "2026-03-20",
+    "title": "智慧聯絡簿介面與互動體驗深度優化",
+    "type": "patch",
+    "changes": [
+      {
+        "type": "improve",
+        "text": "互動式「粉筆劃除」體驗：移除投影模式下的勾選框，改為點擊文字區域直接切換完成狀態，並強化刪除線與透明度的視覺回饋。"
+      },
+      {
+        "type": "improve",
+        "text": "全系統字體統一：聯絡簿字體由楷體改回系統黑體，解決跨平台顯示不一與對齊偏移問題，視覺感受更現代且穩定。"
+      },
+      {
+        "type": "improve",
+        "text": "精準基準線對齊：導入 items-baseline 佈局，不論螢幕縮放比例，序號與首行文字底部皆能自動精確鎖定對齊。"
+      },
+      {
+        "type": "improve",
+        "text": "投影比例適配：針對大螢幕需求放大序號與文字感應區，優化遠距辨識度並提升觸控或大區域點擊的易用性。"
+      }
+    ]
+  },
+
+  {
+    "version": "8.4.0",
+    "date": "2026-03-20",
+    "title": "班級相簿全面進化：效能、體驗與功能三重升級",
+    "type": "major",
+    "changes": [
+      {
+        "type": "improve",
+        "text": "架構深度重構：將相簿資料獲取邏輯抽離為獨立的 useDrivePhotos Hook，並獨立 PhotoGrid 網格元件，大幅降低程式碼複雜度，提升長期可維護性。"
+      },
+      {
+        "type": "improve",
+        "text": "漸進式影像顯示：照片網格現在採用「佔位底色 → 模糊 Preview → 真實縮圖」三階段漸進載入，消除白屏感，讓大相簿的翻覽體驗更流暢。"
+      },
+      {
+        "type": "improve",
+        "text": "虛擬滾動優化：超過 100 張照片時自動啟用 Intersection Observer 懶掛載機制，大幅降低手機瀏覽器的 DOM 負擔，大型相簿也能保持流暢。"
+      },
+      {
+        "type": "improve",
+        "text": "Layout Shift 防護：背景載入更多照片時，在底部補充骨架佔位列，防止內容突然增塊導致使用者閱覽位置被推移。"
+      },
+      {
+        "type": "new",
+        "text": "學年度篩選 Chips：相簿清單頁新增學年篩選功能，系統自動依照建立時間歸納學年（以每年 8 月為分界），並在相片卡片上顯示學年標籤。"
+      }
+    ]
+  },
+
   {
     "version": "8.3.8",
     "date": "2026-03-19",
