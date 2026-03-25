@@ -26,8 +26,9 @@ export default function SharedAlbums({ ids }) {
             let coverImage = null;
             try {
               const page1 = await fetchPublicFolderPhotos(id, apiKey);
-              if (page1.files && page1.files.length > 0) {
-                coverImage = `https://drive.google.com/thumbnail?id=${page1.files[0].id}&sz=w600`;
+              const firstImage = (page1.files || []).find(f => f.mimeType?.includes('image/'));
+              if (firstImage) {
+                coverImage = `https://drive.google.com/thumbnail?id=${firstImage.id}&sz=w600`;
               }
             } catch (_) {}
 

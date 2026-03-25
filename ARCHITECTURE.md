@@ -179,14 +179,14 @@
 
 - **`index.jsx`**：相簿應用程式主進入點，解析 URL 參數（`?album=`、`?albums=`）決定初始視圖。
 - **`AlbumList.jsx`**：相簿列表視圖。包含學年度篩選 Chips（以 8 月為新學年分界，自動換算民國學年）與相片卡片學年標籤。
-- **`AlbumDetail.jsx`**：相簿詳情頁（精簡版，~230 行）。僅負責 UI 骨架、Sticky Header、封面選擇模式、分享與設定封面回調，資料層完全委託 `useDrivePhotos`。
-- **`SharedAlbums.jsx`**：訪客/多相簿分享視圖。
+- **`AlbumDetail.jsx`**：相簿詳情頁（核心導覽元件）。負責 UI 骨架、**子資料夾路徑狀態 (`pathTrail`)、麵包屑導覽 (Breadcrumbs)**、封面選擇模式、分享與設定封面回調。資料層完全委託 `useDrivePhotos`。
+- **`SharedAlbums.jsx`**：訪客/多相簿分享視圖。支援特定子目錄 ID 直接進入。
 - **hooks/**
-    - **`useDrivePhotos.js`**：相簿核心資料 Hook。三層快取（Zustand → IndexedDB → Google Drive API）、背景分頁載入（帶 300ms 節流防止 429）、封面自動學習、進度標籤計算。
+    - **`useDrivePhotos.js`**：相簿核心資料 Hook。包含三層快取（Zustand → IndexedDB → Google Drive API）、**1.5 秒背景分頁載入防抖動 (UI Debounce)**、封面自動學習與混合項目（資料夾+檔案）解析邏輯。
 - **components/**
     - **`AlbumManager.jsx`**：後台管理手風琴面板，負責新增（驗證 Drive 資料夾公開性）、刪除、勾選相簿及一鍵生成分享連結。
-    - **`PhotoGrid.jsx`**：相片網格排版核心（取代舊 `PhotoLightbox.jsx`）。職責：Justified Masonry 排版、漸進式影像顯示（佔位底色 → blur preview → 真實縮圖）、虛擬滾動控制（超過 100 張切換 `LazyPhoto` 懶掛載）、Layout Shift 防護（`isFetchingMore` Skeleton）、PhotoSwipe 燈箱整合（鍵盤、下載、封面按鈕）。
-    - **`LazyPhoto.jsx`**：Intersection Observer 懶掛載容器。`photos.length > 100` 時由 `PhotoGrid` 自動啟用，進入可視區域前渲染骨架佔位，進入後才 mount 真實 `PhotoCard`（±400px 緩衝預載）。
+    - **`PhotoGrid.jsx`**：相片網格排版核心。職責：Justified Masonry 排版、漸進式影像顯示、**虛擬滾動首屏免載 (Eager Render)**、**燈箱動態同步與關閉捲動追蹤 (Exit Sync)**、PhotoSwipe 燈箱整合。
+    - **`LazyPhoto.jsx`**：Intersection Observer 懶掛載容器。`photos.length > 100` 時由 `PhotoGrid` 自動啟用，**±1000px 緩衝預載**以徹底消除快速滑動時的白屏感。
     - **`PhotosShareModal.jsx`**：相簿分享視窗（QR Code、複製連結）。
     - **`BatchDownloadModal.jsx`**：批次下載模組（**目前停用**，因 Google Drive 下載端點 CORS 限制，無法從純前端 fetch；需後端代理才可實作，列入未來選項）。
 

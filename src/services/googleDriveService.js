@@ -619,9 +619,9 @@ export const updateFolderDescription = async (token, folderId, description) => {
 
 export const fetchPublicFolderPhotos = async (folderId, apiKey, pageToken = '') => {
   try {
-    const q = encodeURIComponent(`'${folderId}' in parents and mimeType contains 'image/' and trashed=false`);
-    // 請求 id, name 以及 imageMediaMetadata (為了正確的高寬比)
-    let url = `${DRIVE_API}?q=${q}&fields=nextPageToken,files(id,name,imageMediaMetadata)&pageSize=100&orderBy=name&key=${apiKey}`;
+    const q = encodeURIComponent(`'${folderId}' in parents and (mimeType contains 'image/' or mimeType = 'application/vnd.google-apps.folder') and trashed=false`);
+    // 請求 id, name, mimeType 以及 imageMediaMetadata (為了正確的高寬比)
+    let url = `${DRIVE_API}?q=${q}&fields=nextPageToken,files(id,name,mimeType,imageMediaMetadata)&pageSize=100&orderBy=name&key=${apiKey}`;
     if (pageToken) {
       url += `&pageToken=${pageToken}`;
     }

@@ -25,7 +25,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
  * @param {boolean} isSharedView - 是否為訪客/分享模式
  * @returns {{ isFetchingMore, progressLabel, handleForceRefresh }}
  */
-export function useDrivePhotos(folderId, apiKey, albumInfo, isSharedView) {
+export function useDrivePhotos(folderId, apiKey, albumInfo = {}, isSharedView) {
   const photosCache        = usePhotoStore((s) => s.photosCache);
   const setAlbumPhotos     = usePhotoStore((s) => s.setAlbumPhotos);
   const setLoading         = usePhotoStore((s) => s.setLoading);
@@ -85,11 +85,13 @@ export function useDrivePhotos(folderId, apiKey, albumInfo, isSharedView) {
         const hasUrlCoverIdx = searchParams.get('c') !== null;
 
         if (page1.files.length > 0 && !hasUrlCoverIdx && (!albumInfo.coverImage || !albumInfo.coverId)) {
-          const firstPhoto = page1.files[0];
-          updateManagedAlbum(folderId, {
-            coverId: firstPhoto.id,
-            coverImage: `https://drive.google.com/thumbnail?id=${firstPhoto.id}&sz=w800`,
-          });
+          const firstPhoto = page1.files.find(f => f.mimeType?.includes('image/'));
+          if (firstPhoto) {
+            updateManagedAlbum(folderId, {
+              coverId: firstPhoto.id,
+              coverImage: `https://drive.google.com/thumbnail?id=${firstPhoto.id}&sz=w800`,
+            });
+          }
         }
 
         // ② 背景繼續載入剩餘分頁
@@ -97,16 +99,24 @@ export function useDrivePhotos(folderId, apiKey, albumInfo, isSharedView) {
           setIsFetchingMore(true);
           let allFiles = [...page1.files];
           let pageToken = page1.nextPageToken;
+          let lastUpdateTime = Date.now();
 
           while (pageToken && allFiles.length < 500) {
             await sleep(FETCH_DELAY_MS);
             const nextPage = await fetchPublicFolderPhotos(folderId, apiKey, pageToken);
             allFiles = [...allFiles, ...nextPage.files];
-            setAlbumPhotos(folderId, allFiles);
             pageToken = nextPage.nextPageToken || null;
+            
+            // 狀態防抖動 (Debounced Render)：為避免每抓一頁就重繪龐大的 DOM 樹
+            // 設定間隔至少 1.5 秒，或是沒資料了、提早滿 500 張了，才正式寫入 Zustand 觸發畫面更新
+            if (Date.now() - lastUpdateTime > 1500 || !pageToken || allFiles.length >= 500) {
+               setAlbumPhotos(folderId, allFiles);
+               lastUpdateTime = Date.now();
+            }
           }
 
           setIsFetchingMore(false);
+          // 確保背景迴圈結束後，一定會更新最後一份清單
           setAlbumPhotos(folderId, allFiles);
         }
       } catch (err) {
@@ -136,7 +146,7 @@ export function useDrivePhotos(folderId, apiKey, albumInfo, isSharedView) {
 
       if (shouldUpdate) {
         const idx = parseInt(coverIdxParam);
-        const photos = cachedData.files || [];
+        const photos = (cachedData.files || []).filter(f => f.mimeType?.includes('image/'));
         const sortedPhotos = [...photos].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
         if (sortedPhotos[idx]) {
           const targetPhoto = sortedPhotos[idx];

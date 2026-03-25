@@ -10,7 +10,7 @@ import React, { useState, useEffect, useRef } from 'react';
  * @param {number}    baseHeight
  * @param {ReactNode} children  - 實際的 PhotoCard 元素
  */
-export default function LazyPhoto({ ratio, baseHeight = 240, children }) {
+export default function LazyPhoto({ id, ratio, baseHeight = 240, children, innerRef, onOpen }) {
   const containerRef = useRef(null);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -26,8 +26,8 @@ export default function LazyPhoto({ ratio, baseHeight = 240, children }) {
         }
       },
       {
-        // ± 400px 緩衝：使用者看到前就預先渲染，避免白屏感
-        rootMargin: '400px 0px',
+        // ± 1000px 緩衝：擴大預先渲染雷達，徹底消滅快速滑動時的白屏感
+        rootMargin: '1000px 0px',
         threshold: 0,
       },
     );
@@ -38,6 +38,7 @@ export default function LazyPhoto({ ratio, baseHeight = 240, children }) {
 
   return (
     <div
+      id={id}
       ref={containerRef}
       className="relative group mb-2 md:mb-0"
       style={{ flexGrow: ratio, flexBasis: `${ratio * baseHeight}px` }}
@@ -50,7 +51,7 @@ export default function LazyPhoto({ ratio, baseHeight = 240, children }) {
         /* children 已包含 absolute inset-0 的定位 */
         children
       ) : (
-        <div className="absolute inset-0 bg-stone-200 dark:bg-zinc-800 rounded-xl animate-pulse" />
+        <div ref={innerRef} onClick={onOpen} className="absolute inset-0 bg-stone-200 dark:bg-zinc-800 rounded-xl animate-pulse" />
       )}
     </div>
   );

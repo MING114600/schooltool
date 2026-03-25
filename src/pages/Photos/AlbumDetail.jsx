@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { ChevronLeft, AlertTriangle, Images, Share2, RefreshCw } from 'lucide-react';
+import { ChevronLeft, AlertTriangle, Images, Share2, RefreshCw, Folder } from 'lucide-react';
 import { UI_THEME } from '../../constants';
 import usePhotoStore from '../../store/usePhotoStore';
 import { validatePublicFolder } from '../../services/googleDriveService';
@@ -27,22 +27,22 @@ export default function AlbumDetail({ folderId, onBack, isSharedView = false, us
   const updateManagedAlbum = usePhotoStore((s) => s.updateManagedAlbum);
 
   const rootAlbumInfo = managedAlbums.find((a) => a.folderId === folderId);
+  const [dynamicTitle, setDynamicTitle]   = useState(null);
+  const albumInfo = rootAlbumInfo || { title: dynamicTitle || `相簿 ${folderId}` };
+
+  const [pathTrail, setPathTrail] = useState([{ id: folderId, name: null }]);
+  const currentFolderId = pathTrail[pathTrail.length - 1].id;
 
   // ── Hook：資料獲取 + 快取 + 封面學習 ──────────────────────────────────
   const { cachedData, isLoading, error, isFetchingMore, progressLabel, handleForceRefresh } =
-    useDrivePhotos(folderId, apiKey, rootAlbumInfo || {}, isSharedView);
+    useDrivePhotos(currentFolderId, apiKey, currentFolderId === folderId ? (rootAlbumInfo || {}) : {}, isSharedView);
 
   // ── Local UI States ────────────────────────────────────────────────────
-  const [dynamicTitle, setDynamicTitle]   = useState(null);
   const [shareData, setShareData]         = useState({ isOpen: false, shareId: null, albumTitle: '', coverIndex: 0 });
   const [isScrolled, setIsScrolled]       = useState(false);
   const [isSelectMode, setIsSelectMode]   = useState(false);
   const [dialogConfig, setDialogConfig]   = useState({ isOpen: false, title: '', message: '', variant: 'info' });
   const scrollRef = useRef(null);
-
-  const albumInfo = rootAlbumInfo || { title: dynamicTitle || `相簿 ${folderId}` };
-
-  // ── 訪客/分享模式的動態資料夾名稱 ────────────────────────────────────
   useEffect(() => {
     if (!rootAlbumInfo && apiKey) {
       validatePublicFolder(folderId, apiKey)
@@ -67,21 +67,30 @@ export default function AlbumDetail({ folderId, onBack, isSharedView = false, us
     return () => el.removeEventListener('scroll', onScroll);
   }, []);
 
+  // ── 返回鍵邏輯 ────────────────────────────────────────────────────────
+  const handleBack = useCallback(() => {
+    if (pathTrail.length > 1) {
+      setPathTrail(prev => prev.slice(0, -1));
+    } else if (onBack) {
+      onBack();
+    }
+  }, [pathTrail, onBack]);
+
   // ── 設定封面 ──────────────────────────────────────────────────────────
   const handleSetCover = useCallback(async (photoId, photoThumbUrl) => {
     try {
-      updateManagedAlbum(folderId, { coverId: photoId, coverImage: photoThumbUrl });
+      updateManagedAlbum(currentFolderId, { coverId: photoId, coverImage: photoThumbUrl });
       setDialogConfig({
         isOpen: true,
         title: '封面設定成功',
-        message: '已將此相片設為「此台裝置」的相簿封面！\n\n小提醒：若要在其他裝置看到此封面，請執行「全域備份與還原」。',
+        message: '已將此相片設為相簿封面！\n\n小提醒：若要在其他裝置看到此封面，請執行「全域備份與還原」。',
         variant: 'success',
       });
       setIsSelectMode(false);
     } catch (err) {
       setDialogConfig({ isOpen: true, title: '設定失敗', message: '原因：' + err.message, variant: 'danger' });
     }
-  }, [folderId, updateManagedAlbum]);
+  }, [currentFolderId, updateManagedAlbum]);
 
   // ── 開啟分享 Modal ────────────────────────────────────────────────────
   const handleOpenShare = useCallback(() => {
@@ -99,11 +108,48 @@ export default function AlbumDetail({ folderId, onBack, isSharedView = false, us
 
     setShareData({
       isOpen: true,
-      shareId: folderId,
-      albumTitle: albumInfo.title,
+      shareId: currentFolderId,
+      albumTitle: pathTrail[pathTrail.length - 1].name || albumInfo.title,
       coverIndex: coverIndex >= 0 ? coverIndex : 0,
     });
-  }, [cachedData, albumInfo, folderId]);
+  }, [cachedData, albumInfo, currentFolderId, pathTrail]);
+
+  // ── 拆分資料夾與相片 ──────────────────────────────────────────────────
+  const allFiles = cachedData?.files || [];
+  const photos = allFiles.filter(f => f.mimeType !== 'application/vnd.google-apps.folder');
+  const folders = allFiles.filter(f => f.mimeType === 'application/vnd.google-apps.folder');
+
+  // ── Breadcrumbs UI ────────────────────────────────────────────────────
+  const renderBreadcrumbs = () => {
+    return (
+      <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
+        {pathTrail.map((node, idx) => {
+          const isLast = idx === pathTrail.length - 1;
+          const nodeName = node.name || albumInfo.title;
+          
+          if (isLast) {
+            return (
+              <span key={node.id} className={`text-xl md:text-3xl font-bold truncate ${UI_THEME.TEXT_PRIMARY}`}>
+                {nodeName}
+              </span>
+            );
+          }
+          
+          return (
+            <React.Fragment key={node.id}>
+              <button 
+                onClick={() => setPathTrail(prev => prev.slice(0, idx + 1))}
+                className={`text-base md:text-xl font-medium ${UI_THEME.TEXT_MUTED} hover:text-blue-500 transition-colors truncate max-w-[150px] md:max-w-xs cursor-pointer`}
+              >
+                {nodeName}
+              </button>
+              <span className={`${UI_THEME.TEXT_MUTED} mx-0.5`}>/</span>
+            </React.Fragment>
+          );
+        })}
+      </div>
+    );
+  };
 
   return (
     <div ref={scrollRef} className="h-full overflow-y-auto">
@@ -116,12 +162,14 @@ export default function AlbumDetail({ folderId, onBack, isSharedView = false, us
       }`}>
         <div className="max-w-7xl mx-auto flex justify-between items-center gap-4">
           <div className="flex items-center gap-3 min-w-0">
-            {onBack && (
-              <button onClick={onBack} className={`p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${UI_THEME.TEXT_MUTED}`}>
+            {(onBack || pathTrail.length > 1) && (
+              <button onClick={handleBack} className={`p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${UI_THEME.TEXT_MUTED}`}>
                 <ChevronLeft size={20} />
               </button>
             )}
-            <span className={`font-bold text-base truncate ${UI_THEME.TEXT_PRIMARY}`}>{albumInfo.title}</span>
+            <span className={`font-bold text-base truncate ${UI_THEME.TEXT_PRIMARY}`}>
+              {pathTrail[pathTrail.length - 1].name || albumInfo.title}
+            </span>
             <span className={`text-xs ${UI_THEME.TEXT_MUTED} hidden sm:inline`}>{progressLabel}</span>
           </div>
 
@@ -152,13 +200,13 @@ export default function AlbumDetail({ folderId, onBack, isSharedView = false, us
         {/* ── 頁面頂端標題列（Normal Header） ──────────────────────────── */}
         <div className="flex justify-between items-start gap-4 mb-8">
           <div className="flex items-center gap-4 flex-1 min-w-0">
-            {onBack && (
-              <button onClick={onBack} className={`p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${UI_THEME.TEXT_MUTED}`}>
+            {(onBack || pathTrail.length > 1) && (
+              <button onClick={handleBack} className={`p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors ${UI_THEME.TEXT_MUTED}`}>
                 <ChevronLeft size={24} />
               </button>
             )}
-            <div className="min-w-0">
-              <h1 className={`text-2xl md:text-3xl font-bold truncate ${UI_THEME.TEXT_PRIMARY}`}>{albumInfo.title}</h1>
+            <div className="min-w-0 flex-1">
+              {renderBreadcrumbs()}
               <p className={`${UI_THEME.TEXT_SECONDARY} mt-1 text-sm flex items-center gap-2`}>{progressLabel}</p>
             </div>
           </div>
@@ -237,28 +285,57 @@ export default function AlbumDetail({ folderId, onBack, isSharedView = false, us
         )}
 
         {/* ── 狀態：空相簿 ──────────────────────────────────────────────── */}
-        {!isLoading && !error && cachedData?.files.length === 0 && (
+        {!isLoading && !error && allFiles.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
             <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-2xl flex items-center justify-center mb-4">
               <Images size={32} />
             </div>
-            <h3 className={`text-xl font-bold ${UI_THEME.TEXT_PRIMARY} mb-2`}>相簿內目前沒有照片</h3>
-            <p className={UI_THEME.TEXT_MUTED}>請老師上傳照片至該 Google Drive 資料夾</p>
+            <h3 className={`text-xl font-bold ${UI_THEME.TEXT_PRIMARY} mb-2`}>相簿內目前沒有內容</h3>
+            <p className={UI_THEME.TEXT_MUTED}>請老師上傳照片或建立資料夾至該 Google Drive 目錄</p>
+          </div>
+        )}
+
+        {/* ── 子資料夾網格 ──────────────────────────────────────────────── */}
+        {folders.length > 0 && (
+          <div className={`mb-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4 ${photos.length > 0 ? `pb-8 border-b ${UI_THEME.BORDER_DEFAULT}` : ''}`}>
+            {folders.map(folder => {
+              const childCover = managedAlbums.find(a => a.folderId === folder.id)?.coverImage;
+              return (
+                <div 
+                  key={folder.id} 
+                  onClick={() => setPathTrail(prev => [...prev, { id: folder.id, name: folder.name }])}
+                  className={`group relative aspect-[4/3] rounded-2xl overflow-hidden cursor-pointer bg-stone-100 dark:bg-zinc-800 border ${UI_THEME.BORDER_DEFAULT} shadow-sm hover:shadow-lg transition-all duration-300`}
+                >
+                  {childCover ? (
+                    <img src={childCover} alt={folder.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-indigo-50/50 to-sky-50/50 dark:from-zinc-800 dark:to-zinc-800/80 group-hover:bg-slate-200 dark:group-hover:bg-zinc-700 transition-colors">
+                      <Folder size={40} className="text-indigo-300 dark:text-zinc-500 mb-2 group-hover:scale-110 transition-transform duration-300" strokeWidth={1.5} />
+                    </div>
+                  )}
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3 pt-8 pointer-events-none">
+                    <h3 className="text-white text-[15px] font-bold truncate drop-shadow-sm leading-tight text-center">{folder.name}</h3>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         )}
 
         {/* ── 相片網格（含 PhotoSwipe 燈箱） ──────────────────────────────── */}
-        <div className="relative">
-          <PhotoGrid
-            photos={cachedData?.files || []}
-            isSelectMode={isSelectMode}
-            isFetchingMore={isFetchingMore}
-            onSetCover={!isSharedView
-              ? (id, url) => { handleSetCover(id, url); setIsSelectMode(false); }
-              : null
-            }
-          />
-        </div>
+        {photos.length > 0 && (
+          <div className="relative">
+            <PhotoGrid
+              photos={photos}
+              isSelectMode={isSelectMode}
+              isFetchingMore={isFetchingMore}
+              onSetCover={!isSharedView
+                ? (id, url) => { handleSetCover(id, url); setIsSelectMode(false); }
+                : null
+              }
+            />
+          </div>
+        )}
 
       </div>
 
