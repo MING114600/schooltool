@@ -162,7 +162,7 @@ const PatchNotesModal = ({ isOpen, onClose, mode = 'latest' }) => {
                   ) : (
                     <>
                       <History size={16} className="text-slate-400" />
-                      <span>載入更早的歷史紀錄 (v6.4 以前)</span>
+                      <span>載入更早的歷史紀錄 (v8.0 以前)</span>
                     </>
                   )}
                 </button>

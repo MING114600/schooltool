@@ -18,7 +18,7 @@ const BoardCard = ({ currentLog, isGlobalZhuyin, writingMode, exportBackground, 
             {/* 標題列 */}
             <h3
                 className={`text-center font-bold mb-4 border-b pb-2 relative z-10 ${exportBackground ? 'text-[#ffeb3b] border-white/20' : 'text-slate-900 border-slate-300'}`}
-                style={{ fontFamily: '"DFKai-SB", "BiauKai", "標楷體", serif', fontSize: titleSize, writingMode: 'horizontal-tb' }}
+                style={{ fontSize: titleSize, writingMode: 'horizontal-tb' }}
             >
                 <ZhuyinRenderer text={`${formatMinguoDate(currentLog.date)}`} isActive={isGlobalZhuyin} />
             </h3>
@@ -29,7 +29,6 @@ const BoardCard = ({ currentLog, isGlobalZhuyin, writingMode, exportBackground, 
                 style={{
                     writingMode: writingMode,
                     textOrientation: 'mixed',
-                    fontFamily: '"DFKai-SB", "BiauKai", "標楷體", serif',
                     letterSpacing: '0.05em'
                 }}
             >

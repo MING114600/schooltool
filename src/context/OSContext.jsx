@@ -9,8 +9,43 @@ const OSContext = createContext();
 // 2. 建立 Provider (大腦本體)
 export const OSProvider = ({ children }) => {
   // --- 核心狀態：目前開啟的 App ---
-  // 🌟 修改：改用 usePersistentState 來記憶上次使用的 App
-  const [currentAppId, setCurrentAppId] = usePersistentState('classroom_os_current_app', 'dashboard');
+  const [currentAppId, setCurrentAppId] = usePersistentState('classroom_os_current_app', () => {
+    // 雖然這個函數是 usePersistentState 的 defaultValue function，
+    // 但是我們在這邊的邏輯必須「強制」覆寫 localStorage。
+    // （在目前的 usePersistentState 實作中，如果有 saved data，defaultValue 不會被採用）
+    return 'dashboard';
+  });
+
+  // 🌟 強制 URL 路由優先 (Deep Linking)：覆寫 localStorage 讀取出來的值
+  useEffect(() => {
+    const { pathname, search } = window.location;
+    const urlParams = new URLSearchParams(search);
+
+    // 1. CaseLog 家長模式優先 (/parent/view 或帶有 token=)
+    if (pathname.includes('/parent/view') || urlParams.has('token')) {
+      setCurrentAppId('caselog');
+      return;
+    }
+
+    // 2. ExamReader 分享模式 (shareId=)
+    if (urlParams.has('shareId')) {
+      setCurrentAppId('reader');
+      return;
+    }
+
+    // 3. 指定 App 模式 (app=)
+    const requestedApp = urlParams.get('app');
+    if (requestedApp) {
+      setCurrentAppId(requestedApp);
+      return;
+    }
+
+    // 🌟 4. 防呆機制：如果 Proxy 轉址遺漏了 app=photos，只要有相簿參數就強制導向相簿
+    if (urlParams.has('album') || urlParams.has('albums')) {
+      setCurrentAppId('photos');
+      return;
+    }
+  }, [setCurrentAppId]);
   
   // --- 核心狀態：Launcher 位置 ---
   const [launcherPosition, setLauncherPosition] = usePersistentState('os_launcher_pos', 'left');

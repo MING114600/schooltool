@@ -7,11 +7,11 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'autoUpdate', // 🌟 回歸「自動更新」，不再跳出警告提醒
 	  workbox: {
-        cleanupOutdatedCaches: true, // 自動清除舊版快取
-        skipWaiting: true,           // 讓新的 Service Worker 立即接管
-        clientsClaim: true           // 立即控制所有開啟的網頁
+        cleanupOutdatedCaches: true,
+        skipWaiting: true,           // 🌟 核心：直接跳過等待（立即取代舊版）
+        clientsClaim: true           // 🌟 核心：讓新版立刻接管所有開啟的分頁
       },
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg', '**/*.mp3', '**/*.png'], // 確保音效與圖片被快取
       manifest: {

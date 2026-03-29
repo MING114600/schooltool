@@ -576,7 +576,69 @@ export const getSpreadsheetInfo = async (token, sheetId) => {
   }
 };
 
+// ==========================================
+// 模組 4：Photos 班級相簿 (新增功能)
+// ==========================================
 
+export const validatePublicFolder = async (folderId, apiKey) => {
+  try {
+    const res = await fetch(`${DRIVE_API}/${folderId}?fields=id,name,mimeType,description&key=${apiKey}`);
+    if (!res.ok) throw new Error('資料夾無效或這不是一個公開資料夾');
+    const data = await res.json();
+    if (data.mimeType !== 'application/vnd.google-apps.folder') {
+      throw new Error('提供的連結不是一個資料夾');
+    }
+    return {
+      isValid: true,
+      folderName: data.name,
+      description: data.description || ''
+    };
+  } catch (error) {
+    console.error('[Photos] 驗證資料夾失敗:', error);
+    return { isValid: false, error: error.message };
+  }
+};
+
+export const updateFolderDescription = async (token, folderId, description) => {
+  try {
+    const res = await fetch(`${DRIVE_API}/${folderId}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ description })
+    });
+    await checkResponse(res);
+    return true;
+  } catch (error) {
+    console.error('[Photos] 更新資料夾敘述失敗:', error);
+    throw error;
+  }
+};
+
+export const fetchPublicFolderPhotos = async (folderId, apiKey, pageToken = '') => {
+  try {
+    const q = encodeURIComponent(`'${folderId}' in parents and (mimeType contains 'image/' or mimeType = 'application/vnd.google-apps.folder') and trashed=false`);
+    // 請求 id, name, mimeType 以及 imageMediaMetadata (為了正確的高寬比)
+    let url = `${DRIVE_API}?q=${q}&fields=nextPageToken,files(id,name,mimeType,imageMediaMetadata)&pageSize=100&orderBy=name&key=${apiKey}`;
+    if (pageToken) {
+      url += `&pageToken=${pageToken}`;
+    }
+
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('無法讀取相片，可能無權限或資料夾不存在');
+    
+    const data = await res.json();
+    return {
+      files: data.files || [],
+      nextPageToken: data.nextPageToken || null
+    };
+  } catch (error) {
+    console.error('[Photos] 讀取相片失敗:', error);
+    throw error;
+  }
+};
 // 🌟 更新特定列的日誌資料
 export const updateCaseLogRow = async (token, spreadsheetId, rowIndex, rowData) => {
   const response = await fetch(`${SHEETS_API}/${spreadsheetId}/values/A${rowIndex}:G${rowIndex}?valueInputOption=USER_ENTERED`, {

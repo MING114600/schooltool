@@ -16,7 +16,9 @@ const SYSTEM_KEYS = [
     // --- [NEW] OS / Zhuyin System ---
     'user_custom_polyphones',       // 自訂破音字字典
     'classroom_os_zhuyin_mode',     // 全域注音模式開關狀態
-    'os_launcher_pos'               // Launcher 位置 (順便補上)
+    'os_launcher_pos',              // Launcher 位置
+    // --- Photos ---
+    'classroomos-photos-storage'    // 班級相簿清單 (Managed Albums)
 ];
 
 /**
@@ -150,7 +152,7 @@ export const resetSystem = async () => {
     });
 
     // 2. 清除 IndexedDB (刪除所有相關資料庫)
-    const DB_NAMES = ['ClassroomDB', 'ExamReaderDB'];
+    const DB_NAMES = ['ClassroomDB', 'ExamReaderDB', 'keyval-store'];
 
     const deletePromises = DB_NAMES.map(dbName => {
         return new Promise((resolve) => {

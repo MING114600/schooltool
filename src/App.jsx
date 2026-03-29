@@ -50,10 +50,11 @@ const ClassroomOS = () => {
   const [isLauncherOpen, setIsLauncherOpen] = useState(false);
   const { currentAppId, setCurrentAppId, launcherPosition } = useOS();
 
-  // 🌟 2. 一行程式碼，取代原本幾十行的登入狀態與邏輯！
-  const { user, login, logout } = useAuth();
+  // 🌟 2. 引入登入狀態、登入/登出方法，以及載入狀態
+  const { user, login, logout, isAuthLoading } = useAuth();
 
-  const [shareId, setShareId] = useState(null);
+  // 🌟 初始化 shareId (URL 優先)
+  const [shareId, setShareId] = useState(() => new URLSearchParams(window.location.search).get('shareId'));
   const [showLatestNotes, setShowLatestNotes] = useState(false);
   const [showHistoryNotes, setShowHistoryNotes] = useState(false);
 
@@ -67,35 +68,12 @@ const ClassroomOS = () => {
     checkVersion();
   }, []);
 
-  // 🌟 1. 判斷是否為家長模式
-  const isParentView = window.location.pathname.includes('/parent/view') ||
-    window.location.search.includes('token=');
-
-  // 🌟 2. 如果是家長模式，強制將當前 App 切換為 'caselog'
-  useEffect(() => {
-    if (isParentView) {
-      setCurrentAppId('caselog');
-    }
-  }, [isParentView, setCurrentAppId]);
-
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('shareId');
-    if (code) {
-      setShareId(code);
-      setCurrentAppId('reader');
-      return;
-    }
-
-    // 處理 ?app=xxx 指定啟動模組
-    const requestedApp = urlParams.get('app');
-    if (requestedApp) {
-      const isValidApp = APPS_CONFIG.some(a => a.id === requestedApp);
-      if (isValidApp) {
-        setCurrentAppId(requestedApp);
-      }
-    }
-  }, [setCurrentAppId]);
+  const isGuestView = 
+    window.location.pathname.includes('/parent/view') ||
+    window.location.search.includes('token=') ||
+    window.location.search.includes('album=') || 
+    window.location.search.includes('albums=') ||
+    window.location.search.includes('shareId='); // 統一：所有分享模式皆隱藏系統導覽
 
   // 🌟 從 Config 取得對應的元件
   const CurrentComponent = APPS_CONFIG.find(a => a.id === currentAppId)?.component || APPS_CONFIG[0].component;
@@ -105,7 +83,7 @@ const ClassroomOS = () => {
     <div className={`relative w-full h-full ${UI_THEME.BACKGROUND} overflow-hidden transition-colors duration-500`}>
 
       {/* 🌟 3. 只有「不是」家長模式時，才顯示啟動器按鈕 */}
-      {!isParentView && (
+      {!isGuestView && (
         <button
           onClick={() => setIsLauncherOpen(true)}
           className={`
@@ -139,6 +117,7 @@ const ClassroomOS = () => {
             cycleTheme={cycleTheme}
             user={user}
             login={login}
+            isAuthLoading={isAuthLoading}
             shareId={shareId}
             setShareId={setShareId}
           />
@@ -146,7 +125,7 @@ const ClassroomOS = () => {
       </div>
 
       {/* 🌟 4. 只有「不是」家長模式時，才掛載 AppLauncher */}
-      {!isParentView && (
+      {!isGuestView && (
         <AppLauncher
           isOpen={isLauncherOpen}
           onClose={() => setIsLauncherOpen(false)}
@@ -156,21 +135,25 @@ const ClassroomOS = () => {
           onOpenPatchNotes={() => setShowHistoryNotes(true)}
         />
       )}
-      <PatchNotesModal
-        isOpen={showHistoryNotes}
-        onClose={() => setShowHistoryNotes(false)}
-        mode="history"
-      />
+      {!isGuestView && (
+        <PatchNotesModal
+          isOpen={showHistoryNotes}
+          onClose={() => setShowHistoryNotes(false)}
+          mode="history"
+        />
+      )}
       {/* 🌟 新增：自動跳出的最新版本更新日誌 */}
-      <PatchNotesModal
-        isOpen={showLatestNotes}
-        mode="latest"
-        onClose={() => {
-          setShowLatestNotes(false);
-          // 🌟 關鍵：使用者關閉後，將當前版本號寫入 localStorage，下次就不會再跳出了
-          localStorage.setItem('last_seen_version', APP_VERSION);
-        }}
-      />
+      {!isGuestView && (
+        <PatchNotesModal
+          isOpen={showLatestNotes}
+          mode="latest"
+          onClose={() => {
+            setShowLatestNotes(false);
+            // 🌟 關鍵：使用者關閉後，將當前版本號寫入 localStorage，下次就不會再跳出了
+            localStorage.setItem('last_seen_version', APP_VERSION);
+          }}
+        />
+      )}
 
       <ModalRoot />
     </div>
