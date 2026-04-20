@@ -2,7 +2,7 @@ import React from 'react';
 import {
   ZoomIn, ZoomOut, Import, Highlighter, Trash2,
   BookA, // 🌟 替換 BookOpen，帶有字母A更像字典
-  Share2, Loader2, Play, LogOut, Cloud
+  Share2, Loader2, Play, LogOut, Cloud, Volume2
 } from 'lucide-react';
 import { UI_THEME } from '../../../constants';
 
@@ -29,7 +29,8 @@ const ExamHeader = ({
   onExitFocusMode,
   onEnterFocusMode,
   onUpdateSubject,
-  onOpenHistory
+  onOpenHistory,
+  onOpenVoiceSettings
 }) => {
   // 取得目前選定考卷的科目，若無則預設為 general
   const currentExam = examList.find(e => e.id === activeExamId);
@@ -107,6 +108,13 @@ const ExamHeader = ({
           <button onClick={() => setIsKaraokeMode(!isKaraokeMode)} className={`p-1.5 px-2.5 rounded-lg transition-all flex items-center gap-1.5 text-sm font-bold ${isKaraokeMode ? 'bg-amber-100 text-amber-700 shadow-sm' : 'text-slate-500 hover:bg-white hover:shadow-sm'}`} title="指讀模式">
             <Highlighter size={16} />
             <span>指讀</span>
+          </button>
+
+          {/* 語音設定 */}
+          <div className="w-px h-5 bg-slate-300 dark:bg-slate-600 mx-1"></div>
+          <button onClick={onOpenVoiceSettings} className="p-1.5 px-2.5 rounded-lg transition-all flex items-center gap-1.5 text-sm font-bold text-slate-500 hover:bg-white hover:text-indigo-600 hover:shadow-sm" title="語音報讀設定">
+            <Volume2 size={16} />
+            <span className="hidden sm:inline">語音</span>
           </button>
 
           {/* 發音字典 (只有編輯模式顯示) */}

@@ -16,6 +16,20 @@ export const useTTS = () => {
   const currentSubjectRef = useRef('general');
   const currentRateRef = useRef(1.0);
 
+  // ✅ 新增：手動指定的語音名稱 (持久化)
+  const [preferredVoiceName, setPreferredVoiceName] = useState(() => {
+    return localStorage.getItem('tts_preferred_voice_name') || null;
+  });
+
+  const handleSetPreferredVoice = (name) => {
+    if (!name) {
+      localStorage.removeItem('tts_preferred_voice_name');
+    } else {
+      localStorage.setItem('tts_preferred_voice_name', name);
+    }
+    setPreferredVoiceName(name);
+  };
+
   const bestVoice = useMemo(() => {
     if (voices.length === 0) return null;
 
@@ -48,13 +62,23 @@ export const useTTS = () => {
     };
 
     const ranked = [...candidates].sort((a, b) => nameRank(a.name) - nameRank(b.name));
+    
+    // ✅ 修復：優先使用用戶指定的語音
+    if (preferredVoiceName) {
+      const preferred = ranked.find(v => v.name === preferredVoiceName);
+      if (preferred) {
+        console.info(`[useTTS] 使用手動選定語音: "${preferred.name}"`);
+        return preferred;
+      }
+    }
+
     const selected = ranked[0] || null;
 
     if (selected) {
       console.info(`[useTTS] 已選擇語音: "${selected.name}" (${selected.lang}, localService: ${selected.localService})`);
     }
     return selected;
-  }, [voices]);
+  }, [voices, preferredVoiceName]);
 
   // 使用 Ref 保存 bestVoice 避免重新觸發 useCallback
   const bestVoiceRef = useRef(null);
@@ -237,5 +261,36 @@ const speak = useCallback((payload, subject = 'general', rate = 0.9, startChunkI
     }
   }, [voicesReady, playNext]);
 
-  return { speak, cancel, pauseTTS, resumeTTS, ttsState, voices, activeChunkId };
+  // ✅ 新增：語音名稱精簡工具 (靜態函式)
+  const simplifyVoiceName = (name = '') => {
+    if (!name) return '未知語音';
+    
+    // 依據常見系統語音進行對照
+    if (name.includes('Yating')) {
+      return name.includes('Online') ? '雅婷 (雲端神經)' : '雅婷 (本機)';
+    }
+    if (name.includes('Hanhan')) return '曉臻 (Hanhan)';
+    if (name.includes('Mei-Jia')) return '美佳 (Mei-Jia)';
+    if (name.includes('HsinHsin')) return '曉臻 (HsinHsin)';
+    if (name.includes('Zhiwei')) return '智偉 (Zhiwei)';
+    if (name.includes('Ting-Ting')) return '婷婷 (Ting-Ting)';
+    if (name.includes('Sin-ji')) return '善怡 (Sin-ji)';
+    if (name.includes('Google')) return 'Google 國語 (台灣)';
+    
+    // 處理其他微軟語音
+    if (name.includes('Microsoft')) {
+      const parts = name.split('-');
+      if (parts.length > 1) {
+          const mainName = parts[1].split('(')[0].trim().replace('Online', '').trim();
+          return `微軟 - ${mainName}`;
+      }
+    }
+    
+    return name.replace(' - Chinese (Traditional, Taiwan)', '').replace(' - Chinese (Taiwan)', '').substring(0, 20);
+  };
+
+  return { 
+    speak, cancel, pauseTTS, resumeTTS, ttsState, voices, activeChunkId,
+    preferredVoiceName, setPreferredVoice: handleSetPreferredVoice, simplifyVoiceName
+  };
 };

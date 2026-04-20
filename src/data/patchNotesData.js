@@ -14,9 +14,33 @@
 // type: 請填入 major (大更新), minor (小更新), 或 patch (修補)
 // changes: "new":"新增的功能說明"；"improve":"優化的介面或體驗說明"；"fix":"修復的錯誤說明"
 
-export const APP_VERSION = '8.5.2';
+export const APP_VERSION = '8.6.0';
 
 export const PATCH_NOTES = [
+  {
+    "version": "8.6.0",
+    "date": "2026-04-20",
+    "title": "自訂報讀語音選擇系統上線",
+    "type": "minor",
+    "changes": [
+      {
+        "type": "new",
+        "text": "手動語音選擇功能：老師現在可以點擊頂部「語音」按鈕，從系統及雲端語音清單中挑選最喜歡的朗讀聲音。"
+      },
+      {
+        "type": "improve",
+        "text": "智慧名稱精簡化：自動解析冗長的系統語音代碼，轉化為直觀的名稱（如：雅婷、曉臻、美佳），大幅提升辨識度。"
+      },
+      {
+        "type": "improve",
+        "text": "語音持久化記憶：系統將自動記住老師偏好的語音設定，跨裝置與跨 Session 均無需重複選取。"
+      },
+      {
+        "type": "improve",
+        "text": "自動 Fallback 安全機制：若選定的語音在目前的設備上不可用，系統會自動切換至最佳推薦語音，保障報讀不中斷。"
+      }
+    ]
+  },
   {
     "version": "8.5.2",
     "date": "2026-04-20",
