@@ -14,9 +14,29 @@
 // type: 請填入 major (大更新), minor (小更新), 或 patch (修補)
 // changes: "new":"新增的功能說明"；"improve":"優化的介面或體驗說明"；"fix":"修復的錯誤說明"
 
-export const APP_VERSION = '8.6.0';
+export const APP_VERSION = '8.6.1';
 
 export const PATCH_NOTES = [
+  {
+    "version": "8.6.1",
+    "date": "2026-04-20",
+    "title": "行動版閱讀輔助工具全面優化",
+    "type": "patch",
+    "changes": [
+      {
+        "type": "new",
+        "text": "行動版工具選單：針對小螢幕裝置新增彈出式控制面板，解決手機版無法調整縮放與指讀的問題。"
+      },
+      {
+        "type": "improve",
+        "text": "觸控友善設計：行動選單採用大面積點擊區域與直覺的垂直佈局，方便老師在巡堂時快速調整設定。"
+      },
+      {
+        "type": "improve",
+        "text": "自訂語音快速入口：在行動選單中整合了語音與字典的快速存取路徑，功能不再受限於螢幕尺寸。"
+      }
+    ]
+  },
   {
     "version": "8.6.0",
     "date": "2026-04-20",

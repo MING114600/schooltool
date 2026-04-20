@@ -20,6 +20,7 @@ import ExamPackageModal from './components/ExamPackageModal';
 import EditItemModal from './components/EditItemModal';
 import ExamHistoryModal from './components/ExamHistoryModal';
 import VoiceSettingsModal from './components/VoiceSettingsModal';
+import MobileToolsModal from './components/MobileToolsModal';
 
 const ExamReader = ({ user, login, shareId, setShareId }) => {
   const { 
@@ -41,6 +42,7 @@ const ExamReader = ({ user, login, shareId, setShareId }) => {
   const [isPackageModalOpen, setIsPackageModalOpen] = useState(false); // 🌟 控制考卷包選擇視窗
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false); // 🌟 新增：控制語音設定開關
+  const [isMobileToolsModalOpen, setIsMobileToolsModalOpen] = useState(false); // 🌟 新增：控制行動版工具選單
   const [toastMessage, setToastMessage] = useState('');
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false); // 🌟 新增：控制歷史清單開關
@@ -253,6 +255,19 @@ const ExamReader = ({ user, login, shareId, setShareId }) => {
         simplifyVoiceName={simplifyVoiceName}
       />
 
+      {/* 🌟 行動版工具選單 */}
+      <MobileToolsModal
+        isOpen={isMobileToolsModalOpen}
+        onClose={() => setIsMobileToolsModalOpen(false)}
+        zoomLevel={zoomLevel}
+        setZoomLevel={setZoomLevel}
+        isKaraokeMode={isKaraokeMode}
+        setIsKaraokeMode={setIsKaraokeMode}
+        onOpenVoiceSettings={() => setIsVoiceModalOpen(true)}
+        onOpenDict={() => setIsDictModalOpen(true)}
+        isFocusMode={isFocusMode}
+      />
+
       {/* 匯入考卷功能 */}
       <ImportModal
         isOpen={isImportModalOpen}
@@ -321,6 +336,7 @@ const ExamReader = ({ user, login, shareId, setShareId }) => {
             setIsKaraokeMode={setIsKaraokeMode}
             onOpenDict={() => setIsDictModalOpen(true)}
             onOpenVoiceSettings={() => setIsVoiceModalOpen(true)} // 🌟 傳遞語音設定開關
+            onOpenMobileTools={() => setIsMobileToolsModalOpen(true)} // 🌟 傳遞行動版選單開關
             examList={examList}
             activeExamId={activeExamId}
             onSelectExam={handleSelectExam}

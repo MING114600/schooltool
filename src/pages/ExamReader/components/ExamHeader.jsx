@@ -2,7 +2,7 @@ import React from 'react';
 import {
   ZoomIn, ZoomOut, Import, Highlighter, Trash2,
   BookA, // 🌟 替換 BookOpen，帶有字母A更像字典
-  Share2, Loader2, Play, LogOut, Cloud, Volume2
+  Share2, Loader2, Play, LogOut, Cloud, Volume2, Settings2
 } from 'lucide-react';
 import { UI_THEME } from '../../../constants';
 
@@ -30,7 +30,8 @@ const ExamHeader = ({
   onEnterFocusMode,
   onUpdateSubject,
   onOpenHistory,
-  onOpenVoiceSettings
+  onOpenVoiceSettings,
+  onOpenMobileTools
 }) => {
   // 取得目前選定考卷的科目，若無則預設為 general
   const currentExam = examList.find(e => e.id === activeExamId);
@@ -179,14 +180,25 @@ const ExamHeader = ({
             </div>
 
             {/* 🌟 3. 進入考試：最強烈的視覺權重 (Indigo 實心) */}
-            <button
-              onClick={onEnterFocusMode}
-              disabled={!activeExamId}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all font-bold shadow-md shadow-indigo-200 dark:shadow-none hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:opacity-50 disabled:hover:translate-y-0 disabled:cursor-not-allowed ml-1"
-            >
-              <Play size={16} className="fill-current" />
-              <span className="hidden sm:inline text-sm">進入考試</span>
-            </button>
+            <div className="flex items-center gap-2">
+              {/* 行動版工具按鈕：僅在小螢幕顯示 */}
+              <button
+                onClick={onOpenMobileTools}
+                className="md:hidden flex items-center justify-center w-10 h-10 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-200 transition-all border border-slate-200 dark:border-slate-700 active:scale-95 shadow-sm"
+                title="開啟閱讀助手設定"
+              >
+                <Settings2 size={20} />
+              </button>
+
+              <button
+                onClick={onEnterFocusMode}
+                disabled={!activeExamId}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all font-bold shadow-md shadow-indigo-200 dark:shadow-none hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:opacity-50 disabled:hover:translate-y-0 disabled:cursor-not-allowed"
+              >
+                <Play size={16} className="fill-current" />
+                <span className="hidden sm:inline text-sm">進入考試</span>
+              </button>
+            </div>
 
           </div>
         )}
