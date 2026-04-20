@@ -14,9 +14,29 @@
 // type: 請填入 major (大更新), minor (小更新), 或 patch (修補)
 // changes: "new":"新增的功能說明"；"improve":"優化的介面或體驗說明"；"fix":"修復的錯誤說明"
 
-export const APP_VERSION = '8.5.0';
+export const APP_VERSION = '8.5.1';
 
 export const PATCH_NOTES = [
+  {
+    "version": "8.5.1",
+    "date": "2026-04-20",
+    "title": "考卷報讀語音引擎穩定性大修復",
+    "type": "patch",
+    "changes": [
+      {
+        "type": "fix",
+        "text": "解決語音退化（Voice Fallback）問題：修復部分裝置在報讀時出現機械音、音調錯亂或咬字斷續的異常，恢復自然的中文字音與節奏。"
+      },
+      {
+        "type": "improve",
+        "text": "語音就緒等待機制：新增智慧任務緩衝技術，確保在系統語音引擎加載完成前，播放任務會自動排隊等待，避免因加載延遲導致的通報錯誤。"
+      },
+      {
+        "type": "improve",
+        "text": "智慧語音優先級重構：重新校準語音遴選演算法，優先選用微軟神經語音 (Online Natural) 與高品質本機語音 (Mei-Jia)，並嚴格排除非繁體中文引擎。"
+      }
+    ]
+  },
   {
     "version": "8.5.0",
     "date": "2026-03-25",
