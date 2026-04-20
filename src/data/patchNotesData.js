@@ -14,9 +14,25 @@
 // type: 請填入 major (大更新), minor (小更新), 或 patch (修補)
 // changes: "new":"新增的功能說明"；"improve":"優化的介面或體驗說明"；"fix":"修復的錯誤說明"
 
-export const APP_VERSION = '8.5.1';
+export const APP_VERSION = '8.5.2';
 
 export const PATCH_NOTES = [
+  {
+    "version": "8.5.2",
+    "date": "2026-04-20",
+    "title": "iOS 裝置與平板語音相容性大幅提升",
+    "type": "patch",
+    "changes": [
+      {
+        "type": "new",
+        "text": "實作 iOS 語音解鎖 (Audio Unlock) 機制：針對 iOS Safari 嚴格的權限限制，自動在首次點擊時開啟語音通路，避免非同步播放被靜音的問題。"
+      },
+      {
+        "type": "improve",
+        "text": "語音引導流程優化：移除不必要的播放延遲，實現「點擊即響應」的極速發聲體驗，大幅提升平板操作的直覺性。"
+      }
+    ]
+  },
   {
     "version": "8.5.1",
     "date": "2026-04-20",

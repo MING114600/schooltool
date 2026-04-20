@@ -63,6 +63,7 @@ export const useTTS = () => {
   // ✅ 新增：語音就緒狀態追蹤，解決競態條件
   const [voicesReady, setVoicesReady] = useState(false);
   const pendingSpeakRef = useRef(null); // 暫存待播放的任務
+  const isUnlockedRef = useRef(false); // ✅ 新增：iOS 語音解鎖狀態標記
 
   const cancel = useCallback(() => {
     utteranceIdRef.current += 1; // 使目前的遞迴佇列失效
@@ -139,6 +140,23 @@ const speak = useCallback((payload, subject = 'general', rate = 0.9, startChunkI
     cancel();
 
     // ==========================================
+    // 🌟 iOS 語音解鎖機制 (Audio Unlock)
+    // 必須在「使用者點擊事件」的同步 Call Stack 中執行第一次發聲。
+    // ==========================================
+    if (!isUnlockedRef.current) {
+        try {
+            const unlockUtterance = new SpeechSynthesisUtterance(' ');
+            unlockUtterance.volume = 0;
+            unlockUtterance.rate = 2.0; // 越快結束越好
+            synth.speak(unlockUtterance);
+            isUnlockedRef.current = true;
+            console.info('[useTTS] iOS 語音通路已解鎖');
+        } catch (e) {
+            console.error('[useTTS] 語音解鎖失敗', e);
+        }
+    }
+
+    // ==========================================
     // 向下相容與自動包裝機制
     // ==========================================
     let validChunks = [];
@@ -163,7 +181,7 @@ const speak = useCallback((payload, subject = 'general', rate = 0.9, startChunkI
     currentChunkIndexRef.current = startIndex;
 
     // ✅ 修復：若語音清單尚未就緒，暫存任務並等待 voiceschanged 後再播放
-    // 這解決了頁面剛加載時，使用者快速點播發生的競態條件
+    // 雖然這裡會脫離 Click Stack，但因為上方已執行過一次 speak()，通路已開啟
     if (!voicesReady || voices.length === 0) {
       console.warn('[useTTS] 語音清單尚未就緒，已暫存播放任務，等待語音加載完成後自動執行...');
       pendingSpeakRef.current = currentId;
@@ -171,9 +189,8 @@ const speak = useCallback((payload, subject = 'general', rate = 0.9, startChunkI
       return;
     }
 
-    setTimeout(() => {
-      playNext(currentId);
-    }, 50);
+    // ✅ 改進：如果已經 Ready，直接啟動，不需要額外的 setTimeout 增加延遲風險
+    playNext(currentId);
 
   }, [synth, cancel, playNext, voicesReady, voices.length]);
 
