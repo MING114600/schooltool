@@ -16,27 +16,78 @@ export const useTTS = () => {
   const currentSubjectRef = useRef('general');
   const currentRateRef = useRef(1.0);
 
+  // ✅ 新增：手動指定的語音名稱 (持久化)
+  const [preferredVoiceName, setPreferredVoiceName] = useState(() => {
+    return localStorage.getItem('tts_preferred_voice_name') || null;
+  });
+
+  const handleSetPreferredVoice = (name) => {
+    if (!name) {
+      localStorage.removeItem('tts_preferred_voice_name');
+    } else {
+      localStorage.setItem('tts_preferred_voice_name', name);
+    }
+    setPreferredVoiceName(name);
+  };
+
   const bestVoice = useMemo(() => {
-    const isZh = (v) => String(v?.lang || '').toLowerCase().startsWith('zh');
-    const notHK = (v) => !String(v?.lang || '').toLowerCase().includes('zh-hk');
-    const candidates = voices.filter((v) => isZh(v) && notHK(v));
-    
+    if (voices.length === 0) return null;
+
+    // ✅ 修復：明確篩選繁體中文語音，排除 zh-CN (普通話) 避免音調錯亂
+    const lang = (v) => String(v?.lang || '').toLowerCase();
+    const isTW = (v) => lang(v).startsWith('zh-tw') || lang(v).startsWith('zh_tw');
+    const isCN = (v) => lang(v).startsWith('zh-cn') || lang(v).startsWith('zh_cn');
+    const isZhGeneric = (v) => lang(v).startsWith('zh') && !lang(v).includes('hk') && !isCN(v);
+
+    // 優先取 zh-TW 語系，若完全沒有才考慮通用 zh 語音
+    let candidates = voices.filter(isTW);
+    if (candidates.length === 0) candidates = voices.filter(isZhGeneric);
+    if (candidates.length === 0) {
+      console.warn('[useTTS] 找不到任何繁體中文語音，將使用瀏覽器預設語音。');
+      return null;
+    }
+
+    // ✅ 修復：重建優先順序。
+    // - Online (Natural) 是微軟最高品質的神經語音，最優先
+    // - Yating Online 是次選線上語音
+    // - Mei-Jia 是 Windows 高品質本機語音，優先於未知語音
+    // - 不再用 localService 作為主要排序鍵，因為本機語音不一定比線上語音好
     const nameRank = (name = '') => {
-      if (name.includes('Online (Natural)')) return 0;
-      if (name.includes('Yating')) return 1;
-      if (name.includes('Mei-Jia')) return 4;
-      return 9;
+      if (name.includes('Online (Natural)')) return 0; // 微軟神經語音 (最佳)
+      if (name.includes('Yating') && name.includes('Online')) return 1; // 雅婷線上版
+      if (name.includes('Yating')) return 2; // 雅婷本機版
+      if (name.includes('Mei-Jia')) return 3; // ✅ 修復：美佳從 rank 4 升至 rank 3
+      if (name.includes('HsinHsin') || name.includes('Zhiwei')) return 4; // 其他微軟語音
+      return 8; // 其他未知語音
     };
 
-    return candidates.sort((a, b) => {
-      const ls = (b.localService ? 0 : 1) - (a.localService ? 0 : 1);
-      return ls !== 0 ? ls : nameRank(a.name) - nameRank(b.name);
-    })[0] || null;
-  }, [voices]);
+    const ranked = [...candidates].sort((a, b) => nameRank(a.name) - nameRank(b.name));
+    
+    // ✅ 修復：優先使用用戶指定的語音
+    if (preferredVoiceName) {
+      const preferred = ranked.find(v => v.name === preferredVoiceName);
+      if (preferred) {
+        console.info(`[useTTS] 使用手動選定語音: "${preferred.name}"`);
+        return preferred;
+      }
+    }
+
+    const selected = ranked[0] || null;
+
+    if (selected) {
+      console.info(`[useTTS] 已選擇語音: "${selected.name}" (${selected.lang}, localService: ${selected.localService})`);
+    }
+    return selected;
+  }, [voices, preferredVoiceName]);
 
   // 使用 Ref 保存 bestVoice 避免重新觸發 useCallback
   const bestVoiceRef = useRef(null);
   useEffect(() => { bestVoiceRef.current = bestVoice; }, [bestVoice]);
+
+  // ✅ 新增：語音就緒狀態追蹤，解決競態條件
+  const [voicesReady, setVoicesReady] = useState(false);
+  const pendingSpeakRef = useRef(null); // 暫存待播放的任務
+  const isUnlockedRef = useRef(false); // ✅ 新增：iOS 語音解鎖狀態標記
 
   const cancel = useCallback(() => {
     utteranceIdRef.current += 1; // 使目前的遞迴佇列失效
@@ -70,9 +121,14 @@ export const useTTS = () => {
     }
 
     const utterance = new SpeechSynthesisUtterance(processedText);
-    utterance.lang = 'zh-TW';
+    utterance.lang = 'zh-TW'; // 強制設定語系，作為所有情況的最後保護層
     utterance.rate = currentRateRef.current;
-    if (bestVoiceRef.current) utterance.voice = bestVoiceRef.current;
+    if (bestVoiceRef.current) {
+      utterance.voice = bestVoiceRef.current;
+    } else {
+      // ✅ 修復：若語音仍為 null，記錄警告並依賴 lang='zh-TW' 讓瀏覽器選擇
+      console.warn('[useTTS] bestVoice 為 null，將依賴 lang="zh-TW" 由瀏覽器自動選擇語音。');
+    }
 
     // 開始唸時，更新 UI 反白
     utterance.onstart = () => {
@@ -105,43 +161,62 @@ export const useTTS = () => {
   // 🌟 新的 speak 介面：接收 chunks 陣列，而非單一字串
 const speak = useCallback((payload, subject = 'general', rate = 0.9, startChunkId = null) => {
     if (!synth || !payload) return;
-    cancel(); 
+    cancel();
 
     // ==========================================
-    // 🌟 新增：向下相容與自動包裝機制
+    // 🌟 iOS 語音解鎖機制 (Audio Unlock)
+    // 必須在「使用者點擊事件」的同步 Call Stack 中執行第一次發聲。
+    // ==========================================
+    if (!isUnlockedRef.current) {
+        try {
+            const unlockUtterance = new SpeechSynthesisUtterance(' ');
+            unlockUtterance.volume = 0;
+            unlockUtterance.rate = 2.0; // 越快結束越好
+            synth.speak(unlockUtterance);
+            isUnlockedRef.current = true;
+            console.info('[useTTS] iOS 語音通路已解鎖');
+        } catch (e) {
+            console.error('[useTTS] 語音解鎖失敗', e);
+        }
+    }
+
+    // ==========================================
+    // 向下相容與自動包裝機制
     // ==========================================
     let validChunks = [];
     if (typeof payload === 'string') {
-      // 如果傳入的是純文字 (舊版模組或簡單提示音)，自動包裝成單一 Chunk
       validChunks = [{ id: 'sys_msg', text: payload, spokenText: payload }];
     } else if (Array.isArray(payload)) {
-      // 如果是考卷模組傳入的陣列，直接使用
       validChunks = payload;
     }
-
     if (validChunks.length === 0) return;
     // ==========================================
 
     const currentId = utteranceIdRef.current;
-    
-    // 🌟 這裡記得改為 validChunks
-    currentChunksRef.current = validChunks; 
+    currentChunksRef.current = validChunks;
     currentSubjectRef.current = subject;
     currentRateRef.current = Math.max(0.5, Math.min(1.05, rate));
 
     let startIndex = 0;
     if (startChunkId) {
-        // 🌟 這裡也記得改為 validChunks
-        const idx = validChunks.findIndex(c => c.id === startChunkId);
-        if (idx !== -1) startIndex = idx;
+      const idx = validChunks.findIndex(c => c.id === startChunkId);
+      if (idx !== -1) startIndex = idx;
     }
     currentChunkIndexRef.current = startIndex;
 
-    setTimeout(() => {
-         playNext(currentId);
-    }, 50);
+    // ✅ 修復：若語音清單尚未就緒，暫存任務並等待 voiceschanged 後再播放
+    // 雖然這裡會脫離 Click Stack，但因為上方已執行過一次 speak()，通路已開啟
+    if (!voicesReady || voices.length === 0) {
+      console.warn('[useTTS] 語音清單尚未就緒，已暫存播放任務，等待語音加載完成後自動執行...');
+      pendingSpeakRef.current = currentId;
+      setTtsState('playing'); // 告知 UI 正在等待
+      return;
+    }
 
-  }, [synth, cancel, playNext]);
+    // ✅ 改進：如果已經 Ready，直接啟動，不需要額外的 setTimeout 增加延遲風險
+    playNext(currentId);
+
+  }, [synth, cancel, playNext, voicesReady, voices.length]);
 
   const pauseTTS = useCallback(() => {
     if (synth) {
@@ -159,7 +234,13 @@ const speak = useCallback((payload, subject = 'general', rate = 0.9, startChunkI
 
   useEffect(() => {
     if (!synth) return;
-    const loadVoices = () => setVoices(synth.getVoices());
+    const loadVoices = () => {
+      const v = synth.getVoices();
+      setVoices(v);
+      if (v.length > 0) {
+        setVoicesReady(true);
+      }
+    };
     loadVoices();
     synth.onvoiceschanged = loadVoices;
     return () => {
@@ -168,5 +249,48 @@ const speak = useCallback((payload, subject = 'general', rate = 0.9, startChunkI
     };
   }, [synth, cancel]);
 
-  return { speak, cancel, pauseTTS, resumeTTS, ttsState, voices, activeChunkId };
+  // ✅ 新增：語音就緒後，自動觸發暫存的待播放任務
+  useEffect(() => {
+    if (!voicesReady || pendingSpeakRef.current === null) return;
+    const pendingId = pendingSpeakRef.current;
+    pendingSpeakRef.current = null;
+    // 確認任務ID仍有效（未被新的 cancel 廢棄）
+    if (pendingId === utteranceIdRef.current) {
+      console.info('[useTTS] 語音就緒，自動執行暫存的播放任務。');
+      setTimeout(() => playNext(pendingId), 50);
+    }
+  }, [voicesReady, playNext]);
+
+  // ✅ 新增：語音名稱精簡工具 (靜態函式)
+  const simplifyVoiceName = (name = '') => {
+    if (!name) return '未知語音';
+    
+    // 依據常見系統語音進行對照
+    if (name.includes('Yating')) {
+      return name.includes('Online') ? '雅婷 (雲端神經)' : '雅婷 (本機)';
+    }
+    if (name.includes('Hanhan')) return '曉臻 (Hanhan)';
+    if (name.includes('Mei-Jia')) return '美佳 (Mei-Jia)';
+    if (name.includes('HsinHsin')) return '曉臻 (HsinHsin)';
+    if (name.includes('Zhiwei')) return '智偉 (Zhiwei)';
+    if (name.includes('Ting-Ting')) return '婷婷 (Ting-Ting)';
+    if (name.includes('Sin-ji')) return '善怡 (Sin-ji)';
+    if (name.includes('Google')) return 'Google 國語 (台灣)';
+    
+    // 處理其他微軟語音
+    if (name.includes('Microsoft')) {
+      const parts = name.split('-');
+      if (parts.length > 1) {
+          const mainName = parts[1].split('(')[0].trim().replace('Online', '').trim();
+          return `微軟 - ${mainName}`;
+      }
+    }
+    
+    return name.replace(' - Chinese (Traditional, Taiwan)', '').replace(' - Chinese (Taiwan)', '').substring(0, 20);
+  };
+
+  return { 
+    speak, cancel, pauseTTS, resumeTTS, ttsState, voices, activeChunkId,
+    preferredVoiceName, setPreferredVoice: handleSetPreferredVoice, simplifyVoiceName
+  };
 };
