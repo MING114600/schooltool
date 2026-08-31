@@ -59,28 +59,42 @@ const ContactBook = () => {
         setActiveId(null);
         if (!over) return;
 
-        // 如果拖曳的是模板 (id 以 template- 開頭)
-        if (active.id.toString().startsWith('template-')) {
+        const activeType = active.data.current?.type;
+
+        // 拖曳插入模板至聯絡簿
+        if (activeType === 'template-insert') {
             const content = active.data.current?.content;
             if (content) {
-                // 找到放下的位置索引
-                // 如果放下的對象是現有項目
                 const overId = over.id;
                 const items = currentLog.items;
                 const overIndex = items.findIndex(i => i.id === overId);
 
                 if (overIndex !== -1) {
-                    // 插入到該位置
                     addItemToCurrentLog(content, false, overIndex);
                 } else {
-                    // 否則加到最後
                     addItemToCurrentLog(content, false);
                 }
             }
             return;
         }
 
-        // 如果是內部排序
+        // 面板內編輯模式排序模板
+        if (activeType === 'template-sort') {
+            if (active.id !== over.id) {
+                // 這裡需要從 store 取得最新的 templates 列表，因此我們不直接從 store 裡面拿，而是使用 arrayMove 處理 ID
+                const store = useContactBookStore.getState();
+                const allTpls = store.getAllTemplates(true); // 編輯模式包含隱藏的
+                const oldIndex = allTpls.findIndex(t => `tpl-sort-${t.id}` === active.id);
+                const newIndex = allTpls.findIndex(t => `tpl-sort-${t.id}` === over.id);
+                if (oldIndex !== -1 && newIndex !== -1) {
+                    const newOrder = arrayMove(allTpls, oldIndex, newIndex).map(t => t.id);
+                    store.reorderTemplates(newOrder);
+                }
+            }
+            return;
+        }
+
+        // 如果是內部排序 (原本聯絡簿項目的排序)
         if (active.id !== over.id) {
             const oldIndex = currentLog.items.findIndex(i => i.id === active.id);
             const newIndex = currentLog.items.findIndex(i => i.id === over.id);
@@ -326,9 +340,11 @@ const ContactBook = () => {
                     <div className="opacity-80 scale-105 pointer-events-none shadow-2xl rounded-xl bg-white dark:bg-slate-800 p-3 border-2 border-indigo-400 text-slate-800 dark:text-slate-100 flex items-center gap-2">
                         <PenTool size={16} className="text-indigo-500" />
                         <span className="truncate text-sm font-bold">
-                            {activeId.toString().startsWith('template-')
+                            {activeId.toString().startsWith('template-insert-')
                                 ? '插入模板內容'
-                                : '移動現有項目'}
+                                : activeId.toString().startsWith('tpl-sort-')
+                                    ? '重新排序模板'
+                                    : '移動現有項目'}
                         </span>
                     </div>
                 ) : null}
