@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Layout, Database, Type, LogIn,
-  ArrowLeftToLine, ArrowRightToLine,
-  Sun, Moon, Laptop, Users, PanelBottom
-} from 'lucide-react';
+  SquaresFour, Database, TextAa, SignIn,
+  ArrowLineLeft, ArrowLineRight,
+  Sun, Moon, Laptop, Users, Desktop, ArrowRight
+} from '@phosphor-icons/react';
 
 // Contexts
 import { useThemeContext } from '../../context/ThemeContext'; // 注意路徑回退
@@ -27,7 +27,7 @@ const LauncherHeader = ({ user, login, onLogoutClick, currentAppId }) => {
     <div className="px-8 py-6 bg-gradient-to-b from-stone-50/80 to-transparent dark:from-zinc-900/40 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-stone-100/50 dark:border-zinc-800/30">
       <div className="flex items-center gap-4">
         <div className="p-3 bg-indigo-500/90 rounded-2xl text-white shadow-sm">
-          <Layout size={28} />
+          <SquaresFour size={28} weight="duotone" />
         </div>
         <div className="flex flex-col">
           <h2 className="text-xl font-bold text-zinc-800 dark:text-zinc-100 tracking-tight">
@@ -44,7 +44,7 @@ const LauncherHeader = ({ user, login, onLogoutClick, currentAppId }) => {
         {user ? (
           <button
             onClick={(e) => { e.stopPropagation(); onLogoutClick(); }}
-            className="group flex items-center gap-3 pl-1 pr-4 py-1.5 bg-white/60 dark:bg-zinc-800/60 rounded-full border border-stone-200/50 dark:border-zinc-700/50 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md transition-all duration-300 active:scale-[0.98] outline-none"
+            className="group flex items-center gap-3 pl-1 pr-4 py-1.5 bg-white/60 dark:bg-zinc-800/60 rounded-full border border-stone-200/50 dark:border-zinc-700/50 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md transition-all duration-300 active:scale-95 outline-none"
           >
             <img src={user.profileObj?.picture} alt="" className="w-10 h-10 rounded-full border border-stone-100 dark:border-zinc-700 pointer-events-none" />
             <div className="flex flex-col items-start text-left pointer-events-none">
@@ -62,9 +62,9 @@ const LauncherHeader = ({ user, login, onLogoutClick, currentAppId }) => {
         ) : (
           <button
             onClick={() => login()}
-            className="flex items-center gap-2 px-6 py-2.5 bg-zinc-800 dark:bg-zinc-200 hover:bg-zinc-700 dark:hover:bg-white text-white dark:text-zinc-900 rounded-full font-bold shadow-sm transition-all duration-300 active:scale-[0.98] outline-none"
+            className="flex items-center gap-2 px-6 py-2.5 bg-zinc-800 dark:bg-zinc-200 hover:bg-zinc-700 dark:hover:bg-white text-white dark:text-zinc-900 rounded-full font-bold shadow-sm transition-all duration-300 active:scale-95 outline-none"
           >
-            <LogIn size={18} />
+            <SignIn size={18} weight="bold" />
             <span>Google 登入</span>
           </button>
         )}
@@ -86,22 +86,22 @@ const AppGrid = ({ onSelectApp }) => {
             key={app.id}
             onClick={() => onSelectApp(app.id)}
             className="
-              group relative flex flex-col items-start gap-3 p-5 rounded-3xl 
+              group relative flex flex-col items-start gap-3 p-6 rounded-[2rem] 
               bg-stone-50/80 dark:bg-zinc-800/40 
               border border-stone-100 dark:border-zinc-800/50 hover:border-indigo-100 dark:hover:border-zinc-700 
               hover:bg-white dark:hover:bg-zinc-800 
               hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] 
-              active:scale-[0.98]
+              active:scale-95
               transition-all duration-300 ease-out
               outline-none
             "
           >
             <div className="flex items-center justify-between w-full">
               <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-sm group-hover:-translate-y-1 group-hover:shadow-md transition-all duration-300 ${app.color}`}>
-                <app.icon size={24} />
+                <app.icon size={24} weight="duotone" />
               </div>
               <div className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-300 dark:text-zinc-500 group-hover:translate-x-1 duration-300">
-                <ArrowRightToLine size={16} />
+                <ArrowRight size={16} weight="bold" />
               </div>
             </div>
 
@@ -132,12 +132,12 @@ const LauncherFooter = ({
       {/* 快速設定 */}
       <div className="flex items-center gap-1 p-1 bg-white/80 dark:bg-zinc-800/50 rounded-2xl border border-stone-100 dark:border-zinc-700/50 shadow-sm">
         <button onClick={actions.openBackup} className={`${actionBtnClass} hover:text-emerald-600`} title="資料庫">
-          <Database size={18} className="text-emerald-500/80" />
+          <Database size={18} weight="duotone" className="text-emerald-500/80" />
           <span className="hidden md:inline">備份</span>
         </button>
         <div className="w-px h-5 bg-stone-200 dark:bg-zinc-700 mx-1"></div>
         <button onClick={actions.openZhuyin} className={`${actionBtnClass} ${settings.isGlobalZhuyin ? 'bg-indigo-50/50 dark:bg-indigo-900/20 text-indigo-600' : 'hover:text-indigo-600'}`} title="注音設定">
-          <Type size={18} className={settings.isGlobalZhuyin ? 'text-indigo-500' : ''} />
+          <TextAa size={18} weight="duotone" className={settings.isGlobalZhuyin ? 'text-indigo-500' : ''} />
           <span className="hidden md:inline">注音</span>
         </button>
         <div className="w-px h-5 bg-stone-200 dark:bg-zinc-700 mx-1"></div>
@@ -150,21 +150,21 @@ const LauncherFooter = ({
       {/* 位置切換 */}
       <div className="flex bg-stone-100/80 dark:bg-zinc-800/80 rounded-xl p-1 gap-1" role="group" aria-label="啟動按鈕位置">
         <div className="px-2 flex items-center justify-center text-zinc-400">
-          <PanelBottom size={14} />
+          <Desktop size={14} weight="duotone" />
         </div>
         <button
           onClick={() => actions.setLauncherPosition('left')}
           className={`p-1.5 rounded-lg transition-all duration-300 outline-none ${settings.launcherPosition === 'left' ? 'bg-white dark:bg-zinc-700 shadow-sm text-indigo-500' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'}`}
           title="將啟動鈕移至左側"
         >
-          <ArrowLeftToLine size={16} />
+          <ArrowLineLeft size={16} weight="bold" />
         </button>
         <button
           onClick={() => actions.setLauncherPosition('right')}
           className={`p-1.5 rounded-lg transition-all duration-300 outline-none ${settings.launcherPosition === 'right' ? 'bg-white dark:bg-zinc-700 shadow-sm text-indigo-500' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'}`}
           title="將啟動鈕移至右側"
         >
-          <ArrowRightToLine size={16} />
+          <ArrowLineRight size={16} weight="bold" />
         </button>
       </div>
 
@@ -182,7 +182,7 @@ const LauncherFooter = ({
           onClick={onOpenAbout}
           className="flex items-center gap-1.5 text-zinc-400 hover:text-indigo-500 transition-colors duration-300 font-medium outline-none rounded-md px-1 py-1"
         >
-          <Users size={12} />
+          <Users size={12} weight="bold" />
           <span>Developed by 阿保老師</span>
         </button>
       </div>
@@ -226,9 +226,9 @@ const AppLauncher = ({
   if (!isOpen) return null;
 
   const getThemeIcon = () => {
-    if (theme === 'system') return <Laptop size={18} />;
-    if (theme === 'light') return <Sun size={18} />;
-    return <Moon size={18} />;
+    if (theme === 'system') return <Laptop size={18} weight="duotone" />;
+    if (theme === 'light') return <Sun size={18} weight="duotone" />;
+    return <Moon size={18} weight="duotone" />;
   };
 
   return (

@@ -115,7 +115,9 @@ const SeatCell = ({
     const sourceSeat = e.dataTransfer.getData("sourceSeat");
 
     if (studentId) {
-      onDrop(studentId, row, col, sourceSeat || null);
+      setTimeout(() => {
+        onDrop(studentId, row, col, sourceSeat || null);
+      }, 0);
     }
   };
 

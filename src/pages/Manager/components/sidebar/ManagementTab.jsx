@@ -55,7 +55,9 @@ const ManagementTab = ({
     e.preventDefault();
     const sourceSeat = e.dataTransfer.getData("sourceSeat");
     if (sourceSeat && onDrop) {
-      onDrop(sourceSeat);
+      setTimeout(() => {
+        onDrop(sourceSeat);
+      }, 0);
     }
   };
 

@@ -1,6 +1,6 @@
 // src/config/apps.js
 import { lazy } from 'react';
-import { Monitor, ClipboardCheck, Users, Headphones, Clipboard, BookOpen, Image as ImageIcon } from 'lucide-react';
+import { Monitor, ListChecks, Users, Headphones, ClipboardText, BookOpenText, Image as ImageIcon } from '@phosphor-icons/react';
 
 // Lazy Load 組件
 // 請根據您的實際檔案結構確認路徑，這裡假設是在 src/ 下
@@ -25,7 +25,7 @@ export const APPS_CONFIG = [
     id: 'exam',
     name: '監考系統',
     description: '計時、點名、隨堂測驗',
-    icon: ClipboardCheck,
+    icon: ListChecks,
     color: 'bg-rose-500',
     component: ExamTool
   },
@@ -40,7 +40,7 @@ export const APPS_CONFIG = [
   {
     id: 'contactbook',
     name: '聯絡簿',
-    icon: BookOpen,
+    icon: BookOpenText,
     path: '/contactbook',
     description: '班級作業聯絡簿發布與存檔',
     color: 'bg-indigo-500',
@@ -66,7 +66,7 @@ export const APPS_CONFIG = [
   {
     id: 'caselog',
     name: '學生日誌',
-    icon: Clipboard, // 或使用 lucide-react 的 Clipboard
+    icon: ClipboardText, // 更改為 Phosphor 的 ClipboardText
     path: '/caselog',
     description: '可共編的學生動態日誌',
     color: 'bg-orange-500',

@@ -14,9 +14,29 @@
 // type: 請填入 major (大更新), minor (小更新), 或 patch (修補)
 // changes: "new":"新增的功能說明"；"improve":"優化的介面或體驗說明"；"fix":"修復的錯誤說明"
 
-export const APP_VERSION = '8.6.1';
+export const APP_VERSION = '8.6.2';
 
 export const PATCH_NOTES = [
+  {
+    "version": "8.6.2",
+    "date": "2026-08-31",
+    "title": "排座位拖曳卡死修復與鎖定防護強化",
+    "type": "patch",
+    "changes": [
+      {
+        "type": "fix",
+        "text": "修復排座位拖曳卡死異常：重構座位放置 (onDrop) 的狀態更新時序，引進非同步延遲機制，確保瀏覽器與觸控 Polyfill 完整執行 dragend 生命週期，徹底解決連續調動座位後無法拖曳的卡死問題。"
+      },
+      {
+        "type": "fix",
+        "text": "鎖定座位安全防護機制：整併班級狀態管理中重複的座位調度邏輯，恢復對鎖定 (locked) 學生的安全檢驗，避免已鎖定座位被拖曳覆蓋。"
+      },
+      {
+        "type": "improve",
+        "text": "應用程式啟動器 (AppLauncher) 視覺升級：全方位導入 Phosphor Icons 雙色調圖示系統，優化介面圓角、微互動動畫及暗色模式光暈質感。"
+      }
+    ]
+  },
   {
     "version": "8.6.1",
     "date": "2026-04-20",
