@@ -128,6 +128,8 @@ const DraggableWidget = ({
       <div
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
+        draggable={false}
+        onDragStart={(e) => e.stopPropagation()}
         className={`
           h-12 flex items-center justify-between px-3 cursor-grab select-none
           bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700/50
