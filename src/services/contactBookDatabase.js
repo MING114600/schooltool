@@ -29,6 +29,15 @@ export const contactBookDB = {
         return data?.ids || [];
     },
     saveHiddenTemplateIds: async (ids) => {
-        return await saveItem(STORES.METADATA, { id: 'hidden_contact_book_templates', ids });
+        return await saveItem(STORES.METADATA, { key: 'hidden_contact_book_templates', ids });
+    },
+
+    // --- Template Order (Metadata) ---
+    getTemplateOrder: async () => {
+        const data = await getItem(STORES.METADATA, 'contact_book_template_order');
+        return data?.order || [];
+    },
+    saveTemplateOrder: async (order) => {
+        return await saveItem(STORES.METADATA, { key: 'contact_book_template_order', order });
     }
 };

@@ -202,7 +202,12 @@ const Manager = () => {
       onClose={() => setIsSidebarOpen(false)}
       activeTab={sidebarTab} setActiveTab={setSidebarTab} isEditingList={isEditingList} setIsEditingList={setIsEditingList}
       displayMode={displayMode} appMode={appMode} onStudentClick={handleStudentClick}
-      onDragStart={(e, id) => e.dataTransfer.setData("studentId", id)} onDrop={sidebarDrop} onImportList={handleImportList}
+      onDragStart={(e, id) => {
+        e.dataTransfer.setData("studentId", id);
+        // ★ 修復：從 Sidebar 拖曳時不設 sourceSeat，讓 store 透過掃描找舊位並清除
+        e.dataTransfer.setData("sourceSeat", "");
+      }}
+      onDrop={sidebarDrop} onImportList={handleImportList}
     />
   );
 

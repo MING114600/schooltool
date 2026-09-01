@@ -24,6 +24,7 @@ export const useContactBookStore = create((set, get) => ({
     currentLog: null, // 目前檢視/編輯中的聯絡簿
     customTemplates: [], // 使用者自訂模板
     hiddenTemplateIds: [], // 隱藏的預設模板 IDs
+    templateOrder: [], // 面板模板排序順序
 
     // Undo/Redo
     undoStack: [],
@@ -88,6 +89,7 @@ export const useContactBookStore = create((set, get) => ({
             const logs = await contactBookDB.getAllLogs();
             const customTemplates = await contactBookDB.getAllTemplates();
             const hiddenIds = await contactBookDB.getHiddenTemplateIds();
+            const order = await contactBookDB.getTemplateOrder();
 
             // 排序 logs，新的在上
             const sortedLogs = logs.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -96,6 +98,7 @@ export const useContactBookStore = create((set, get) => ({
                 logs: sortedLogs,
                 customTemplates: customTemplates || [],
                 hiddenTemplateIds: hiddenIds || [],
+                templateOrder: order || [],
                 isLoading: false
             });
 
@@ -111,10 +114,32 @@ export const useContactBookStore = create((set, get) => ({
     /**
      * 取得所有模板 (系統預設 + 使用者自訂)
      */
-    getAllTemplates: () => {
-        const { customTemplates, hiddenTemplateIds } = get();
-        const visibleDefaults = DEFAULT_TEMPLATES.filter(tpl => !hiddenTemplateIds.includes(tpl.id));
-        return [...visibleDefaults, ...customTemplates];
+    getAllTemplates: (showHidden = false) => {
+        const { customTemplates, hiddenTemplateIds, templateOrder } = get();
+        const visibleDefaults = DEFAULT_TEMPLATES.filter(tpl => showHidden || !hiddenTemplateIds.includes(tpl.id));
+        const all = [...visibleDefaults, ...customTemplates];
+        
+        // 依照 templateOrder 排序
+        if (templateOrder && templateOrder.length > 0) {
+            all.sort((a, b) => {
+                const indexA = templateOrder.indexOf(a.id);
+                const indexB = templateOrder.indexOf(b.id);
+                if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+                if (indexA !== -1) return -1;
+                if (indexB !== -1) return 1;
+                return 0; // 若都不在順序中，保持原順序 (通常在陣列尾端)
+            });
+        }
+        return all;
+    },
+
+    reorderTemplates: async (newOrderIds) => {
+        try {
+            await contactBookDB.saveTemplateOrder(newOrderIds);
+            set({ templateOrder: newOrderIds });
+        } catch (err) {
+            console.error('[ContactBookStore] 儲存模板排序失敗', err);
+        }
     },
 
     /**

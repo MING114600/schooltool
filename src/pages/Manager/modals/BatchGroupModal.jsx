@@ -54,10 +54,12 @@ const BatchGroupModal = ({ isOpen, onClose, students, onUpdateStudents, onShowDi
       e.preventDefault(); 
       const studentId = e.dataTransfer.getData("studentId"); 
       if (!studentId) return; 
-      setLocalStudents(prev => prev.map(s => { 
-          if (s.id === studentId) return { ...s, group: targetGroupId }; 
-          return s; 
-      })); 
+      setTimeout(() => {
+          setLocalStudents(prev => prev.map(s => { 
+              if (s.id === studentId) return { ...s, group: targetGroupId }; 
+              return s; 
+          })); 
+      }, 0);
   };
   const handleDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; };
   

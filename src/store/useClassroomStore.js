@@ -188,47 +188,7 @@ export const useClassroomStore = create((set, get) => ({
     // --- Seating Logic ---
     setSeatMode: (mode) => set({ seatMode: mode }),
 
-    seatDrop: (studentId, targetRow, targetCol, sourceSeatKey) => {
-        const currentClass = get().classes.find(c => c.id === get().currentClassId);
-        if (!currentClass) return;
 
-        const newSeats = { ...currentClass.layout.seats };
-        const targetSeatKey = `${targetRow}-${targetCol}`;
-        const existingStudentIdAtTarget = newSeats[targetSeatKey];
-
-        // Ensure student exists
-        const studentIndex = currentClass.students.findIndex(s => s.id === studentId);
-        if (studentIndex === -1) return;
-
-        // Ensure we don't accidentally overwrite a locked student
-        const targetStudent = currentClass.students.find(s => s.id === existingStudentIdAtTarget);
-        if (targetStudent && targetStudent.locked) return; // Prevent dropping on a locked target
-
-        if (get().seatMode === 'replace') {
-            // Replace Mode: source takes target slot, existing target student is unassigned
-            if (sourceSeatKey) {
-                delete newSeats[sourceSeatKey];
-            }
-            newSeats[targetSeatKey] = studentId;
-        } else {
-            // Swap Mode (default): Exchange seats
-            if (existingStudentIdAtTarget) {
-                if (sourceSeatKey) {
-                    newSeats[sourceSeatKey] = existingStudentIdAtTarget;
-                }
-            } else {
-                if (sourceSeatKey) {
-                    delete newSeats[sourceSeatKey];
-                }
-            }
-            newSeats[targetSeatKey] = studentId;
-        }
-
-        get().updateClass({
-            ...currentClass,
-            layout: { ...currentClass.layout, seats: newSeats }
-        });
-    },
 
     toggleLock: (studentId) => {
         const currentClass = get().classes.find(c => c.id === get().currentClassId);
@@ -322,17 +282,28 @@ export const useClassroomStore = create((set, get) => ({
     seatDrop: (studentId, row, col, sourceSeat) => {
         const currentClass = get().classes.find(c => c.id === get().currentClassId);
         if (!currentClass) return;
-        const { seatMode } = get();
+
         const newSeats = { ...currentClass.layout.seats };
         const targetKey = `${row}-${col}`;
         const targetStudentId = newSeats[targetKey];
+
+        // Ensure student exists
+        const studentIndex = currentClass.students.findIndex(s => s.id === studentId);
+        if (studentIndex === -1) return;
+
+        // Ensure we don't accidentally overwrite a locked student
+        const targetStudent = currentClass.students.find(s => s.id === targetStudentId);
+        if (targetStudent && targetStudent.locked) return; // Prevent dropping on a locked target
+
+        const { seatMode } = get();
 
         if (seatMode === 'swap' && targetStudentId && sourceSeat) {
             newSeats[targetKey] = studentId;
             newSeats[sourceSeat] = targetStudentId;
         } else {
-            if (sourceSeat) delete newSeats[sourceSeat];
-            else {
+            if (sourceSeat) {
+                delete newSeats[sourceSeat];
+            } else {
                 const existingKey = Object.keys(newSeats).find(k => newSeats[k] === studentId);
                 if (existingKey) delete newSeats[existingKey];
             }

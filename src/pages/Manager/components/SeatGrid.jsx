@@ -1,4 +1,4 @@
-import React, { memo, useState, useCallback } from 'react';
+import React, { memo, useState, useCallback, useRef } from 'react';
 import { DoorOpen } from 'lucide-react';
 import { useClassroomStore } from '../../../store/useClassroomStore';
 import SeatCell from './SeatCell';
@@ -24,6 +24,8 @@ const SeatGrid = memo(({
   // 2. 新增狀態：追蹤目前拖曳經過的目標格子
   const [dragOverTarget, setDragOverTarget] = useState(null); // { r, c }
 
+  const gridRef = useRef(null);
+
   // 3. 定義穩定的 Handler (使用 useCallback 避免破壞 SeatCell 的 memo)
   const handleCellDragOver = useCallback((e, r, c) => {
     e.preventDefault();
@@ -34,7 +36,11 @@ const SeatGrid = memo(({
     });
   }, []);
 
-  const handleCellDragLeave = useCallback(() => {
+  // ★ 修復：只有當滑鼠真正離開整個 Grid 容器時，才清除高亮
+  // 直接比較 relatedTarget 是否還在 Grid 內部，避免子元素邊界觸發誤清除
+  const handleCellDragLeave = useCallback((e) => {
+    // relatedTarget 是滑鼠移入的下一個元素；若它還在 Grid 內就不清除
+    if (gridRef.current && gridRef.current.contains(e.relatedTarget)) return;
     setDragOverTarget(null);
   }, []);
 
@@ -49,7 +55,13 @@ const SeatGrid = memo(({
     : '-left-8 md:-left-12 rounded-r-xl border-r-4';
 
   return (
-    <div className="relative w-full max-w-5xl mx-auto flex-1 flex flex-col transition-all duration-300">
+    // ★ 修復：加上 ref 讓 handleCellDragLeave 能判斷邊界
+    // ★ 修復：加上 onDragEnd 保底清除，確保拖曳結束後高亮一定重置
+    <div
+      ref={gridRef}
+      className="relative w-full max-w-5xl mx-auto flex-1 flex flex-col transition-all duration-300"
+      onDragEnd={() => setDragOverTarget(null)}
+    >
 
       {/* 門位標示 (保持不變) */}
       <div className={`absolute w-6 h-24 bg-amber-200 dark:bg-amber-900/80 border-amber-300 dark:border-amber-700 flex items-center justify-center text-amber-800 dark:text-amber-200 font-bold text-[16px] writing-vertical ${doorSideClass} top-12 transition-colors z-10 shadow-md`}>
@@ -67,7 +79,6 @@ const SeatGrid = memo(({
               const key = `${r}-${displayCol}`;
               const student = students.find(s => s.id === seats[key]);
 
-              // 4. 計算是否為當前拖曳目標
               const isDragTarget = dragOverTarget?.r === r && dragOverTarget?.c === displayCol;
 
               return (
@@ -90,8 +101,6 @@ const SeatGrid = memo(({
                   onToggleLock={onToggleLock}
                   hoveredGroup={hoveredGroup}
                   layoutRows={cols}
-
-                  // ★ 新增這三個 Props
                   isDragTarget={isDragTarget}
                   onCellDragOver={handleCellDragOver}
                   onCellDragLeave={handleCellDragLeave}
