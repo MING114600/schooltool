@@ -5,32 +5,17 @@ import { useDraggable } from '@dnd-kit/core';
 import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-const TemplateItem = ({ tpl, onAdd, onRemove, onToggleVisibility, isCustom, isEditing, isHidden }) => {
-    // 依據是否為編輯模式，決定使用 useSortable 還是 useDraggable
-    const dragData = isEditing ? {
+const SortableTemplateItem = ({ tpl, onRemove, onToggleVisibility, isCustom, isHidden }) => {
+    const { attributes, listeners, setNodeRef, transform, isDragging, transition } = useSortable({
         id: `tpl-sort-${tpl.id}`,
-        hook: useSortable({
-            id: `tpl-sort-${tpl.id}`,
-            data: { type: 'template-sort', template: tpl }
-        })
-    } : {
-        id: `template-insert-${tpl.id}`,
-        hook: useDraggable({
-            id: `template-insert-${tpl.id}`,
-            data: { type: 'template-insert', content: tpl.content, isImportant: tpl.isImportant }
-        })
-    };
+        data: { type: 'template-sort', template: tpl }
+    });
 
-    const { attributes, listeners, setNodeRef, transform, isDragging, transition } = dragData.hook;
-
-    const style = transform ? {
+    const style = {
         transform: CSS.Translate.toString(transform),
-        transition: isEditing ? transition : undefined,
+        transition,
         opacity: isDragging ? 0.5 : (isHidden ? 0.6 : 1),
         zIndex: isDragging ? 50 : 10,
-    } : {
-        opacity: isHidden ? 0.6 : 1,
-        transition: isEditing ? transition : undefined,
     };
 
     return (
@@ -39,24 +24,16 @@ const TemplateItem = ({ tpl, onAdd, onRemove, onToggleVisibility, isCustom, isEd
             style={style}
             className={`group relative flex items-center transition-all ${isDragging ? 'pointer-events-none' : ''}`}
         >
-            {/* 拖曳手把 (一般模式下拖曳插入，編輯模式下排序) */}
             <div
                 {...listeners}
                 {...attributes}
-                className={`no-export p-1 cursor-grab active:cursor-grabbing 
-                    ${isEditing ? 'text-slate-400 hover:text-slate-600' : 'text-slate-300 hover:text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity'}`}
+                className="no-export p-1 cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600"
             >
                 <GripVertical size={14} />
             </div>
 
             <button
-                onClick={() => {
-                    if (!isEditing && !isHidden) {
-                        onAdd(tpl.content, tpl.isImportant);
-                    }
-                }}
-                className={`flex-1 text-left px-3 py-2 border rounded-xl text-[14px] font-semibold transition-all shadow-sm transform-gpu will-change-transform
-                    ${!isEditing && !isHidden ? 'hover:border-indigo-400 active:scale-95' : 'cursor-default'}
+                className={`flex-1 text-left px-3 py-2 border rounded-xl text-[14px] font-semibold transition-all shadow-sm transform-gpu will-change-transform cursor-default
                     ${tpl.isImportant
                         ? 'border-rose-200 bg-rose-50 text-rose-800 dark:bg-rose-900/40 dark:border-rose-700 dark:text-rose-200'
                         : 'border-slate-200 bg-white text-slate-900 dark:bg-slate-800 dark:border-slate-700 dark:text-white'}
@@ -68,26 +45,73 @@ const TemplateItem = ({ tpl, onAdd, onRemove, onToggleVisibility, isCustom, isEd
                 </div>
             </button>
             
-            {/* 編輯模式的操作按鈕 */}
-            {isEditing && (
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        if (isCustom) {
-                            onRemove(tpl.id);
-                        } else {
-                            onToggleVisibility(tpl.id);
-                        }
-                    }}
-                    className={`ml-1 p-1.5 transition-opacity rounded-lg transform-gpu will-change-opacity
-                        ${isCustom 
-                            ? 'text-rose-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30' 
-                            : (isHidden ? 'text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800')}`}
-                    title={isCustom ? "刪除自訂模板" : (isHidden ? "顯示預設模板" : "隱藏預設模板")}
-                >
-                    {isCustom ? <Trash2 size={16} /> : (isHidden ? <EyeOff size={16} /> : <Eye size={16} />)}
-                </button>
-            )}
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    if (isCustom) {
+                        onRemove(tpl.id);
+                    } else {
+                        onToggleVisibility(tpl.id);
+                    }
+                }}
+                className={`ml-1 p-1.5 transition-opacity rounded-lg transform-gpu will-change-opacity
+                    ${isCustom 
+                        ? 'text-rose-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30' 
+                        : (isHidden ? 'text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800')}`}
+                title={isCustom ? "刪除自訂模板" : (isHidden ? "顯示預設模板" : "隱藏預設模板")}
+            >
+                {isCustom ? <Trash2 size={16} /> : (isHidden ? <EyeOff size={16} /> : <Eye size={16} />)}
+            </button>
+        </div>
+    );
+};
+
+const DraggableTemplateItem = ({ tpl, onAdd, isHidden }) => {
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+        id: `template-insert-${tpl.id}`,
+        data: { type: 'template-insert', content: tpl.content, isImportant: tpl.isImportant }
+    });
+
+    const style = transform ? {
+        transform: CSS.Translate.toString(transform),
+        opacity: isDragging ? 0.5 : (isHidden ? 0.6 : 1),
+        zIndex: isDragging ? 50 : 10,
+    } : {
+        opacity: isHidden ? 0.6 : 1,
+    };
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            className={`group relative flex items-center transition-all ${isDragging ? 'pointer-events-none' : ''}`}
+        >
+            <div
+                {...listeners}
+                {...attributes}
+                className="no-export p-1 cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+                <GripVertical size={14} />
+            </div>
+
+            <button
+                onClick={() => {
+                    if (!isHidden) {
+                        onAdd(tpl.content, tpl.isImportant);
+                    }
+                }}
+                className={`flex-1 text-left px-3 py-2 border rounded-xl text-[14px] font-semibold transition-all shadow-sm transform-gpu will-change-transform
+                    ${!isHidden ? 'hover:border-indigo-400 active:scale-95' : 'cursor-default'}
+                    ${tpl.isImportant
+                        ? 'border-rose-200 bg-rose-50 text-rose-800 dark:bg-rose-900/40 dark:border-rose-700 dark:text-rose-200'
+                        : 'border-slate-200 bg-white text-slate-900 dark:bg-slate-800 dark:border-slate-700 dark:text-white'}
+                    ${isHidden ? '!bg-slate-100 !border-slate-200 !text-slate-400 dark:!bg-slate-800/40 dark:!border-slate-800 dark:!text-slate-500' : ''}`}
+            >
+                <div className={`truncate flex items-center gap-2 ${isHidden ? 'opacity-70' : ''}`}>
+                    {tpl.isImportant && <Star size={12} className={`flex-shrink-0 ${isHidden ? 'fill-slate-400 text-slate-400' : 'fill-rose-500 text-rose-500'}`} />}
+                    <span className={`truncate ${isHidden ? 'line-through' : ''}`}>{tpl.content}</span>
+                </div>
+            </button>
         </div>
     );
 };
@@ -173,23 +197,34 @@ const QuickTemplatePanel = () => {
             )}
 
             <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
-                <SortableContext 
-                    items={templates.map(tpl => `tpl-sort-${tpl.id}`)} 
-                    strategy={verticalListSortingStrategy}
-                >
-                    {templates.map(tpl => (
-                        <TemplateItem
-                            key={tpl.id}
-                            tpl={tpl}
-                            isCustom={tpl.id.includes('custom')}
-                            isEditing={isEditing}
-                            isHidden={hiddenTemplateIds.includes(tpl.id)}
-                            onAdd={addItemToCurrentLog}
-                            onRemove={removeCustomTemplate}
-                            onToggleVisibility={toggleTemplateVisibility}
-                        />
-                    ))}
-                </SortableContext>
+                {isEditing ? (
+                    <SortableContext 
+                        items={templates.map(tpl => `tpl-sort-${tpl.id}`)} 
+                        strategy={verticalListSortingStrategy}
+                    >
+                        {templates.map(tpl => (
+                            <SortableTemplateItem
+                                key={tpl.id}
+                                tpl={tpl}
+                                isCustom={tpl.id.includes('custom')}
+                                isHidden={hiddenTemplateIds.includes(tpl.id)}
+                                onRemove={removeCustomTemplate}
+                                onToggleVisibility={toggleTemplateVisibility}
+                            />
+                        ))}
+                    </SortableContext>
+                ) : (
+                    <>
+                        {templates.map(tpl => (
+                            <DraggableTemplateItem
+                                key={tpl.id}
+                                tpl={tpl}
+                                isHidden={hiddenTemplateIds.includes(tpl.id)}
+                                onAdd={addItemToCurrentLog}
+                            />
+                        ))}
+                    </>
+                )}
             </div>
             
             <div className="p-3 text-center text-xs text-slate-400 dark:text-slate-500 border-t border-slate-100 dark:border-slate-800">
