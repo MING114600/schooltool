@@ -14,9 +14,37 @@
 // type: 請填入 major (大更新), minor (小更新), 或 patch (修補)
 // changes: "new":"新增的功能說明"；"improve":"優化的介面或體驗說明"；"fix":"修復的錯誤說明"
 
-export const APP_VERSION = '8.6.3';
+export const APP_VERSION = '8.7.0';
 
 export const PATCH_NOTES = [
+  {
+    "version": "8.7.0",
+    "date": "2026-09-03",
+    "title": "個案日誌系統完善、備份模組升級與介面優化",
+    "type": "minor",
+    "changes": [
+      {
+        "type": "improve",
+        "text": "隱私權限最佳化：成功移除敏感權限，新老師註冊不再卡「未經驗證的應用程式」警告。"
+      },
+      {
+        "type": "new",
+        "text": "備份引擎升級：完美整合 ClassroomOS_CaseLogDB，個案日誌、學生清單、模板等設定都能一鍵安全備份與還原。"
+      },
+      {
+        "type": "improve",
+        "text": "行動版介面優化：行動版介面重新排版，改用 Icon 按鈕釋放空間。"
+      },
+      {
+        "type": "improve",
+        "text": "模板編輯器升級：支援 Enter/上下鍵切換、智慧佔位符，並統一管理罐頭快捷文字。"
+      },
+      {
+        "type": "fix",
+        "text": "核心 Bug 修復：解決了 Google Drive 圖片破圖 (400 Bad Request) 以及殘留的 JSX 錯誤。"
+      }
+    ]
+  },
   {
     "version": "8.6.3",
     "date": "2026-08-31",

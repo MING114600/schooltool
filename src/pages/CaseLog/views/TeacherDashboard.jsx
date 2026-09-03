@@ -19,6 +19,16 @@ import Sidebar from './components/Sidebar';
 import Toolbar from './components/Toolbar';
 import StandardAppLayout from '../../../components/common/layout/StandardAppLayout';
 
+// 🌟 新增：日期格式化 (加上星期)
+const formatDateWithWeekday = (dateStr) => {
+  if (!dateStr) return '';
+  const formattedDate = dateStr.replace(/-/g, '/');
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return formattedDate;
+  const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+  return `${formattedDate} (週${weekdays[date.getDay()]})`;
+};
+
 // 🌟 新增：將獨立的日誌清單項目提取為 React.memo 防護元件，避免無關項目重繪
 const MemoizedLogItem = React.memo(({
   log,
@@ -50,7 +60,7 @@ const MemoizedLogItem = React.memo(({
           >
             {isSelected ? <CheckSquare size={16} /> : <Square size={16} />}
           </div>
-          <span className="font-bold text-sm">{log.date}</span>
+          <span className="font-bold text-sm">{formatDateWithWeekday(log.date)}</span>
           {/* 🌟 顯示草稿標籤 */}
           {log.isDraft && (
             <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400 font-bold shrink-0">
@@ -102,6 +112,8 @@ export default function TeacherDashboard() {
   const [selectedLogId, setSelectedLogId] = useState('new');
   const [isEditingMode, setIsEditingMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState('desc'); // 'desc' 或 'asc'
+  const [dateFilter, setDateFilter] = useState('all'); // 'all', '1week', '1month'
   const [mobileActivePane, setMobileActivePane] = useState('list');
   const [pendingAuthRetry, setPendingAuthRetry] = useState(null);
 
@@ -164,25 +176,57 @@ export default function TeacherDashboard() {
 
   const filteredLogs = useMemo(() => {
     if (!logs) return [];
-    if (!searchQuery.trim()) return logs;
 
-    const lowerQuery = searchQuery.toLowerCase();
-    return logs.filter(log => {
-      // 搜尋日期
-      if (log.date.includes(lowerQuery)) return true;
-      // 搜尋內部備註
-      if (log.privateNote && log.privateNote.toLowerCase().includes(lowerQuery)) return true;
-      // 搜尋日誌動態內容 (比對字串或陣列)
-      if (log.content) {
-        return Object.values(log.content).some(val => {
-          if (typeof val === 'string') return val.toLowerCase().includes(lowerQuery);
-          if (Array.isArray(val)) return val.join(' ').toLowerCase().includes(lowerQuery);
-          return false;
-        });
+    let processed = logs;
+
+    // 1. 時間範圍過濾
+    if (dateFilter !== 'all') {
+      const now = new Date();
+      let limitDate = new Date();
+      if (dateFilter === '1week') {
+        limitDate.setDate(now.getDate() - 7);
+      } else if (dateFilter === '1month') {
+        limitDate.setMonth(now.getMonth() - 1);
       }
-      return false;
+      limitDate.setHours(0, 0, 0, 0);
+      processed = processed.filter(log => new Date(log.date) >= limitDate);
+    }
+
+    // 2. 關鍵字搜尋過濾
+    if (searchQuery.trim()) {
+      const lowerQuery = searchQuery.toLowerCase();
+      processed = processed.filter(log => {
+        if (log.date.includes(lowerQuery)) return true;
+        if (log.privateNote && log.privateNote.toLowerCase().includes(lowerQuery)) return true;
+        if (log.content) {
+          return Object.values(log.content).some(val => {
+            if (typeof val === 'string') return val.toLowerCase().includes(lowerQuery);
+            if (Array.isArray(val)) return val.join(' ').toLowerCase().includes(lowerQuery);
+            return false;
+          });
+        }
+        return false;
+      });
+    }
+
+    // 3. 排序 (新到舊 或 舊到新)
+    processed = [...processed].sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      let diff = sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+      
+      // 如果日期同一天，則依照發布的真實時間戳記排序
+      if (diff === 0) {
+        const timeA = new Date(a.timestamp || 0).getTime();
+        const timeB = new Date(b.timestamp || 0).getTime();
+        diff = sortOrder === 'desc' ? timeB - timeA : timeA - timeB;
+      }
+      
+      return diff;
     });
-  }, [logs, searchQuery]);
+
+    return processed;
+  }, [logs, searchQuery, dateFilter, sortOrder]);
 
   // ==========================================
   // 🌟 階段一：月份摺疊清單邏輯
@@ -204,12 +248,12 @@ export default function TeacherDashboard() {
     });
 
     return Object.keys(groups)
-      .sort((a, b) => b.localeCompare(a))
+      .sort((a, b) => sortOrder === 'desc' ? b.localeCompare(a) : a.localeCompare(b))
       .map(key => ({
         month: key,
         logs: groups[key]
       }));
-  }, [filteredLogs]);
+  }, [filteredLogs, sortOrder]);
 
   // 當切換學生時，自動展開「最新的一個月」，其餘摺疊
   useEffect(() => {
@@ -300,24 +344,28 @@ export default function TeacherDashboard() {
     );
   };
 
-  // 全選 / 取消全選該學生的所有日誌
+  // 全選 / 取消全選目前篩選結果
   const handleSelectAll = () => {
-    if (selectedLogIds.length === logs.length) {
-      setSelectedLogIds([]);
+    const filteredIds = filteredLogs.map(log => log.id);
+    const allFilteredSelected = filteredIds.every(id => selectedLogIds.includes(id));
+    if (allFilteredSelected) {
+      setSelectedLogIds(prev => prev.filter(id => !filteredIds.includes(id)));
     } else {
-      setSelectedLogIds(logs.map(log => log.id));
+      setSelectedLogIds(prev => [...new Set([...prev, ...filteredIds])]);
     }
   };
+
+  // 🌟 計算最終列印/分享的目標 IDs (優先順序：手動選取 > 篩選結果)
+  const printTargetIds = selectedLogIds.length > 0
+    ? selectedLogIds
+    : filteredLogs.map(log => log.id);
 
   // 處理產生家長連結與複製
   const handleGenerateShareLink = async (targetLogIds = []) => {
     try {
       const baseLink = await generateParentLink();
 
-      let idsToShare = targetLogIds;
-      if (!idsToShare || idsToShare.length === 0) {
-        idsToShare = isSelectionMode ? selectedLogIds : [];
-      }
+      let idsToShare = targetLogIds.length > 0 ? targetLogIds : printTargetIds;
 
       const selectedTimestamps = logs
         .filter(log => idsToShare.includes(log.id))
@@ -353,33 +401,38 @@ export default function TeacherDashboard() {
     return (
       <div className="max-w-4xl mx-auto flex flex-col gap-6 animate-in fade-in zoom-in-95 duration-200 print:max-w-none print:w-full print:gap-4 print:break-inside-avoid">
 
-        <div className={`p-6 rounded-2xl border ${UI_THEME.BORDER_DEFAULT} ${UI_THEME.SURFACE_MAIN} shadow-sm print:shadow-none print:border-slate-400 print:p-8 print:bg-white print:rounded-none`}>
-          <div className="flex justify-between items-start mb-4 print:mb-6">
-            <div>
+        {/* 🌟 單篇列印標題 */}
+        <h1 className="hidden print:block text-2xl font-bold text-center mb-6 pb-3 border-b-2 border-black">
+          {activeStudent?.name} - 學生紀錄日誌
+        </h1>
+
+        <div className={`p-4 md:p-6 rounded-2xl border ${UI_THEME.BORDER_DEFAULT} ${UI_THEME.SURFACE_MAIN} shadow-sm print:shadow-none print:border-slate-400 print:p-8 print:bg-white print:rounded-none`}>
+          <div className="flex flex-col md:flex-row md:justify-between items-start gap-4 mb-4 print:mb-6">
+            <div className="w-full">
               <div className="flex items-center gap-3">
-                <h2 className={`${uiZoom.title} font-bold ${UI_THEME.TEXT_PRIMARY} mb-2 flex items-center gap-2 transition-all print:text-black print:text-4xl`}>
+                <h2 className={`${uiZoom.title} font-bold ${UI_THEME.TEXT_PRIMARY} mb-2 flex items-center gap-2 transition-all print:text-black print:text-3xl`}>
                   <Calendar className={`${UI_THEME.TEXT_SECONDARY} print:hidden`} />
-                  {log.date}
+                  {formatDateWithWeekday(log.date)}
                 </h2>
               </div>
 
-              <div className={`flex items-center gap-3 ${uiZoom.info} ${UI_THEME.TEXT_MUTED} transition-all print:text-slate-700 print:text-lg`}>
+              <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 ${uiZoom.info} ${UI_THEME.TEXT_MUTED} transition-all print:hidden`}>
                 <span className="flex items-center gap-1">
                   <Users size={14} /> {cleanAuthor}
                 </span>
                 {log.isEdited && (
-                  <span className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-500">
+                  <span className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-500 shrink-0">
                     已編輯
                   </span>
                 )}
-                <span>•</span>
-                <span>
+                <span className="hidden md:inline">•</span>
+                <span className="w-full md:w-auto mt-1 md:mt-0">
                   建立於 {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
             </div>
 
-            <div className="flex gap-2 items-center print:hidden">
+            <div className="flex flex-wrap md:flex-nowrap gap-2 items-center w-full md:w-auto print:hidden">
               {/* 🌟 文字放大縮小控制項 (移到此處以防位置跑掉) */}
               <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 border border-slate-200 dark:border-slate-700 shadow-inner">
                 <button
@@ -403,30 +456,31 @@ export default function TeacherDashboard() {
                 </button>
               </div>
 
-              {/* 🌟 專屬操作此篇紀錄的快捷按鈕 */}
+              {/* 🌟 專屬操作此篇紀錄的快捷按鈕 (手機版只顯示圖示，電腦版顯示文字) */}
               <button
                 onClick={() => handleGenerateShareLink([log.id])}
                 disabled={isSyncing}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 transition-colors"
+                className="flex items-center justify-center gap-1.5 p-2 md:px-3 md:py-1.5 rounded-lg text-sm font-bold bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 transition-colors whitespace-nowrap"
                 title="產生此單篇日誌的家長預覽連結"
               >
-                <Share2 size={16} /> 分享此篇
+                <Share2 size={18} /> <span className="hidden md:inline">分享</span>
               </button>
               <button
                 onClick={() => window.print()}
                 disabled={isSyncing}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 transition-colors"
+                className="flex items-center justify-center gap-1.5 p-2 md:px-3 md:py-1.5 rounded-lg text-sm font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 transition-colors whitespace-nowrap"
                 title="單獨列印此篇日誌"
               >
-                <Printer size={16} /> 列印此篇
+                <Printer size={18} /> <span className="hidden md:inline">列印</span>
               </button>
 
               <button
                 onClick={() => setIsEditingMode(true)}
                 disabled={isSyncing}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400"
+                className="flex items-center justify-center gap-1.5 p-2 md:px-3 md:py-1.5 rounded-lg text-sm font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 whitespace-nowrap"
+                title="編輯此篇日誌"
               >
-                <Edit3 size={16} /> 編輯
+                <Edit3 size={18} /> <span className="hidden md:inline">編輯</span>
               </button>
 
               <button
@@ -448,9 +502,10 @@ export default function TeacherDashboard() {
                   });
                 }}
                 disabled={isSyncing}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold bg-rose-50 text-rose-600 hover:bg-rose-100 dark:bg-rose-900/30 dark:text-rose-400"
+                className="flex items-center justify-center gap-1.5 p-2 md:px-3 md:py-1.5 rounded-lg text-sm font-bold bg-rose-50 text-rose-600 hover:bg-rose-100 dark:bg-rose-900/30 dark:text-rose-400 whitespace-nowrap"
+                title="刪除此篇日誌"
               >
-                <Trash2 size={16} /> 刪除
+                <Trash2 size={18} /> <span className="hidden md:inline">刪除</span>
               </button>
             </div>
           </div>
@@ -481,26 +536,30 @@ export default function TeacherDashboard() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {log.attachments.map((file, idx) => {
 
-                  // 判斷是否已經有 driveId (已上傳雲端)
                   const hasDriveId = Boolean(file.driveId);
 
-                  // 如果有 driveId 用縮圖 API，否則 (草稿) 用 createObjectURL 產生本地暫時預覽
+                  // 移除 sz=w1000，因為如果上傳的截圖尺寸小於 1000px，
+                  // Google Drive API 會回傳 400 Bad Request 導致圖片載入失敗
                   const imgSrc = hasDriveId
-                    ? `https://drive.google.com/thumbnail?id=${file.driveId}&sz=w1000`
+                    ? `https://drive.google.com/thumbnail?id=${file.driveId}`
                     : (file instanceof File || file instanceof Blob) ? URL.createObjectURL(file) : '';
 
-                  // 點擊放大的連結 (雲端給外部連結，本地給 blob 連結)
-                  const linkHref = hasDriveId ? file.url : imgSrc;
+                  const linkHref = hasDriveId ? (file.url || `https://drive.google.com/file/d/${file.driveId}/view`) : imgSrc;
 
                   return (
-                    <div key={idx} className="relative aspect-square rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-100 dark:bg-slate-800">
-                      <a href={linkHref} target="_blank" rel="noreferrer" title="點擊開啟原圖">
+                    <div key={idx} className="relative aspect-square rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-100 dark:bg-slate-800 flex flex-col">
+                      <a href={linkHref} target="_blank" rel="noreferrer" title="點擊開啟原圖" className="flex-1 relative overflow-hidden">
                         <img
                           src={imgSrc}
                           alt={file.name || '照片紀錄'}
-                          className="w-full h-full object-cover transition-transform hover:scale-105"
+                          className="absolute inset-0 w-full h-full object-cover transition-transform hover:scale-105"
                         />
                       </a>
+                      {file.caption && (
+                        <div className={`p-1.5 text-xs text-center border-t border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-black/50 ${UI_THEME.TEXT_SECONDARY} truncate`} title={file.caption}>
+                          {file.caption}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -658,6 +717,28 @@ export default function TeacherDashboard() {
                           </button>
                         )}
                       </div>
+                      
+                      {/* 🌟 新增：篩選與排序控制項 */}
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={dateFilter}
+                          onChange={(e) => setDateFilter(e.target.value)}
+                          className={`flex-1 p-1.5 text-xs rounded-lg border ${UI_THEME.BORDER_DEFAULT} ${UI_THEME.INPUT_BASE}`}
+                        >
+                          <option value="all">全部時間</option>
+                          <option value="1month">近一個月</option>
+                          <option value="1week">近一週</option>
+                        </select>
+                        <select
+                          value={sortOrder}
+                          onChange={(e) => setSortOrder(e.target.value)}
+                          className={`flex-1 p-1.5 text-xs rounded-lg border ${UI_THEME.BORDER_DEFAULT} ${UI_THEME.INPUT_BASE}`}
+                        >
+                          <option value="desc">新到舊</option>
+                          <option value="asc">舊到新</option>
+                        </select>
+                      </div>
+
                       <button
                         onClick={() => {
                           setSelectedLogId('new');
@@ -680,14 +761,14 @@ export default function TeacherDashboard() {
                             }}
                             className={`text-sm font-bold flex items-center gap-1.5 transition-colors text-blue-600 dark:text-blue-400 hover:text-blue-500`}
                           >
-                            <CheckSquare size={16} /> 取消批次選取
+                            <CheckSquare size={16} /> 取消手動選取
                           </button>
 
                           <button
                             onClick={handleSelectAll}
                             className={`text-xs font-bold ${UI_THEME.TEXT_MUTED} hover:text-blue-500 underline`}
                           >
-                            {selectedLogIds.length === logs.length ? '取消全選' : '全選'}
+                            {filteredLogs.every(l => selectedLogIds.includes(l.id)) ? '取消全選' : `全選篩選結果`}
                           </button>
                         </div>
                       )}
@@ -754,28 +835,57 @@ export default function TeacherDashboard() {
                       )}
                     </div>
 
-                    {/* 🌟 底部浮動操作列 (已補回) */}
-                    {isSelectionMode && selectedLogIds.length > 0 && (
-                      <div className="absolute bottom-4 left-4 right-4 animate-in slide-in-from-bottom-4">
-                        <div className="bg-slate-800 dark:bg-slate-100 rounded-2xl p-3 shadow-xl flex items-center justify-between">
-                          <span className="text-white dark:text-slate-900 text-sm font-bold pl-2">
-                            已選 {selectedLogIds.length} 篇
+                    {/* 🌟 常駐底部操作列：顯示目前列印/分享的來源 */}
+                    {filteredLogs.length > 0 && (
+                      <div className={`border-t ${UI_THEME.BORDER_DEFAULT} bg-white dark:bg-slate-900 p-3 flex items-center gap-2 print:hidden`}>
+                        {selectedLogIds.length > 0 ? (
+                          /* 有手動選取時：顯示選取數量與清除按鈕 */
+                          <>
+                            <span className={`text-xs font-bold ${UI_THEME.TEXT_MUTED} flex-1`}>
+                              已選取 <span className="text-blue-600 dark:text-blue-400">{selectedLogIds.length}</span> 篇
+                            </span>
+                            <button
+                              onClick={() => setSelectedLogIds([])}
+                              className={`text-xs ${UI_THEME.TEXT_MUTED} hover:text-rose-500 underline`}
+                            >
+                              清除
+                            </button>
+                          </>
+                        ) : (
+                          /* 無手動選取：顯示目前篩選狀態 */
+                          <span className={`text-xs font-bold ${UI_THEME.TEXT_MUTED} flex-1`}>
+                            {dateFilter !== 'all' || searchQuery
+                              ? <span>篩選結果 <span className="text-blue-600 dark:text-blue-400">{filteredLogs.length}</span> 篇</span>
+                              : <span>全部 <span className="text-blue-600 dark:text-blue-400">{filteredLogs.length}</span> 篇</span>
+                            }
                           </span>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleGenerateShareLink(selectedLogIds)}
-                              className="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors"
-                            >
-                              <Share2 size={16} /> 分享
-                            </button>
-                            <button
-                              onClick={() => window.print()}
-                              className="flex items-center gap-1.5 bg-blue-500 hover:bg-blue-400 text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors"
-                            >
-                              <Printer size={16} /> 列印
-                            </button>
-                          </div>
-                        </div>
+                        )}
+                        <button
+                          onClick={() => handleGenerateShareLink(printTargetIds)}
+                          className="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                        >
+                          <Share2 size={14} /> 分享
+                        </button>
+                        <button
+                          onClick={() => {
+                            // 明確選取全部篩選結果，確保 React 重繪後再列印
+                            setSelectedLogIds(printTargetIds);
+                            setIsSelectionMode(true);
+                            setTimeout(() => {
+                              window.print();
+                              // 列印完成後自動恢復乾淨狀態
+                              const cleanup = () => {
+                                setIsSelectionMode(false);
+                                setSelectedLogIds([]);
+                                window.removeEventListener('afterprint', cleanup);
+                              };
+                              window.addEventListener('afterprint', cleanup);
+                            }, 100);
+                          }}
+                          className="flex items-center gap-1.5 bg-blue-500 hover:bg-blue-400 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                        >
+                          <Printer size={14} /> 列印
+                        </button>
                       </div>
                     )}
                   </div>
@@ -791,8 +901,8 @@ export default function TeacherDashboard() {
                         <ChevronLeft size={20} /> 返回日誌清單
                       </button>
                     </div>
-                    {/* 🌟 核心修正：當 batch 列印模式時，隱藏單篇的檢視畫面 */}
-                    <div className={`flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 print:p-0 print:overflow-visible ${isSelectionMode && selectedLogIds.length > 0 ? 'print:hidden' : ''}`}>
+                    {/* 列印時：有多篇目標時隱藏單篇檢視，改由多篇列印版面接管 */}
+                    <div className={`flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 print:p-0 print:overflow-visible ${isSelectionMode && printTargetIds.length > 0 ? 'print:hidden' : ''}`}>
                       {(selectedLogId === 'new' || isEditingMode) ? (
                         <div className="animate-in fade-in zoom-in-95 duration-200 print:hidden">
                           {activeTemplate && activeTemplate.length > 0 ? (
@@ -825,17 +935,30 @@ export default function TeacherDashboard() {
 
                                   // 第二步：嘗試向雲端發布
                                   if (isNewOrDraft) {
-                                    await addLogEntry(data, targetDraftId);
+                                    const newLogId = await addLogEntry(data, targetDraftId);
+                                    // 成功後跳轉到該篇日誌的預覽
+                                    setIsEditingMode(false);
+                                    setSelectedLogId(newLogId || 'new');
                                   } else {
                                     await updateLogEntry(originalLogId, data);
+                                    // 修改成功後回到檢視模式
+                                    setIsEditingMode(false);
                                   }
 
-                                  // 成功後關閉畫面
-                                  setIsEditingMode(false);
-                                  setSelectedLogId('new');
-
                                 } catch (err) {
-                                  // 🌟 發生斷線或 Token 過期時，登記重試任務
+                                  // 🌟 針對 403 權限錯誤，提示使用者重新登入授權
+                                  if (err.message?.includes('403') || err.message?.includes('permission')) {
+                                    setAlertDialog({
+                                      isOpen: true,
+                                      title: '權限不足',
+                                      message: '您目前的 Google 授權可能過期或不足以編輯此共編日誌。請嘗試「登出」後再次登入，以重新取得完整授權（包含試算表編輯權限）。',
+                                      type: 'alert',
+                                      variant: 'danger',
+                                      onConfirm: () => setAlertDialog(prev => ({ ...prev, isOpen: false }))
+                                    });
+                                  }
+
+                                  // 登記重試任務 (Token 更新後自動重試)
                                   setPendingAuthRetry({
                                     data,
                                     targetDraftId,
@@ -946,16 +1069,35 @@ export default function TeacherDashboard() {
         `}
       </style>
 
-      {/* 🌟 核心修正：只有在批次選取模式下且確實有選取項目時，才在列印中顯示這個版面 */}
-      <div className={`hidden ${isSelectionMode && selectedLogIds.length > 0 ? 'print:block' : ''} w-full bg-white text-black font-sans`}>
-        <h1 className="text-2xl font-bold text-center mb-6 pb-3 border-b-2 border-black">
+      {/* 多篇列印版面：有 isSelectionMode 且有列印目標時顯示 */}
+      <div className={`hidden ${isSelectionMode && printTargetIds.length > 0 ? 'print:block' : ''} w-full bg-white text-black font-sans`}>
+        <h1 className="text-2xl font-bold text-center mb-2 pb-3 border-b-2 border-black">
           {activeStudent?.name} - 學生紀錄日誌
         </h1>
+        {/* 顯示篩選條件摘要 */}
+        {(dateFilter !== 'all' || searchQuery) && (
+          <p className="text-xs text-center text-gray-500 mb-4">
+            {dateFilter === '1week' ? '近一週' : dateFilter === '1month' ? '近一個月' : ''}
+            {searchQuery ? ` 關鍵字：「${searchQuery}」` : ''}
+            {' '}共 {printTargetIds.length} 筆
+          </p>
+        )}
 
-        {/* 🌟 2. 將外層容器改為 2 欄網格 (grid-cols-2)，讓兩篇日誌左右並排 */}
-        <div className="grid grid-cols-2 gap-4 items-start">
-          {logs
-            .filter(log => selectedLogIds.includes(log.id))
+        {/* 外層容器：垂直列表 */}
+        <div className="flex flex-col gap-6 items-stretch">
+          {[...logs]
+            .filter(log => printTargetIds.includes(log.id))
+            .sort((a, b) => {
+              const dateA = new Date(a.date).getTime();
+              const dateB = new Date(b.date).getTime();
+              let diff = sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+              if (diff === 0) {
+                const timeA = new Date(a.timestamp || 0).getTime();
+                const timeB = new Date(b.timestamp || 0).getTime();
+                diff = sortOrder === 'desc' ? timeB - timeA : timeA - timeB;
+              }
+              return diff;
+            })
             .map(log => (
               <div key={log.id} className="break-inside-avoid border border-gray-400 p-4 rounded-lg">
 
@@ -963,9 +1105,9 @@ export default function TeacherDashboard() {
                 <div className="flex justify-between items-center border-b border-gray-200 pb-2 mb-3">
                   <h2 className="text-base font-bold flex items-center gap-1.5">
                     <Calendar size={16} />
-                    {log.date}
+                    {formatDateWithWeekday(log.date)}
                   </h2>
-                  <span className="text-xs text-gray-600 flex items-center gap-1">
+                  <span className="text-xs text-gray-600 flex items-center gap-1 print:hidden">
                     <Users size={12} /> {log.author.replace(' (已編輯)', '')}
                   </span>
                 </div>
@@ -1000,13 +1142,18 @@ export default function TeacherDashboard() {
                         if (!hasDriveId) return null;
 
                         return (
-                          <div key={idx} className="aspect-square rounded border border-gray-300 overflow-hidden">
+                          <div key={idx} className="aspect-square rounded border border-gray-300 overflow-hidden relative">
                             <img
-                              // 列印時不需要載入太大的圖片，sz=w400 可以節省記憶體與傳輸時間
-                              src={`https://drive.google.com/thumbnail?id=${file.driveId}&sz=w400`}
+                              // 列印時同樣使用無 sz 參數的縮圖
+                              src={`https://drive.google.com/thumbnail?id=${file.driveId}`}
                               alt={file.name || '照片紀錄'}
-                              className="w-full h-full object-cover"
+                              className="absolute inset-0 w-full h-full object-cover"
                             />
+                            {file.caption && (
+                              <div className="absolute bottom-0 left-0 right-0 text-[10px] text-center p-1 border-t border-gray-200 bg-white/80 text-gray-700 truncate print:break-inside-avoid">
+                                {file.caption}
+                              </div>
+                            )}
                           </div>
                         );
                       })}

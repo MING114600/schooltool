@@ -1,6 +1,6 @@
 # 🏫 ClassroomOS (Photos App)
 
-[![Version](https://img.shields.io/badge/version-8.1.0-blue.svg)](/CHANGELOG_ARCHIVE.md)
+[![Version](https://img.shields.io/badge/version-8.7.0-blue.svg)](/CHANGELOG_ARCHIVE.md)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](/LICENSE)
 [![Built with Vite](https://img.shields.io/badge/built%20with-Vite-646CFF.svg)](https://vitejs.dev/)
 

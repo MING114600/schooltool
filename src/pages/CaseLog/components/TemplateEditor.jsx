@@ -121,8 +121,8 @@ export default function TemplateEditor({ template = [], onSave, onChange, isSavi
     const newBlock = {
       id: `block_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
       type,
-      label: '新增題目',
-      ...(BLOCK_TYPES.find(t => t.type === type)?.canAddOptions ? { options: ['選項 1'] } : {}),
+      label: '標題',
+      ...(BLOCK_TYPES.find(t => t.type === type)?.canAddOptions ? { options: [''] } : {}),
       ...(type === 'rating' ? { max: 5 } : {})
     };
     setBlocks(prev => [...prev, newBlock]);
@@ -165,7 +165,7 @@ export default function TemplateEditor({ template = [], onSave, onChange, isSavi
   const handleAddOption = (blockId) => {
     setBlocks(prev => prev.map(b => {
       if (b.id !== blockId) return b;
-      return { ...b, options: [...b.options, `選項 ${b.options.length + 1}`] };
+      return { ...b, options: [...b.options, ''] };
     }));
   };
 
@@ -173,7 +173,7 @@ export default function TemplateEditor({ template = [], onSave, onChange, isSavi
     setBlocks(prev => prev.map(b => {
       if (b.id !== blockId) return b;
       const newOptions = b.options.filter((_, idx) => idx !== optionIndex);
-      return { ...b, options: newOptions.length ? newOptions : ['選項 1'] };
+      return { ...b, options: newOptions.length ? newOptions : [''] };
     }));
   };
 
@@ -209,7 +209,7 @@ export default function TemplateEditor({ template = [], onSave, onChange, isSavi
             className="flex-1 p-3 text-lg font-bold bg-slate-100 dark:bg-slate-900/50 outline-none border-b-2 border-slate-300 focus:border-blue-500 dark:border-slate-600 dark:focus:border-blue-400 transition-colors placeholder-slate-400"
             value={block.label}
             onChange={(e) => updateBlock(block.id, 'label', e.target.value)}
-            placeholder="請輸入題目..."
+            placeholder="請輸入標題..."
           />
           <div className="py-2 px-3 bg-slate-50 dark:bg-slate-800 rounded-lg flex items-center justify-center border border-slate-200 dark:border-slate-700 min-w-[140px]">
             <span className="text-sm font-bold text-slate-600 dark:text-slate-300">
@@ -227,13 +227,32 @@ export default function TemplateEditor({ template = [], onSave, onChange, isSavi
                 {block.type === 'select' && <div className="text-slate-400 flex-shrink-0 text-sm font-bold">{idx + 1}.</div>}
 
                 <input
+                  id={`option-input-${block.id}-${idx}`}
                   type="text"
                   value={opt}
+                  onFocus={(e) => e.target.select()}
                   onChange={(e) => handleUpdateOption(block.id, idx, e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
-                      if (idx === block.options.length - 1) handleAddOption(block.id);
+                      if (idx === block.options.length - 1) {
+                        handleAddOption(block.id);
+                        setTimeout(() => {
+                          document.getElementById(`option-input-${block.id}-${idx + 1}`)?.focus();
+                        }, 50);
+                      } else {
+                        document.getElementById(`option-input-${block.id}-${idx + 1}`)?.focus();
+                      }
+                    } else if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      if (idx < block.options.length - 1) {
+                        document.getElementById(`option-input-${block.id}-${idx + 1}`)?.focus();
+                      }
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      if (idx > 0) {
+                        document.getElementById(`option-input-${block.id}-${idx - 1}`)?.focus();
+                      }
                     }
                   }}
                   className="flex-1 bg-transparent border-b border-transparent hover:border-slate-200 focus:border-blue-500 outline-none py-1 font-bold text-slate-700 dark:text-slate-200 transition-colors"
@@ -257,6 +276,96 @@ export default function TemplateEditor({ template = [], onSave, onChange, isSavi
                 新增選項
               </span>
             </div>
+
+            {/* 🌟 針對 select 類型提供顯示樣式切換 */}
+            {block.type === 'select' && (
+              <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <span className="text-sm font-bold text-slate-600 dark:text-slate-400">顯示樣式</span>
+                <div className="flex bg-slate-200 dark:bg-slate-700 p-1 rounded-lg">
+                  <button
+                    onClick={() => updateBlock(block.id, 'displayStyle', 'dropdown')}
+                    className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${(!block.displayStyle || block.displayStyle === 'dropdown') ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                  >
+                    下拉選單
+                  </button>
+                  <button
+                    onClick={() => updateBlock(block.id, 'displayStyle', 'pill')}
+                    className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${(block.displayStyle === 'pill') ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                  >
+                    膠囊按鈕
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 🌟 針對 text (多行文字) 類型提供範本級罐頭文字 / 快捷鍵設定 */}
+        {block.type === 'text' && (
+          <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold text-slate-600 dark:text-slate-400">預設罐頭文字 / 快捷鍵</span>
+              <span className="text-xs text-slate-400">輸入後按 Enter 快速新增</span>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                id={`new-preset-input-${block.id}`}
+                placeholder="新增罐頭文字 (例如：情緒穩定)..."
+                className="flex-1 px-3 py-1.5 text-xs rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const val = e.target.value.trim();
+                    if (val) {
+                      const current = block.presets || [];
+                      if (!current.includes(val)) {
+                        updateBlock(block.id, 'presets', [...current, val]);
+                      }
+                      e.target.value = '';
+                    }
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const input = document.getElementById(`new-preset-input-${block.id}`);
+                  if (input && input.value.trim()) {
+                    const val = input.value.trim();
+                    const current = block.presets || [];
+                    if (!current.includes(val)) {
+                      updateBlock(block.id, 'presets', [...current, val]);
+                    }
+                    input.value = '';
+                  }
+                }}
+                className="px-3 py-1.5 text-xs font-bold bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors flex items-center gap-1 shrink-0"
+              >
+                <Plus size={14} /> 新增
+              </button>
+            </div>
+            {block.presets && block.presets.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {block.presets.map((preset, pIdx) => (
+                  <span key={pIdx} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                    {preset}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = block.presets.filter((_, idx) => idx !== pIdx);
+                        updateBlock(block.id, 'presets', next);
+                      }}
+                      className="hover:text-rose-500 transition-colors ml-1"
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400 italic">尚無設定預設罐頭文字（將使用系統預設詞彙）</p>
+            )}
           </div>
         )}
 

@@ -135,7 +135,7 @@ const LogListPane = ({
                                                                 {isSelected ? <CheckSquare size={16} /> : <Square size={16} />}
                                                             </div>
                                                         )}
-                                                        <span className="font-bold text-sm">{log.date}</span>
+                                                        <span className="font-bold text-sm">{log.date?.replace(/-/g, '/')}</span>
                                                         {/* 顯示草稿標籤 */}
                                                         {log.isDraft && (
                                                             <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400 font-bold shrink-0">

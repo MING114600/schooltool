@@ -69,7 +69,8 @@ export const AuthProvider = ({ children }) => {
       }
     },
     onError: (error) => console.error('Google 登入失敗:', error),
-    // 🌟 確保包含 ClassroomOS 所有的雲端權限需求
+    // 🌟 退回安全的 drive.file 權限，移除 spreadsheets 敏感權限以避開「未經驗證應用程式」警告
+    // 共編檔案改由「匯入共編學生」(Google Picker) 取得特定檔案授權
     scope: 'https://www.googleapis.com/auth/drive.file',
   });
 

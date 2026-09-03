@@ -1,4 +1,5 @@
 import { getAllItems, saveItem, STORES } from './idbService'; // 🌟 統一使用新版 idbService
+import { getAll as getAllCaseLogItems, putItem as saveCaseLogItem, STORES as CASE_LOG_STORES } from '../pages/CaseLog/utils/caseLogDatabase';
 
 const SYSTEM_KEYS = [
     // --- Dashboard ---
@@ -56,6 +57,16 @@ export const generateSystemPayload = async () => {
         console.warn('IDB Backup Failed', e);
     }
 
+    // 3. 收集 CaseLog IndexedDB 資料
+    try {
+        backupData.indexedDB.caseLogStudents = await getAllCaseLogItems(CASE_LOG_STORES.STUDENTS);
+        backupData.indexedDB.caseLogTemplates = await getAllCaseLogItems(CASE_LOG_STORES.TEMPLATES);
+        backupData.indexedDB.caseLogGlobalTemplates = await getAllCaseLogItems(CASE_LOG_STORES.GLOBAL_TEMPLATES);
+        backupData.indexedDB.caseLogLogs = await getAllCaseLogItems(CASE_LOG_STORES.LOGS);
+    } catch (e) {
+        console.warn('CaseLog IDB Backup Failed', e);
+    }
+
     return {
         version: '4.0',
         type: 'universal_system_backup',
@@ -98,6 +109,20 @@ export const restoreFromPayload = async (payload) => {
         }
         if (idbData.contactTemplates) {
             for (const tpl of idbData.contactTemplates) await saveItem(STORES.CONTACT_BOOK_TEMPLATES, tpl);
+        }
+        
+        // 3. 還原 CaseLog IndexedDB 資料
+        if (idbData.caseLogStudents) {
+            for (const item of idbData.caseLogStudents) await saveCaseLogItem(CASE_LOG_STORES.STUDENTS, item);
+        }
+        if (idbData.caseLogTemplates) {
+            for (const item of idbData.caseLogTemplates) await saveCaseLogItem(CASE_LOG_STORES.TEMPLATES, item);
+        }
+        if (idbData.caseLogGlobalTemplates) {
+            for (const item of idbData.caseLogGlobalTemplates) await saveCaseLogItem(CASE_LOG_STORES.GLOBAL_TEMPLATES, item);
+        }
+        if (idbData.caseLogLogs) {
+            for (const item of idbData.caseLogLogs) await saveCaseLogItem(CASE_LOG_STORES.LOGS, item);
         }
     }
     return true;
@@ -152,7 +177,7 @@ export const resetSystem = async () => {
     });
 
     // 2. 清除 IndexedDB (刪除所有相關資料庫)
-    const DB_NAMES = ['ClassroomDB', 'ExamReaderDB', 'keyval-store'];
+    const DB_NAMES = ['ClassroomDB', 'ExamReaderDB', 'keyval-store', 'ClassroomOS_CaseLogDB'];
 
     const deletePromises = DB_NAMES.map(dbName => {
         return new Promise((resolve) => {

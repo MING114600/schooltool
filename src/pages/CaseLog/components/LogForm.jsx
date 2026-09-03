@@ -7,6 +7,50 @@ const getLocalToday = () => {
   return new Date(Date.now() - tzOffset).toISOString().split('T')[0];
 };
 
+// 🌟 獨立的文字區塊元件
+const TextBlockWithPresets = ({ block, currentText, uiZoom, handleValueChange }) => {
+  const presets = (block.presets && block.presets.length > 0) 
+    ? block.presets 
+    : ['情緒穩定', '參與度高', '需要引導', '注意力分散', '配合度佳'];
+
+  const handlePresetClick = (preset) => {
+    const newText = currentText ? `${currentText}，${preset}` : preset;
+    handleValueChange(block.id, newText);
+  };
+
+  return (
+    <div className="flex flex-col">
+      <textarea
+        className={`w-full mt-2 p-3 min-h-[100px] ${uiZoom.input} font-bold resize-y ${UI_THEME.INPUT_BASE} transition-all`}
+        value={currentText}
+        onChange={(e) => handleValueChange(block.id, e.target.value)}
+        placeholder="請輸入詳細描述..."
+      />
+      
+      {/* 🌟 快捷鍵 / 罐頭片語區塊 */}
+      {presets.length > 0 && (
+        <div className="mt-2 p-2 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800">
+          <div className="flex items-center mb-1.5 px-1">
+            <span className="text-xs font-bold text-slate-500">快捷鍵</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {presets.map(preset => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => handlePresetClick(preset)}
+                className="px-3 py-1 bg-white hover:bg-indigo-50 dark:bg-slate-800 dark:hover:bg-indigo-900/30 text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 text-xs font-bold rounded-full border border-slate-200 dark:border-slate-700 transition-colors shadow-sm"
+              >
+                + {preset}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function LogForm({
   template = [],
   onSubmit,
@@ -172,8 +216,30 @@ export default function LogForm({
     const files = Array.from(e.target.files);
     if (!files.length) return;
 
+    // 🌟 將新選擇的檔案重新命名為 YYYYMMDD_HHMMSS_流水號.jpg
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const hh = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    const timePrefix = `${yyyy}${mm}${dd}_${hh}${min}${ss}`;
+
+    const newFiles = files.map((file, idx) => {
+      // 取得副檔名
+      const ext = file.name.split('.').pop() || 'jpg';
+      const serial = String(idx + 1).padStart(2, '0');
+      const newName = `${timePrefix}_${serial}.${ext}`;
+      
+      const newFile = new File([file], newName, { type: file.type });
+      // 為 File 物件加上 caption 屬性
+      newFile.caption = '';
+      return newFile;
+    });
+
     // 將新選擇的檔案加入陣列中
-    setAttachments(prev => [...prev, ...files]);
+    setAttachments(prev => [...prev, ...newFiles]);
   };
 
   const removeAttachment = (indexToRemove) => {
@@ -221,7 +287,7 @@ export default function LogForm({
 
         return (
           <div className="flex flex-col gap-2 mt-2">
-            {block.options?.map((option) => {
+            {(block.options?.map((opt, i) => opt.trim() || `選項 ${i + 1}`) || []).map((option) => {
               const checked = selectedValues.includes(option);
               return (
                 <label key={option} className="flex items-center gap-3 cursor-pointer group">
@@ -242,7 +308,8 @@ export default function LogForm({
 
       case 'select':
       case 'radio':
-        const options = block.options || ['是', '否', '部分'];
+        const rawOptions = block.options || ['是', '否', '部分'];
+        const options = rawOptions.map((opt, i) => opt.trim() || `選項 ${i + 1}`);
 
         if (block.type === 'radio') {
           return (
@@ -285,6 +352,43 @@ export default function LogForm({
           );
         }
 
+        // 🌟 改由老師在範本設定中自訂是否使用 pill style，預設為下拉選單
+        const isPillMode = block.type === 'select' && block.displayStyle === 'pill';
+
+        if (isPillMode) {
+          return (
+            <div className="flex flex-wrap gap-2 mt-2 items-center">
+              {options.map((option) => {
+                const isSelected = formData[block.id] === option;
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => handleValueChange(block.id, option)}
+                    disabled={isSubmitting}
+                    className={`px-4 py-2 rounded-xl ${uiZoom.small} font-bold transition-all border ${isSelected
+                      ? 'bg-blue-100 text-blue-700 border-blue-200 shadow-sm dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-800'
+                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-700'
+                      }`}
+                  >
+                    {option}
+                  </button>
+                );
+              })}
+              {formData[block.id] && (
+                <button
+                  type="button"
+                  onClick={() => handleValueChange(block.id, '')}
+                  className="p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-200 dark:hover:text-slate-200 dark:hover:bg-slate-700 transition-colors ml-1"
+                  title="清除選擇"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+          );
+        }
+
         return (
           <select
             className={`w-full mt-2 p-3 ${uiZoom.input} font-bold ${UI_THEME.INPUT_BASE} transition-all`}
@@ -299,37 +403,13 @@ export default function LogForm({
         );
 
       case 'text':
-        const presets = ['情緒穩定', '參與度高', '需要引導', '注意力分散', '配合度佳'];
-        const currentText = formData[block.id] || '';
-
-        const handlePresetClick = (preset) => {
-          // 如果原本有字，加上換行或空格；如果沒有就直接加上
-          const newText = currentText ? `${currentText}，${preset}` : preset;
-          handleValueChange(block.id, newText);
-        };
-
         return (
-          <div className="flex flex-col">
-            <textarea
-              className={`w-full mt-2 p-3 min-h-[100px] ${uiZoom.input} font-bold resize-y ${UI_THEME.INPUT_BASE} transition-all`}
-              value={currentText}
-              onChange={(e) => handleValueChange(block.id, e.target.value)}
-              placeholder="請輸入詳細描述..."
-            />
-            {/* 🌟 罐頭片語區塊 */}
-            <div className="flex flex-wrap gap-2 mt-2">
-              {presets.map(preset => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => handlePresetClick(preset)}
-                  className="px-3 py-1 bg-slate-100 hover:bg-indigo-50 dark:bg-slate-800 dark:hover:bg-indigo-900/30 text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 text-xs font-bold rounded-full border border-slate-200 dark:border-slate-700 transition-colors"
-                >
-                  + {preset}
-                </button>
-              ))}
-            </div>
-          </div>
+          <TextBlockWithPresets 
+            block={block} 
+            currentText={formData[block.id] || ''} 
+            uiZoom={uiZoom} 
+            handleValueChange={handleValueChange} 
+          />
         );
 
       case 'image':
@@ -357,27 +437,41 @@ export default function LogForm({
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
                 {attachments.map((file, idx) => {
                   const isLocalFile = file instanceof File;
-                  // 🌟 修正：利用 driveId 組合出可用於 <img> 的直連網址
-                  const src = isLocalFile ? URL.createObjectURL(file) : `https://drive.google.com/thumbnail?id=${file.driveId}&sz=w800`;
+                  // 移除 sz 參數，避免圖片原尺寸小於指定 size 導致 Drive API 報 400 錯誤
+                  const src = isLocalFile ? URL.createObjectURL(file) : `https://drive.google.com/thumbnail?id=${file.driveId}`;
                   const fileName = isLocalFile ? file.name : file.name;
+                  const caption = file.caption || '';
 
                   return (
-                    <div key={idx} className="relative group aspect-square rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-100 dark:bg-slate-800">
-                      <img
-                        src={src}
-                        alt={fileName}
-                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <button
-                          type="button"
-                          onClick={() => removeAttachment(idx)}
-                          disabled={isSubmitting}
-                          className="p-2 bg-rose-500 text-white rounded-full hover:bg-rose-600 transition-transform hover:scale-110 shadow-lg"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                    <div key={idx} className="relative group flex flex-col gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 p-2">
+                      <div className="relative aspect-square w-full rounded overflow-hidden">
+                        <img
+                          src={src}
+                          alt={fileName}
+                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <button
+                            type="button"
+                            onClick={() => removeAttachment(idx)}
+                            disabled={isSubmitting}
+                            className="p-2 bg-rose-500 text-white rounded-full hover:bg-rose-600 transition-transform hover:scale-110 shadow-lg"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
+                      <input
+                        type="text"
+                        value={caption}
+                        onChange={(e) => {
+                          const newAttachments = [...attachments];
+                          newAttachments[idx].caption = e.target.value;
+                          setAttachments(newAttachments);
+                        }}
+                        placeholder="新增說明..."
+                        className={`w-full p-1.5 text-xs rounded border ${UI_THEME.BORDER_DEFAULT} ${UI_THEME.INPUT_BASE} focus:outline-none focus:ring-1 focus:ring-blue-500`}
+                      />
                     </div>
                   );
                 })}
