@@ -34,7 +34,7 @@ const PrintView = ({ activeStudent, logs, selectedLogIds }) => {
                                 <div className="flex justify-between items-center border-b border-gray-200 pb-2 mb-3">
                                     <h2 className="text-base font-bold flex items-center gap-1.5">
                                         <Calendar size={16} />
-                                        {log.date}
+                                        {log.date?.replace(/-/g, '/')}
                                     </h2>
                                     <span className="text-xs text-gray-600 flex items-center gap-1">
                                         <Users size={12} /> {log.author.replace(' (已編輯)', '')}

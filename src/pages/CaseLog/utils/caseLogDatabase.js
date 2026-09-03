@@ -3,7 +3,7 @@
 const DB_NAME = 'ClassroomOS_CaseLogDB';
 const DB_VERSION = 2;
 
-const STORES = {
+export const STORES = {
   STUDENTS: 'students',         // 儲存學生清單與 Sheet ID
   TEMPLATES: 'templates',       // 儲存學生專屬的日誌模板 JSON
   GLOBAL_TEMPLATES: 'global_templates', // 🌟 新增：儲存系統公版模板庫
@@ -65,7 +65,7 @@ const initDB = () => {
 /**
  * 通用：取得 Store 中的所有資料
  */
-const getAll = async (storeName) => {
+export const getAll = async (storeName) => {
   const db = await initDB();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(storeName, 'readonly');
@@ -80,7 +80,7 @@ const getAll = async (storeName) => {
 /**
  * 通用：儲存單筆資料至指定 Store
  */
-const putItem = async (storeName, item) => {
+export const putItem = async (storeName, item) => {
   const db = await initDB();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(storeName, 'readwrite');

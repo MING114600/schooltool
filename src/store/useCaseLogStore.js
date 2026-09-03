@@ -11,7 +11,8 @@ import {
     deleteCloudFile,
     updateCaseLogRow, clearCaseLogRow,
     uploadImageToDrive,
-    deleteCloudFolderByName
+    deleteCloudFolderByName,
+    searchCaseLogSheets       // 🌟 新增：搜尋日誌檔案
 } from '../services/googleDriveService';
 
 export const useCaseLogStore = create((set, get) => ({
@@ -52,6 +53,44 @@ export const useCaseLogStore = create((set, get) => ({
             console.error('[CaseLogStore] 初始化快取失敗:', err);
         } finally {
             set({ isLoading: false });
+        }
+    },
+
+    // 🌟 新增：從 Google Drive 搜尋並同步所有的學生日誌 (供跨裝置時使用)
+    syncStudentsFromCloud: async (user) => {
+        if (!user || !user.accessToken) return;
+        try {
+            set({ isSyncing: true });
+            const token = user.accessToken;
+            const files = await searchCaseLogSheets(token);
+            
+            const currentStudents = get().students;
+            let hasNew = false;
+            
+            for (const file of files) {
+                // 檢查是否已在本地
+                if (!currentStudents.some(s => s.sheetId === file.id)) {
+                    const studentName = file.name.replace('[日誌] ', '').trim();
+                    const newStudent = {
+                        id: `student_synced_${file.id}`,
+                        name: studentName,
+                        sheetId: file.id,
+                        isShared: true, // 預設視為匯入，避免誤刪
+                        createdAt: new Date().toISOString()
+                    };
+                    await caseLogDB.saveStudent(newStudent);
+                    currentStudents.push(newStudent);
+                    hasNew = true;
+                }
+            }
+            
+            if (hasNew) {
+                set({ students: [...currentStudents] });
+            }
+        } catch (err) {
+            console.error('[CaseLogStore] 雲端同步學生失敗:', err);
+        } finally {
+            set({ isSyncing: false });
         }
     },
 
@@ -427,6 +466,7 @@ export const useCaseLogStore = create((set, get) => ({
                 for (const file of logData.attachments) {
                     if (file instanceof File) {
                         const driveData = await uploadImageToDrive(token, file, activeStudent.name, activeStudent.sheetId);
+                        driveData.caption = file.caption || '';
                         processedAttachments.push(driveData);
                     } else {
                         processedAttachments.push(file);
@@ -463,6 +503,8 @@ export const useCaseLogStore = create((set, get) => ({
                 const next = draftIdToRemove ? state.logs.filter(l => l.id !== draftIdToRemove) : state.logs;
                 return { logs: [newLog, ...next] };
             });
+
+            return newLog.id; // 🌟 回傳新日誌的 ID 供畫面跳轉
         } catch (err) {
             handleError(err, '日誌儲存失敗。若處於離線狀態，請稍後重試。');
             throw err;
@@ -506,6 +548,7 @@ export const useCaseLogStore = create((set, get) => ({
             for (const file of newAttachments) {
                 if (file instanceof File) {
                     const driveData = await uploadImageToDrive(token, file, activeStudent.name, activeStudent.sheetId);
+                    driveData.caption = file.caption || '';
                     processedAttachments.push(driveData);
                 } else {
                     processedAttachments.push(file);

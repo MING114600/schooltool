@@ -123,12 +123,21 @@ export const useCaseLog = (setAlertDialog) => {
 
 export const CaseLogDataLoader = ({ children, setAlertDialog }) => {
   const loadInitialStudents = useCaseLogStore(state => state.loadInitialStudents);
+  const syncStudentsFromCloud = useCaseLogStore(state => state.syncStudentsFromCloud); // 🌟 新增
   const activeStudentId = useCaseLogStore(state => state.activeStudentId);
   const { loadStudentData } = useCaseLog(setAlertDialog);
+  const { user } = useAuth(); // 🌟 取得目前登入使用者
 
   useEffect(() => {
     loadInitialStudents();
   }, [loadInitialStudents]);
+
+  // 🌟 當使用者狀態改變且已登入時，觸發雲端搜尋
+  useEffect(() => {
+    if (user && user.accessToken) {
+      syncStudentsFromCloud(user);
+    }
+  }, [user, syncStudentsFromCloud]);
 
   useEffect(() => {
     loadStudentData(activeStudentId);

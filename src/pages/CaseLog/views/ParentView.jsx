@@ -208,7 +208,7 @@ export default function ParentView() {
                 <div className={`px-5 py-4 border-b ${UI_THEME.BORDER_LIGHT} bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center`}>
                   <div className="flex items-center gap-2.5">
                     <Calendar size={18} className={UI_THEME.TEXT_SECONDARY} />
-                    <span className={`${uiZoom.date} font-bold ${UI_THEME.TEXT_PRIMARY} transition-all`}>{log.date}</span>
+                    <span className={`${uiZoom.date} font-bold ${UI_THEME.TEXT_PRIMARY} transition-all`}>{log.date?.replace(/-/g, '/')}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <User size={14} className={UI_THEME.TEXT_MUTED} />

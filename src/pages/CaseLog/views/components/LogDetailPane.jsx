@@ -58,7 +58,7 @@ const LogDetailPane = ({
                             <div className="flex items-center gap-3">
                                 <h2 className={`${uiZoom.title} font-bold ${UI_THEME.TEXT_PRIMARY} mb-2 flex items-center gap-2 transition-all`}>
                                     <Calendar className={UI_THEME.TEXT_SECONDARY} />
-                                    {log.date}
+                                    {log.date?.replace(/-/g, '/')}
                                 </h2>
 
                                 {/* 🌟 新增：文字放大縮小控制項 */}

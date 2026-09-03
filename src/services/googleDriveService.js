@@ -272,6 +272,24 @@ export const deleteCloudFile = async (token, fileId) => {
 // ==========================================
 
 /**
+ * 🌟 新增：搜尋所有名稱包含 "[日誌]" 的試算表 (包含自己建立與他人共編)
+ */
+export const searchCaseLogSheets = async (token) => {
+  try {
+    const q = encodeURIComponent(`name contains '[日誌]' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`);
+    const res = await fetch(`${DRIVE_API}?q=${q}&fields=files(id,name,modifiedTime)&orderBy=modifiedTime desc`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    await checkResponse(res);
+    const data = await res.json();
+    return data.files || [];
+  } catch (error) {
+    console.error('搜尋日誌檔案失敗:', error);
+    return [];
+  }
+};
+
+/**
  * 建立單一學生的個案日誌 (Google Sheet)
  */
 export const createCaseLogSheet = async (token, studentName) => {
@@ -711,19 +729,24 @@ export const uploadImageToDrive = async (token, file, studentName, sheetId) => {
     const fileData = await uploadRes.json();
 
     // 4. 設定為任何人皆可檢視 (確保家長透過網址檢視時不會看到破圖)
-    const permRes = await fetch(`${DRIVE_API}/${fileData.id}/permissions`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ role: 'reader', type: 'anyone' })
-    });
-    await checkResponse(permRes);
+    // 注意：即使此步驟失敗，圖片仍已上傳成功，不應中斷整個流程
+    try {
+      const permRes = await fetch(`${DRIVE_API}/${fileData.id}/permissions`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ role: 'reader', type: 'anyone' })
+      });
+      await checkResponse(permRes);
+    } catch (permError) {
+      console.warn('設定圖片公開權限失敗（圖片仍已上傳）:', permError.message);
+    }
 
     return {
       driveId: fileData.id,
-      url: fileData.webViewLink || fileData.webContentLink,
+      url: fileData.webViewLink || `https://drive.google.com/file/d/${fileData.id}/view`,
       name: file.name
     };
   } catch (error) {
