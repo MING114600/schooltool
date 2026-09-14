@@ -1,11 +1,11 @@
 export const STANDARD_TIME_SLOTS = [
-    { id: 'arrival', name: '上學時間', start: '07:25', end: '07:450', type: 'break' },
+    { id: 'arrival', name: '上學時間', start: '07:25', end: '07:45', type: 'break' },
     { id: 'morning', name: '晨光時間', start: '07:45', end: '08:35', type: 'class' },
     { id: 'break1', name: '下課', start: '08:35', end: '08:40', type: 'break' },
     { id: 'p1', name: '第一節', start: '08:40', end: '09:20', type: 'class' },
     { id: 'break2', name: '下課', start: '09:20', end: '09:30', type: 'break' },
     { id: 'p2', name: '第二節', start: '09:30', end: '10:10', type: 'class' },
-    { id: 'break3', name: '大下課', start: '10:10', end: '11:25', type: 'break' },
+    { id: 'break3', name: '大下課', start: '10:10', end: '10:25', type: 'break' },
     { id: 'p3', name: '第三節', start: '10:25', end: '11:05', type: 'class' },
     { id: 'break4', name: '下課', start: '11:05', end: '11:15', type: 'break' },
     { id: 'p4', name: '第四節', start: '11:15', end: '11:55', type: 'class' },
